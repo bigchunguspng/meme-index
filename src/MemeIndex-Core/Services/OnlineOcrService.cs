@@ -1,3 +1,5 @@
+using System.Drawing;
+using System.Drawing.Imaging;
 using MemeIndex_Core.Utils;
 using Newtonsoft.Json.Linq;
 
@@ -31,13 +33,36 @@ public class OnlineOcrService : IOcrService
                 { new StringContent("true"),  "scale" },
             };
 
-            // todo compress image if > 1024 kb
+            byte[] bytes;
 
-            if (!string.IsNullOrEmpty(path))
+            var file = new FileInfo(path);
+            if (file.Exists == false)
             {
-                var bytes = await File.ReadAllBytesAsync(path);
-                form.Add(new ByteArrayContent(bytes, 0, bytes.Length), "image", "image.jpg");
+                return string.Empty;
             }
+
+            if (file.Length >= 1024 * 1024 && OperatingSystem.IsWindows())
+            {
+                var divider = Math.Sqrt(file.Length / 500_000F);
+
+                using var image = Image.FromFile(path);
+                var size = new Size
+                {
+                    Height = (int)(image.Height / divider),
+                    Width  = (int)(image.Width  / divider)
+                };
+                using var bitmap = new Bitmap(image, size);
+                using var stream = new MemoryStream();
+
+                bitmap.Save(stream, ImageFormat.Jpeg);
+                bytes = stream.ToArray();
+            }
+            else
+            {
+                bytes = await File.ReadAllBytesAsync(path);
+            }
+
+            form.Add(new ByteArrayContent(bytes, 0, bytes.Length), "image", "image.jpg");
 
             var response = await Client.PostAsync(ApiURL, form);
 
