@@ -7,13 +7,14 @@ public class OnlineOcrService : IOcrService
 {
     public OnlineOcrService()
     {
+        ApiKey = ConfigRepository.GetConfig().OrcApiKey ?? string.Empty;
         Client = new HttpClient
         {
             Timeout = TimeSpan.FromMinutes(5)
         };
     }
 
-    private string ApiKey { get; set; } = "PASTE_YOUR_KEY_HERE";
+    private string ApiKey { get; set; }
     private string ApiURL { get; set; } = "https://api.ocr.space/parse/image";
 
     private HttpClient Client { get; set; }
@@ -29,6 +30,8 @@ public class OnlineOcrService : IOcrService
                 { new StringContent("2"), "OCREngine" },
                 { new StringContent("true"),  "scale" },
             };
+
+            // todo compress image if > 1024 kb
 
             if (!string.IsNullOrEmpty(path))
             {

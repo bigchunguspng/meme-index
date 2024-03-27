@@ -39,19 +39,19 @@ internal static class Program
                 Logger.Log(ConsoleColor.Cyan, "Time: {0:F3}", timer.ElapsedMilliseconds / 1000F);
 
                 // tesseract ocr eng
-                timer.Restart();
-                tesseract.GetTextRepresentation(input, "eng");
-                Logger.Log(ConsoleColor.Cyan, "Time: {0:F3}", timer.ElapsedMilliseconds / 1000F);
+                //timer.Restart();
+                //tesseract.GetTextRepresentation(input, "eng");
+                //Logger.Log(ConsoleColor.Cyan, "Time: {0:F3}", timer.ElapsedMilliseconds / 1000F);
 
                 // tesseract ocr rus
-                timer.Restart();
-                tesseract.GetTextRepresentation(input, "rus");
-                Logger.Log(ConsoleColor.Cyan, "Time: {0:F3}", timer.ElapsedMilliseconds / 1000F);
+                //timer.Restart();
+                //tesseract.GetTextRepresentation(input, "rus");
+                //Logger.Log(ConsoleColor.Cyan, "Time: {0:F3}", timer.ElapsedMilliseconds / 1000F);
 
                 // tesseract ocr ukr
-                timer.Restart();
-                tesseract.GetTextRepresentation(input, "ukr");
-                Logger.Log(ConsoleColor.Cyan, "Time: {0:F3}", timer.ElapsedMilliseconds / 1000F);
+                //timer.Restart();
+                //tesseract.GetTextRepresentation(input, "ukr");
+                //Logger.Log(ConsoleColor.Cyan, "Time: {0:F3}", timer.ElapsedMilliseconds / 1000F);
             }
         }
         catch (Exception e)
