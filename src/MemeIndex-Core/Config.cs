@@ -1,22 +1,30 @@
-using MemeIndex_Core.Utils;
+using System.ComponentModel;
 
 namespace MemeIndex_Core;
 
 public class Config
 {
-    public string? OrcApiKey { get; set; }
-}
+    private string? _dataPath;
 
-public static class ConfigRepository
-{
-    static ConfigRepository()
+    [DefaultValue("data")]
+    public string? DataPath
     {
-        ConfigJson = new JsonIO<Config>("config.json");
+        get => _dataPath;
+        set
+        {
+            if (value == null) return;
+
+            Directory.CreateDirectory(value);
+            _dataPath = value;
+        }
     }
 
-    private static JsonIO<Config> ConfigJson { get; set; }
+    [DefaultValue(@"Data Source=[data]\meme-index.db")]
+    public string? DbConnectionString { get; set; }
 
-    public static Config GetConfig() => ConfigJson.LoadData();
-
-    public static void SaveChanges() => ConfigJson.SaveData();
+    /// <summary>
+    /// You can get one here: https://ocr.space/ocrapi/freekey
+    /// </summary>
+    [DefaultValue("PASTE YOUR API KEY HERE")]
+    public string? OrcApiKey { get; set; }
 }

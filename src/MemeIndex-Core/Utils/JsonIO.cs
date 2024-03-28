@@ -3,7 +3,7 @@ using Newtonsoft.Json.Serialization;
 
 namespace MemeIndex_Core.Utils;
 
-public class JsonIO<T> : JsonOptions where T : new()
+public class JsonIO<T> : JsonSerializerOptions where T : new()
 {
     private T? _data;
 
@@ -16,16 +16,26 @@ public class JsonIO<T> : JsonOptions where T : new()
 
     public T LoadData()
     {
+        if (_data is not null)
+        {
+            return _data;
+        }
+
         var file = new FileInfo(_path);
         if (file is { Exists: true, Length: > 0 })
         {
             using var stream = File.OpenText(_path);
             using var reader = new JsonTextReader(stream);
-            _data = Serializer.Deserialize<T>(reader);
-            return _data!;
+            _data = Serializer.Deserialize<T>(reader)!;
+        }
+        else
+        {
+            using var memory = new MemoryStream("{}"u8.ToArray());
+            using var stream = new StreamReader(memory);
+            using var reader = new JsonTextReader(stream);
+            _data = Serializer.Deserialize<T>(reader)!;
         }
 
-        _data = new T();
         SaveData();
         return _data;
     }
@@ -44,7 +54,7 @@ public class JsonIO<T> : JsonOptions where T : new()
     }
 }
 
-public class JsonOptions
+public class JsonSerializerOptions
 {
     protected static readonly JsonSerializer Serializer = new()
     {
@@ -53,6 +63,6 @@ public class JsonOptions
         {
             NamingStrategy = new KebabCaseNamingStrategy()
         },
-        DefaultValueHandling = DefaultValueHandling.Include,
+        DefaultValueHandling = DefaultValueHandling.Populate
     };
 }
