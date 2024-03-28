@@ -97,11 +97,14 @@ public class DirectoryService : IDirectoryService
 
     private IEnumerable<Directory> GetSubdirectories(Directory directory)
     {
-        return _context.Directories.Where(x => x.IsTracked == false && x.Path.StartsWith(directory.Path));
+        return _context.Directories
+            .Where(x => x.IsTracked == false && x.Id != directory.Id && x.Path.StartsWith(directory.Path));
     }
 
     private Task<bool> IsInsideOtherTrackedDirectory(Directory directory)
     {
-        return _context.Directories.AnyAsync(x => x.IsTracked && directory.Path.StartsWith(x.Path));
+        return _context.Directories
+            .Where(x => x.IsTracked && x.Id != directory.Id)
+            .AnyAsync(x => directory.Path.StartsWith(x.Path));
     }
 }
