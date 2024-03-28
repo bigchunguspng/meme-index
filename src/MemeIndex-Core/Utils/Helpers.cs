@@ -8,7 +8,10 @@ public static partial class Helpers
     private static partial Regex LineBreaksRegex();
 
     public static string RemoveLineBreaks(this string text) => LineBreaksRegex().Replace(text, " ");
-    
+
+    public static bool IsFile     (this string path) =>      File.Exists(path);
+    public static bool IsDirectory(this string path) => Directory.Exists(path);
+
     public static bool IsImage(this FileInfo file)
     {
         var extension = file.Extension.ToLower();
