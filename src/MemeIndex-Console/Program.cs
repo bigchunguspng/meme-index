@@ -1,7 +1,10 @@
-﻿using System.Diagnostics;
-using System.Globalization;
+﻿using System.Globalization;
+using MemeIndex_Core;
+using MemeIndex_Core.Data;
 using MemeIndex_Core.Services;
 using MemeIndex_Core.Utils;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace MemeIndex_Console;
 
@@ -13,54 +16,19 @@ internal static class Program
 
         CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 
-        try
-        {
-            // init
-            var onlineApi = new OnlineOcrService();
-            var tesseract = new TesseractOcrService();
+        var builder = Host.CreateApplicationBuilder(args);
 
-            while (true)
-            {
-                var input = Console.ReadLine()?.Trim().Trim('"');
-                if (input?.Length == 1) break;
+        builder.Services.AddHostedService<ConsoleLoopUI>();
 
-                if (!File.Exists(input))
-                {
-                    Logger.Log("File don't exist");
-                    continue;
-                }
+        builder.Services.AddSingleton<Config>(_ => ConfigRepository.GetConfig());
+        builder.Services.AddSingleton<IOcrService, OnlineOcrService>();
+        builder.Services.AddDbContext<MemeDbContext>();
 
-                var timer = new Stopwatch();
+        using var host = builder.Build();
 
-                // online ocr eng eng-2
-                timer.Start();
-                var text = onlineApi.GetTextRepresentation(input).Result;
-                Logger.Log(ConsoleColor.Blue, "Text: {0}", text);
-                Logger.Log(ConsoleColor.Cyan, "Time: {0:F3}", timer.ElapsedMilliseconds / 1000F);
+        DatabaseInitializer.EnsureCreated(host.Services.GetRequiredService<MemeDbContext>());
 
-                // tesseract ocr eng
-                //timer.Restart();
-                //tesseract.GetTextRepresentation(input, "eng");
-                //Logger.Log(ConsoleColor.Cyan, "Time: {0:F3}", timer.ElapsedMilliseconds / 1000F);
-
-                // tesseract ocr rus
-                //timer.Restart();
-                //tesseract.GetTextRepresentation(input, "rus");
-                //Logger.Log(ConsoleColor.Cyan, "Time: {0:F3}", timer.ElapsedMilliseconds / 1000F);
-
-                // tesseract ocr ukr
-                //timer.Restart();
-                //tesseract.GetTextRepresentation(input, "ukr");
-                //Logger.Log(ConsoleColor.Cyan, "Time: {0:F3}", timer.ElapsedMilliseconds / 1000F);
-            }
-        }
-        catch (Exception e)
-        {
-            Trace.TraceError(e.ToString());
-            Logger.Log("Unexpected Error: " + e.Message);
-            Logger.Log("Details: ");
-            Logger.Log(e.ToString());
-        }
+        host.Run();
 
         Logger.Log("[Fin]", ConsoleColor.Magenta);
     }

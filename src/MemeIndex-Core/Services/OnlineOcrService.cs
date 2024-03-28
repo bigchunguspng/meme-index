@@ -7,9 +7,9 @@ namespace MemeIndex_Core.Services;
 
 public class OnlineOcrService : IOcrService
 {
-    public OnlineOcrService()
+    public OnlineOcrService(Config config)
     {
-        ApiKey = ConfigRepository.GetConfig().OrcApiKey ?? string.Empty;
+        ApiKey = config.OrcApiKey ?? string.Empty;
         Client = new HttpClient
         {
             Timeout = TimeSpan.FromMinutes(5)
