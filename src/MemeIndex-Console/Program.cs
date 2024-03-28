@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using MemeIndex_Core;
+using MemeIndex_Core.Controllers;
 using MemeIndex_Core.Data;
 using MemeIndex_Core.Services;
 using MemeIndex_Core.Utils;
@@ -26,6 +27,7 @@ internal static class Program
         builder.Services.AddSingleton<IFileService, FileService>();
         builder.Services.AddSingleton<FileWatchService>();
         builder.Services.AddSingleton<IOcrService, OnlineOcrService>();
+        builder.Services.AddSingleton<IndexingController>();
 
         using var host = builder.Build();
 

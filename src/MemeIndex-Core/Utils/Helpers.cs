@@ -14,7 +14,11 @@ public static partial class Helpers
 
     public static bool IsImage(this FileInfo file)
     {
-        var extension = file.Extension.ToLower();
-        return extension is ".png" or ".jpg" or ".jpeg" or ".tif" or "bmp";
+        return GetImageExtensions().Contains(file.Extension.ToLower());
+    }
+
+    public static IList<string> GetImageExtensions()
+    {
+        return new List<string> { ".png", ".jpg", ".jpeg", ".tif", ".bmp" };
     }
 }

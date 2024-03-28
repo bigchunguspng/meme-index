@@ -102,6 +102,18 @@ public class FileWatchService
     {
         // update db entry
         Logger.Log("Renamed", ConsoleColor.Yellow);
+        if (e.FullPath.IsFile())
+        {
+            var file = new FileInfo(e.FullPath);
+            if (file.IsImage())
+            {
+                // update file
+            }
+        }
+        else if (e.FullPath.IsDirectory())
+        {
+            _directoryService.Update(e.OldFullPath, e.FullPath);
+        }
     }
 
     private void OnChanged(object source, FileSystemEventArgs e)

@@ -6,27 +6,39 @@ namespace MemeIndex_Core.Controllers;
 public class IndexingController
 {
     private readonly FileWatchService _watch;
+    private readonly IFileService _fileService;
     private readonly IDirectoryService _directoryService;
 
-    public IndexingController(FileWatchService watch, IDirectoryService directoryService)
+    public IndexingController(FileWatchService watch, IFileService fileService, IDirectoryService directoryService)
     {
         _watch = watch;
+        _fileService = fileService;
         _directoryService = directoryService;
     }
 
     public async Task AddDirectory(string path)
     {
-        // add to db
-        // start watching
-
         if (path.IsDirectory())
         {
+            // add to db, start watching
             await _directoryService.Add(path);
             _watch.AddDirectory(path);
 
             Logger.Log(ConsoleColor.Magenta, "Directory [{0}] added", path);
-            
-            // add all files
+
+            // add to db all files
+            var directory = new DirectoryInfo(path);
+            var files = Helpers.GetImageExtensions()
+                .Select(x => directory.GetFiles($"*{x}", SearchOption.AllDirectories))
+                .SelectMany(x => x)
+                .ToList();
+
+            Logger.Log(ConsoleColor.Magenta, "Files: {0}", files.Count);
+
+            var tasks = files.Select(file => _fileService.IndexFile(file));
+            await Task.WhenAll(tasks);
+
+            Logger.Log("Done", ConsoleColor.Magenta);
         }
     }
 
@@ -44,7 +56,7 @@ public class IndexingController
         }
     }
 
-    public IEnumerable<Entities.Directory> GetNotFoundDirectories()
+    public IEnumerable<Entities.Directory> GetMissingDirectories()
     {
         return _directoryService.GetTracked().Where(x => !Directory.Exists(x.Path));
     }
@@ -57,10 +69,15 @@ public class IndexingController
         }
     }
 
+    public void GetMissingFiles()
+    {
+        // get all files > check existence
+        // filter missing > try find > update | remove
+    }
+
     public void StartIndexing()
     {
         // todo overtake file system changes
-        // start tracking
 
         _watch.Start();
     }

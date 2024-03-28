@@ -1,26 +1,22 @@
 using MemeIndex_Core.Data;
+using Directory = MemeIndex_Core.Entities.Directory;
 
 namespace MemeIndex_Core.Services;
 
 public class FileService : IFileService
 {
     private readonly MemeDbContext _context;
-    //private readonly IOcrService _ocrService;
 
-    public FileService(MemeDbContext context/*, IOcrService ocrService*/)
+    public FileService(MemeDbContext context)
     {
         _context = context;
-        //_ocrService = ocrService;
     }
 
     public async Task<int> IndexFile(FileInfo file)
     {
-        // get file, add file to db
-        var directory =
-            _context.Directories.FirstOrDefault(x => x.Path == file.DirectoryName) ??
-            (await _context.Directories.AddAsync(new Entities.Directory { Path = file.DirectoryName! })).Entity;
+        var directory = await GetDirectoryEntity(file.DirectoryName!);
 
-        return (await _context.Files.AddAsync(new Entities.File
+        var entity = new Entities.File
         {
             DirectoryId = directory.Id,
             Name = file.Name,
@@ -28,7 +24,12 @@ public class FileService : IFileService
             Tracked = DateTime.UtcNow,
             Created = file.CreationTimeUtc,
             Modified = file.LastWriteTimeUtc
-        })).Entity.Id;
+        };
+        var entry = await _context.Files.AddAsync(entity);
+
+        await _context.SaveChangesAsync();
+
+        return entry.Entity.Id;
 
         // ocr image, add text to db
 
@@ -41,5 +42,20 @@ public class FileService : IFileService
         });*/
 
         // color-tag image, add text to db (soon)
+    }
+
+    private async Task<Directory> GetDirectoryEntity(string path)
+    {
+        var entity = _context.Directories.FirstOrDefault(x => x.Path == path);
+        if (entity != null)
+        {
+            return entity;
+        }
+
+        var entry = await _context.Directories.AddAsync(new Directory { Path = path });
+
+        await _context.SaveChangesAsync();
+
+        return entry.Entity;
     }
 }
