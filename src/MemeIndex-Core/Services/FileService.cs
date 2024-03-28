@@ -25,37 +25,26 @@ public class FileService : IFileService
             Created = file.CreationTimeUtc,
             Modified = file.LastWriteTimeUtc
         };
-        var entry = await _context.Files.AddAsync(entity);
 
+        await _context.Files.AddAsync(entity);
         await _context.SaveChangesAsync();
 
-        return entry.Entity.Id;
-
-        // ocr image, add text to db
-
-        /*var text = await _ocrService.GetTextRepresentation(file.FullName, "eng");
-        await _context.Texts.AddAsync(new Text
-        {
-            FileId = fileEntity.Id,
-            MeanId = 2,
-            Representation = text,
-        });*/
-
-        // color-tag image, add text to db (soon)
+        return entity.Id;
     }
 
     private async Task<Directory> GetDirectoryEntity(string path)
     {
-        var entity = _context.Directories.FirstOrDefault(x => x.Path == path);
-        if (entity != null)
+        var existing = _context.Directories.FirstOrDefault(x => x.Path == path);
+        if (existing != null)
         {
-            return entity;
+            return existing;
         }
 
-        var entry = await _context.Directories.AddAsync(new Directory { Path = path });
+        var entity = new Directory { Path = path };
 
+        await _context.Directories.AddAsync(entity);
         await _context.SaveChangesAsync();
 
-        return entry.Entity;
+        return entity;
     }
 }

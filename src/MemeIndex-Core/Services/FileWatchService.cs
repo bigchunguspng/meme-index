@@ -119,6 +119,8 @@ public class FileWatchService
     private void OnChanged(object source, FileSystemEventArgs e)
     {
         // update db entry, size differs => ocr
+        if (e.FullPath.IsDirectory()) return;
+
         Logger.Log("Changed", ConsoleColor.Yellow);
     }
 

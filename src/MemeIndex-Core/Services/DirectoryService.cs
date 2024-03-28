@@ -18,25 +18,23 @@ public class DirectoryService : IDirectoryService
         return _context.Directories.Where(x => x.IsTracked);
     }
 
-    public async Task<Directory> Add(string path)
+    public async Task<Directory> AddTracking(string path)
     {
         var entity = await GetByPathAsync(path);
-        if (entity != null)
+        if (entity == null)
         {
-            // make directory tracked if it's already present as a subdirectory
-            entity.IsTracked = true;
-            _context.Directories.Update(entity);
-        }
-        else
-        {
-            // add new
-            var entry = await _context.Directories.AddAsync(new Directory
+            entity = new Directory
             {
                 Path = path,
                 IsTracked = true
-            });
+            };
 
-            entity = entry.Entity;
+            await _context.Directories.AddAsync(entity);
+        }
+        else
+        {
+            entity.IsTracked = true;
+            _context.Directories.Update(entity);
         }
 
         await _context.SaveChangesAsync();
@@ -44,27 +42,7 @@ public class DirectoryService : IDirectoryService
         return entity;
     }
 
-    public async Task Update(string oldPath, string newPath)
-    {
-        var entity = await GetByPathAsync(oldPath);
-        if (entity is null)
-        {
-            return;
-        }
-
-        foreach (var directory in GetSubdirectories(entity))
-        {
-            directory.Path = directory.Path.Replace(oldPath, newPath);
-            _context.Directories.Update(entity);
-        }
-
-        entity.Path = newPath;
-        _context.Directories.Update(entity);
-
-        await _context.SaveChangesAsync();
-    }
-
-    public async Task Remove(string path)
+    public async Task RemoveTracking(string path)
     {
         var entity = await GetByPathAsync(path);
         if (entity is null)
@@ -79,26 +57,38 @@ public class DirectoryService : IDirectoryService
         }
         else
         {
-            foreach (var directory in GetSubdirectories(entity))
-            {
-                _context.Directories.Remove(directory);
-            }
-
-            _context.Directories.Remove(entity);
+            _context.Directories.RemoveRange(GetDirectoryAndSubdirectories(entity));
         }
 
         await _context.SaveChangesAsync();
     }
+
+    public async Task Update(string oldPath, string newPath)
+    {
+        var entity = await GetByPathAsync(oldPath);
+        if (entity is null)
+        {
+            return;
+        }
+
+        foreach (var directory in GetDirectoryAndSubdirectories(entity))
+        {
+            directory.Path = directory.Path.Replace(oldPath, newPath);
+            _context.Directories.Update(directory);
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
 
     private Task<Directory?> GetByPathAsync(string path)
     {
         return _context.Directories.FirstOrDefaultAsync(x => x.Path == path);
     }
 
-    private IEnumerable<Directory> GetSubdirectories(Directory directory)
+    private IEnumerable<Directory> GetDirectoryAndSubdirectories(Directory directory)
     {
-        return _context.Directories
-            .Where(x => x.IsTracked == false && x.Id != directory.Id && x.Path.StartsWith(directory.Path));
+        return _context.Directories.Where(x => x.Path.StartsWith(directory.Path));
     }
 
     private Task<bool> IsInsideOtherTrackedDirectory(Directory directory)

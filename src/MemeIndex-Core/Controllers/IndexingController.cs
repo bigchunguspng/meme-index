@@ -21,7 +21,7 @@ public class IndexingController
         if (path.IsDirectory())
         {
             // add to db, start watching
-            await _directoryService.Add(path);
+            await _directoryService.AddTracking(path);
             _watch.AddDirectory(path);
 
             Logger.Log(ConsoleColor.Magenta, "Directory [{0}] added", path);
@@ -42,6 +42,10 @@ public class IndexingController
         }
     }
 
+    /// <summary>
+    /// This method should be called intentionally by user,
+    /// because it removes all files from that directory from index.
+    /// </summary>
     public async Task RemoveDirectory(string path)
     {
         // remove from db
@@ -49,7 +53,7 @@ public class IndexingController
 
         if (path.IsDirectory())
         {
-            await _directoryService.Remove(path);
+            await _directoryService.RemoveTracking(path);
             _watch.RemoveDirectory(path);
 
             Logger.Log(ConsoleColor.Magenta, "Directory [{0}] removed", path);
@@ -69,15 +73,31 @@ public class IndexingController
         }
     }
 
-    public void GetMissingFiles()
+    public void OvertakeMissingFiles()
     {
         // get all files > check existence
         // filter missing > try find > update | remove
+
+        // ON STARTUP
+        // 1. a bunch of new files added to db
+        //    [select files left join text]
+        // 2. these files are slowly processed [by ocr ang color-tag] in the background
+        
+        // WHEN NEW FILE(s) ADDED (spotted by file watcher)
+        // 1. file change object added to purgatory
+        // 2. after 0.5 second changes are interpreted and db is updated
+
+        // files can be added~, changed~, removed^, renamed_, moved_
+        // ~ process, ^ remove, _ update
+
+        // IF FILE ADDED:
+        // 3. file added to db
+        // 4. file processed in the background
     }
 
     public void StartIndexing()
     {
-        // todo overtake file system changes
+        OvertakeMissingFiles();
 
         _watch.Start();
     }
