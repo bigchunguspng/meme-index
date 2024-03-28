@@ -8,21 +8,25 @@ namespace MemeIndex_Console;
 public class ConsoleLoopUI : IHostedService
 {
     private readonly IOcrService _service;
+    private readonly FileWatchService _watcher;
 
-    public ConsoleLoopUI(IOcrService service)
+    public ConsoleLoopUI(IOcrService service, FileWatchService watcher)
     {
         _service = service;
+        _watcher = watcher;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
         Task.Run(Cycle, cancellationToken);
+        _watcher.StartAll();
 
         return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
+        _watcher.DisposeAll();
         return Task.CompletedTask;
     }
 
@@ -32,8 +36,12 @@ public class ConsoleLoopUI : IHostedService
         {
             while (true)
             {
-                var input = Console.ReadLine()?.Trim().Trim('"');
+                var input = Console.ReadLine()?.Trim().Trim('"')!;
 
+                if (input.StartsWith("/add "))
+                {
+                    _watcher.AddDirectory(input[5..]).Wait();
+                }
                 if (!File.Exists(input))
                 {
                     Logger.Log("File don't exist");

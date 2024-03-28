@@ -11,7 +11,7 @@ public class File : AbstractEntity
 
     [Required] public string Name { get; set; } = default!;
 
-    public int Size { get; set; }
+    public long Size { get; set; }
 
     [Required] public DateTime Tracked  { get; set; }
     [Required] public DateTime Created  { get; set; }

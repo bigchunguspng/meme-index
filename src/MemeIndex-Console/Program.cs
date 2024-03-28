@@ -21,8 +21,11 @@ internal static class Program
         builder.Services.AddHostedService<ConsoleLoopUI>();
 
         builder.Services.AddSingleton<Config>(_ => ConfigRepository.GetConfig());
+        builder.Services.AddDbContext<MemeDbContext>(ServiceLifetime.Singleton, ServiceLifetime.Singleton);
+        builder.Services.AddSingleton<IDirectoryService, DirectoryService>();
+        builder.Services.AddSingleton<IFileService, FileService>();
+        builder.Services.AddSingleton<FileWatchService>();
         builder.Services.AddSingleton<IOcrService, OnlineOcrService>();
-        builder.Services.AddDbContext<MemeDbContext>();
 
         using var host = builder.Build();
 
