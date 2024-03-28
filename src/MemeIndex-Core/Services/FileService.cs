@@ -12,7 +12,7 @@ public class FileService : IFileService
         _context = context;
     }
 
-    public async Task<int> IndexFile(FileInfo file)
+    public async Task<int> AddFile(FileInfo file)
     {
         var directory = await GetDirectoryEntity(file.DirectoryName!);
 

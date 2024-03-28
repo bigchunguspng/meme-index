@@ -35,7 +35,7 @@ public class IndexingController
 
             Logger.Log(ConsoleColor.Magenta, "Files: {0}", files.Count);
 
-            var tasks = files.Select(file => _fileService.IndexFile(file));
+            var tasks = files.Select(file => _fileService.AddFile(file));
             await Task.WhenAll(tasks);
 
             Logger.Log("Done", ConsoleColor.Magenta);
