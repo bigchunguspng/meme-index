@@ -21,7 +21,7 @@ public class OnlineOcrService : IOcrService
 
     private HttpClient Client { get; set; }
 
-    public async Task<string> GetTextRepresentation(string path, string lang = "eng")
+    public async Task<string?> GetTextRepresentation(string path, string lang = "eng")
     {
         try
         {
@@ -38,7 +38,7 @@ public class OnlineOcrService : IOcrService
             var file = new FileInfo(path);
             if (file.Exists == false)
             {
-                return string.Empty;
+                return null;
             }
 
             if (file.Length >= 1024 * 1024 && OperatingSystem.IsWindows())
@@ -70,12 +70,12 @@ public class OnlineOcrService : IOcrService
 
             var text = JObject.Parse(json).SelectToken("ParsedResults[0].ParsedText")!.ToString();
 
-            return text.RemoveLineBreaks();
+            return text.RemoveLineBreaks().ToLower();
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
-            return string.Empty;
+            return null;
         }
     }
 }

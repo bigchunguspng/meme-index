@@ -7,5 +7,5 @@ public interface IOcrService
     /// </summary>
     /// <param name="path">Filepath to the image.</param>
     /// <param name="lang">Language code.</param>
-    Task<string> GetTextRepresentation(string path, string lang);
+    Task<string?> GetTextRepresentation(string path, string lang);
 }
