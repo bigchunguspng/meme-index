@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using MemeIndex_Core.Data;
 using MemeIndex_Core.Services;
 using MemeIndex_Core.Utils;
@@ -97,11 +98,18 @@ public class IndexingController
         //    [select files left join text]
         // 2. these files are slowly processed [by ocr ang color-tag] in the background
 
+        var sw = new Stopwatch();
+        sw.Start();
+        Logger.Log("Overtaking: start", ConsoleColor.Yellow);
+
         var existingTrackedDirectories = _directoryService.GetTracked().Where(x => Directory.Exists(x.Path)).ToList();
         var existingDirectories = _context.Directories.AsEnumerable().Where(x => Directory.Exists(x.Path)).ToList();
         var directoriesByPath = existingDirectories.ToDictionary(x => x.Path);
 
         var files = existingTrackedDirectories.SelectMany(x => GetImageFiles(x.Path));
+        var fileRecords = await _context.Files.Include(x => x.Directory).ToListAsync();
+
+        Logger.Log("Overtaking: files here", ConsoleColor.Yellow);
 
         // files present in fs, but missing in db
         var unknownFiles = new List<FileInfo>();
@@ -115,7 +123,7 @@ public class IndexingController
                 continue;
             }
 
-            var fileEntity = _context.Files.FirstOrDefault
+            var fileEntity = fileRecords.FirstOrDefault
             (
                 file => file.DirectoryId == directory!.Id && file.Name == fileInfo.Name
             );
@@ -125,13 +133,15 @@ public class IndexingController
             }
         }
 
+        Logger.Log("Overtaking: unknown files here", ConsoleColor.Yellow);
+
         // files present in db, but missing in fs
-        var missingFiles = _context.Files
-            .Include(x => x.Directory)
+        var missingFiles = fileRecords
             .Where(x => existingDirectories.Select(dir => dir.Id).Contains(x.DirectoryId))
-            .AsEnumerable()
             .Where(x => !File.Exists(Path.Combine(x.Directory.Path, x.Name)))
             .ToList();
+
+        Logger.Log("Overtaking: missing files here", ConsoleColor.Yellow);
 
         // try to match unknown files to missing ones
 
@@ -144,16 +154,21 @@ public class IndexingController
             {
                 await _fileService.UpdateFile(equivalent, unknownFile);
                 locatedMissingFiles.Add(equivalent);
-                continue;
             }
-
-            await _fileService.AddFile(unknownFile);
+            else
+            {
+                await _fileService.AddFile(unknownFile);
+            }
         }
+
+        Logger.Log("Overtaking: unknown files added / updated", ConsoleColor.Yellow);
 
         var lostFiles = missingFiles.Except(locatedMissingFiles);
 
         _context.Files.RemoveRange(lostFiles);
         await _context.SaveChangesAsync();
+
+        Logger.Log("Overtaking: missing files removed", ConsoleColor.Yellow);
 
         var emptyDirectories = _context.Directories.Where
         (
@@ -165,6 +180,9 @@ public class IndexingController
 
         _context.Directories.RemoveRange(emptyDirectories);
         await _context.SaveChangesAsync();
+
+        Logger.Log("Overtaking: empty directories removed", ConsoleColor.Yellow);
+        Logger.Log(ConsoleColor.Yellow, "Overtaking: elapsed {0}", sw.Elapsed);
 
 
         // WHEN NEW FILE(s) ADDED (spotted by file watcher)
