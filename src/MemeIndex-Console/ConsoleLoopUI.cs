@@ -70,7 +70,7 @@ public class ConsoleLoopUI : IHostedService
                 
                 // color tag
                 timer.Start();
-                var tags = _colorTagService.GetImageColorInfo(path)?.Result;
+                var tags = _colorTagService.GetImageColorInfo(path).Result;
                 Logger.Log(ConsoleColor.Blue, "Tags: {0}", tags);
                 Logger.Log(ConsoleColor.Cyan, "Time: {0:F3}", timer.ElapsedMilliseconds / 1000F);
             }

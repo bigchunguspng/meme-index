@@ -18,12 +18,12 @@ public class ColorTagService
         Init();
     }
 
-    public Task<string?>? GetImageColorInfo(string path)
+    public Task<string?> GetImageColorInfo(string path)
     {
         var file = new FileInfo(path);
         if (file.Exists == false)
         {
-            return null;
+            return Task.FromResult<string?>(null);
         }
 
         using var image = AnyBitmap.FromFile(path);
@@ -31,22 +31,41 @@ public class ColorTagService
         var w = image.Width;
         var h = image.Height;
 
-        var stepX = w < 32 ? w / 3 : w < 128 ? 12 : 16;
-        var stepY = h < 32 ? h / 3 : h < 128 ? 12 : 16;
+        var stepX = w < 32 ? w / 3 : w < 128 ? 12 : w > 320 ? w / 12 : 16;
+        var stepY = h < 32 ? h / 3 : h < 128 ? 12 : h > 320 ? h / 12 : 16;
+
+        var dots = new List<KeyValuePair<string, Color>>();
 
         for (var x = w % stepX / 2; x < w; x += stepX)
         for (var y = h % stepY / 2; y < h; y += stepY)
         {
-            image.SetPixel(x, y, new Color(255, 0, 0));
+            var color = image.GetPixel(x, y);
+            dots.Add(FindClosestColor(color));
+        }
+
+        var offset = h / stepY + 1;
+        for (var x = 0; x < w; x++)
+        for (var y = 0; y < h; y++)
+        {
+            image.SetPixel(x, y, dots[Math.Clamp(x / stepX * offset + y / stepY, 0, dots.Count - 1)].Value);
         }
 
         image.SaveAs("baka.jpg", AnyBitmap.ImageFormat.Jpeg, 50);
-    
-        //var color = image.GetPixel(16, 16);
 
-        //
+        var result = string.Join(' ', dots.Select(x => x.Key).Distinct().OrderBy(x => x));
+        return Task.FromResult<string?>(result);
+        
+        // todo make color picker less vulnerable to details
+    }
 
-        return null;
+    private KeyValuePair<string, Color> FindClosestColor(Color color)
+    {
+        return Colors.MinBy(x => GetDifference(x.Value, color));
+    }
+
+    private static int GetDifference(Color a, Color b)
+    {
+        return Math.Abs(a.R - b.R) + Math.Abs(a.G - b.G) + Math.Abs(a.B - b.B);
     }
 
     private void PrintColors()
