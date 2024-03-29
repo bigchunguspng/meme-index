@@ -1,8 +1,6 @@
 using System.Diagnostics;
-using MemeIndex_Core.Data;
 using MemeIndex_Core.Services;
 using MemeIndex_Core.Utils;
-using Microsoft.EntityFrameworkCore;
 
 namespace MemeIndex_Core.Controllers;
 
@@ -11,20 +9,17 @@ public class IndexingController
     private readonly FileWatchService _watch;
     private readonly IFileService _fileService;
     private readonly IDirectoryService _directoryService;
-    private readonly MemeDbContext _context;
 
     public IndexingController
     (
         FileWatchService watch,
         IFileService fileService,
-        IDirectoryService directoryService,
-        MemeDbContext context
+        IDirectoryService directoryService
     )
     {
         _watch = watch;
         _fileService = fileService;
         _directoryService = directoryService;
-        _context = context;
     }
 
     public async Task AddDirectory(string path)
@@ -90,9 +85,6 @@ public class IndexingController
 
     public async Task OvertakeMissingFiles()
     {
-        // get all files > check existence
-        // filter missing > try find > update | remove
-
         // ON STARTUP
         // 1. a bunch of new files added to db
         //    [select files left join text]
