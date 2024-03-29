@@ -24,6 +24,12 @@ public class OnlineOcrService : IOcrService
     {
         try
         {
+            var file = new FileInfo(path);
+            if (file.Exists == false)
+            {
+                return null;
+            }
+
             var form = new MultipartFormDataContent
             {
                 { new StringContent(ApiKey), "apikey" },
@@ -33,12 +39,6 @@ public class OnlineOcrService : IOcrService
             };
 
             byte[] bytes;
-
-            var file = new FileInfo(path);
-            if (file.Exists == false)
-            {
-                return null;
-            }
 
             if (file.Length >= 1024 * 1024)
             {

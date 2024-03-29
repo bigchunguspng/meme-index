@@ -27,6 +27,7 @@ internal static class Program
         builder.Services.AddSingleton<IFileService, FileService>();
         builder.Services.AddSingleton<FileWatchService>();
         builder.Services.AddSingleton<IOcrService, OnlineOcrService>();
+        builder.Services.AddSingleton<ColorTagService>();
         builder.Services.AddSingleton<IndexingController>();
 
         using var host = builder.Build();

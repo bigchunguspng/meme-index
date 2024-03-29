@@ -8,13 +8,15 @@ namespace MemeIndex_Console;
 
 public class ConsoleLoopUI : IHostedService
 {
-    private readonly IOcrService _service;
     private readonly IndexingController _controller;
+    private readonly IOcrService _ocrService;
+    private readonly ColorTagService _colorTagService;
 
-    public ConsoleLoopUI(IOcrService service, IndexingController controller)
+    public ConsoleLoopUI(IndexingController controller, IOcrService ocrService, ColorTagService colorTagService)
     {
-        _service = service;
         _controller = controller;
+        _ocrService = ocrService;
+        _colorTagService = colorTagService;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -62,8 +64,14 @@ public class ConsoleLoopUI : IHostedService
 
                 // online ocr eng eng-2
                 timer.Start();
-                var text = _service.GetTextRepresentation(path, "eng").Result;
+                var text = _ocrService.GetTextRepresentation(path, "eng").Result;
                 Logger.Log(ConsoleColor.Blue, "Text: {0}", text);
+                Logger.Log(ConsoleColor.Cyan, "Time: {0:F3}", timer.ElapsedMilliseconds / 1000F);
+                
+                // color tag
+                timer.Start();
+                var tags = _colorTagService.GetImageColorInfo(path)?.Result;
+                Logger.Log(ConsoleColor.Blue, "Tags: {0}", tags);
                 Logger.Log(ConsoleColor.Cyan, "Time: {0:F3}", timer.ElapsedMilliseconds / 1000F);
             }
         }
