@@ -1,4 +1,5 @@
 using MemeIndex_Core.Data;
+using Microsoft.EntityFrameworkCore;
 using Directory = MemeIndex_Core.Entities.Directory;
 
 namespace MemeIndex_Core.Services;
@@ -10,6 +11,11 @@ public class FileService : IFileService
     public FileService(MemeDbContext context)
     {
         _context = context;
+    }
+
+    public async Task<IList<Entities.File>> GetAllFilesWithPath()
+    {
+        return await _context.Files.Include(x => x.Directory).ToListAsync();
     }
 
     public async Task<int> AddFile(FileInfo file)
@@ -47,6 +53,12 @@ public class FileService : IFileService
         await _context.SaveChangesAsync();
 
         return entity.Id;
+    }
+
+    public async Task<int> RemoveRange(IEnumerable<Entities.File> files)
+    {
+        _context.Files.RemoveRange(files);
+        return await _context.SaveChangesAsync();
     }
 
     private async Task<Directory> GetDirectoryEntity(string path)

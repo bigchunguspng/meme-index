@@ -13,6 +13,11 @@ public class DirectoryService : IDirectoryService
         _context = context;
     }
 
+    public IEnumerable<Directory> GetAll()
+    {
+        return _context.Directories;
+    }
+
     public IEnumerable<Directory> GetTracked()
     {
         return _context.Directories.Where(x => x.IsTracked);
@@ -78,6 +83,20 @@ public class DirectoryService : IDirectoryService
         }
 
         await _context.SaveChangesAsync();
+    }
+
+    public async Task<int> ClearEmpty()
+    {
+        var emptyDirectories = _context.Directories.Where
+        (
+            dir => !_context.Files
+                .Select(file => file.DirectoryId)
+                .Distinct()
+                .Contains(dir.Id)
+        );
+
+        _context.Directories.RemoveRange(emptyDirectories);
+        return await _context.SaveChangesAsync();
     }
 
 

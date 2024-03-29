@@ -98,54 +98,51 @@ public class IndexingController
         //    [select files left join text]
         // 2. these files are slowly processed [by ocr ang color-tag] in the background
 
-        var sw = new Stopwatch();
-        sw.Start();
+        var timer = new Stopwatch();
+        timer.Start();
         Logger.Log("Overtaking: start", ConsoleColor.Yellow);
 
-        var existingTrackedDirectories = _directoryService.GetTracked().Where(x => Directory.Exists(x.Path)).ToList();
-        var existingDirectories = _context.Directories.AsEnumerable().Where(x => Directory.Exists(x.Path)).ToList();
-        var directoriesByPath = existingDirectories.ToDictionary(x => x.Path);
+        var existingDirectoriesAll     = _directoryService.GetAll()    .GetExisting().ToList();
+        var existingDirectoriesTracked = _directoryService.GetTracked().GetExisting().ToList();
 
-        var files = existingTrackedDirectories.SelectMany(x => GetImageFiles(x.Path));
-        var fileRecords = await _context.Files.Include(x => x.Directory).ToListAsync();
+        var files = existingDirectoriesTracked.SelectMany(x => GetImageFiles(x.Path)).ToList();
+        var fileRecords = await _fileService.GetAllFilesWithPath();
 
-        Logger.Log("Overtaking: files here", ConsoleColor.Yellow);
+        Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} files loaded", files.Count);
+        Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} files records available", fileRecords.Count);
 
-        // files present in fs, but missing in db
-        var unknownFiles = new List<FileInfo>();
+        var directoriesByPath = existingDirectoriesAll.ToDictionary(x => x.Path);
 
-        foreach (var fileInfo in files)
-        {
-            var unknownDirectory = directoriesByPath.TryGetValue(fileInfo.DirectoryName!, out var directory) == false;
-            if (unknownDirectory)
+        var unknownFiles = files // that present in fs, but missing as records in db
+            .Where(info =>
             {
-                unknownFiles.Add(fileInfo); // new directory (created / moved / renamed)
-                continue;
-            }
+                var unknown = directoriesByPath.TryGetValue(info.DirectoryName!, out var directory) == false;
+                if (unknown) return true;
 
-            var fileEntity = fileRecords.FirstOrDefault
-            (
-                file => file.DirectoryId == directory!.Id && file.Name == fileInfo.Name
-            );
-            if (fileEntity is null)
-            {
-                unknownFiles.Add(fileInfo); // new file (created / moved / renamed)
-            }
-        }
-
-        Logger.Log("Overtaking: unknown files here", ConsoleColor.Yellow);
-
-        // files present in db, but missing in fs
-        var missingFiles = fileRecords
-            .Where(x => existingDirectories.Select(dir => dir.Id).Contains(x.DirectoryId))
-            .Where(x => !File.Exists(Path.Combine(x.Directory.Path, x.Name)))
+                return !fileRecords.Any(file => file.DirectoryId == directory!.Id && file.Name == info.Name);
+            })
             .ToList();
 
-        Logger.Log("Overtaking: missing files here", ConsoleColor.Yellow);
+        Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} unknown files loaded", unknownFiles.Count);
 
-        // try to match unknown files to missing ones
+        var missingFiles = fileRecords // that present in db, but missing as files in fs
+            .Where(x =>
+            {
+                var directoryExist = existingDirectoriesAll.Select(dir => dir.Id).Contains(x.DirectoryId);
+                if (directoryExist)
+                {
+                    var path = Path.Combine(x.Directory.Path, x.Name);
+                    return !File.Exists(path);
+                }
+
+                return false;
+            })
+            .ToList();
+
+        Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} files missing", missingFiles.Count);
 
         var locatedMissingFiles = new List<Entities.File>();
+        var c0 = 0;
 
         foreach (var unknownFile in unknownFiles)
         {
@@ -158,31 +155,23 @@ public class IndexingController
             else
             {
                 await _fileService.AddFile(unknownFile);
+                c0++;
             }
         }
 
-        Logger.Log("Overtaking: unknown files added / updated", ConsoleColor.Yellow);
+        Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} missing files located", locatedMissingFiles.Count);
+        Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} new files added", c0);
 
         var lostFiles = missingFiles.Except(locatedMissingFiles);
 
-        _context.Files.RemoveRange(lostFiles);
-        await _context.SaveChangesAsync();
+        var c1 = await _fileService.RemoveRange(lostFiles);
 
-        Logger.Log("Overtaking: missing files removed", ConsoleColor.Yellow);
+        Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} missing files removed", c1);
 
-        var emptyDirectories = _context.Directories.Where
-        (
-            dir => !_context.Files
-                .Select(file => file.DirectoryId)
-                .Distinct()
-                .Contains(dir.Id)
-        );
+        var c2 = await _directoryService.ClearEmpty();
 
-        _context.Directories.RemoveRange(emptyDirectories);
-        await _context.SaveChangesAsync();
-
-        Logger.Log("Overtaking: empty directories removed", ConsoleColor.Yellow);
-        Logger.Log(ConsoleColor.Yellow, "Overtaking: elapsed {0}", sw.Elapsed);
+        Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} empty directories removed", c2);
+        Logger.Log(ConsoleColor.Yellow, "Overtaking: elapsed {0}", timer.Elapsed);
 
 
         // WHEN NEW FILE(s) ADDED (spotted by file watcher)
@@ -199,14 +188,14 @@ public class IndexingController
 
     private static bool FilesAreEquivalent(FileInfo fileInfo, Entities.File entity)
     {
-        var sum = 0;
+        var similarity = 0;
 
-        if (fileInfo.Name   == entity.Name) sum++;
-        if (fileInfo.Length == entity.Size) sum++;
-        if (fileInfo.LastWriteTimeUtc == entity.Modified) sum++;
-        if (fileInfo. CreationTimeUtc == entity. Created) sum++;
+        if (fileInfo.Name   == entity.Name) similarity++;
+        if (fileInfo.Length == entity.Size) similarity++;
+        if (fileInfo.LastWriteTimeUtc == entity.Modified) similarity++;
+        if (fileInfo. CreationTimeUtc == entity. Created) similarity++;
 
-        return sum > 1;
+        return similarity > 1;
     }
 
     private bool FileWasUpdated(FileInfo fileInfo, Entities.File entity)

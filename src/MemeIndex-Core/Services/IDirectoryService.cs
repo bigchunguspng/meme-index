@@ -5,7 +5,12 @@ namespace MemeIndex_Core.Services;
 public interface IDirectoryService
 {
     /// <summary>
-    /// Gets directories from tracking list.
+    /// Returns all directories from the database.
+    /// </summary>
+    IEnumerable<Directory> GetAll();
+
+    /// <summary>
+    /// Returns directories from tracking list.
     /// </summary>
     IEnumerable<Directory> GetTracked();
 
@@ -23,4 +28,10 @@ public interface IDirectoryService
     /// Updates directory location.
     /// </summary>
     Task Update(string oldPath, string newPath);
+
+    /// <summary>
+    /// Removes all directories that has no file records.
+    /// </summary>
+    /// <returns>Number of directories removed.</returns>
+    Task<int> ClearEmpty();
 }
