@@ -32,6 +32,23 @@ public class FileService : IFileService
         return entity.Id;
     }
 
+    public async Task<int> UpdateFile(Entities.File entity, FileInfo file)
+    {
+        var directory = await GetDirectoryEntity(file.DirectoryName!);
+
+        entity.DirectoryId = directory.Id;
+        entity.Name = file.Name;
+        entity.Size = file.Length;
+        entity.Tracked = DateTime.UtcNow;
+        entity.Created = file.CreationTimeUtc;
+        entity.Modified = file.LastWriteTimeUtc;
+
+        _context.Files.Update(entity);
+        await _context.SaveChangesAsync();
+
+        return entity.Id;
+    }
+
     private async Task<Directory> GetDirectoryEntity(string path)
     {
         var existing = _context.Directories.FirstOrDefault(x => x.Path == path);
