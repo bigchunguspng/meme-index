@@ -1,5 +1,4 @@
-using System.Drawing;
-using System.Drawing.Imaging;
+using IronSoftware.Drawing;
 using MemeIndex_Core.Utils;
 using Newtonsoft.Json.Linq;
 
@@ -41,21 +40,18 @@ public class OnlineOcrService : IOcrService
                 return null;
             }
 
-            if (file.Length >= 1024 * 1024 && OperatingSystem.IsWindows())
+            if (file.Length >= 1024 * 1024)
             {
                 var divider = Math.Sqrt(file.Length / 500_000F);
 
-                using var image = Image.FromFile(path);
-                var size = new Size
-                {
-                    Height = (int)(image.Height / divider),
-                    Width  = (int)(image.Width  / divider)
-                };
-                using var bitmap = new Bitmap(image, size);
-                using var stream = new MemoryStream();
+                using var image = AnyBitmap.FromFile(path);
 
-                bitmap.Save(stream, ImageFormat.Jpeg);
-                bytes = stream.ToArray();
+                var w = (int)(image.Width  / divider);
+                var h = (int)(image.Height / divider);
+
+                using var bitmap = new AnyBitmap(image, w, h);
+
+                bytes = bitmap.ExportBytes(AnyBitmap.ImageFormat.Jpeg, 25);
             }
             else
             {
