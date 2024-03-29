@@ -87,7 +87,7 @@ public class IndexingController
         }
     }
 
-    public void OvertakeMissingFiles()
+    public async Task OvertakeMissingFiles()
     {
         // get all files > check existence
         // filter missing > try find > update | remove
@@ -97,15 +97,13 @@ public class IndexingController
         //    [select files left join text]
         // 2. these files are slowly processed [by ocr ang color-tag] in the background
 
-        var directories = _directoryService.GetTracked().Where(x => Directory.Exists(x.Path)).ToList();
-        var directoriesByPath = directories.ToDictionary(x => x.Path);
+        var existingTrackedDirectories = _directoryService.GetTracked().Where(x => Directory.Exists(x.Path)).ToList();
+        var existingDirectories = _context.Directories.AsEnumerable().Where(x => Directory.Exists(x.Path)).ToList();
+        var directoriesByPath = existingDirectories.ToDictionary(x => x.Path);
 
-        // get existing files > filter missing in db
-
-        var files = directories.SelectMany(x => GetImageFiles(x.Path));
+        var files = existingTrackedDirectories.SelectMany(x => GetImageFiles(x.Path));
 
         // files present in fs, but missing in db
-        var unknownDirectoryFiles = new List<FileInfo>();
         var unknownFiles = new List<FileInfo>();
 
         foreach (var fileInfo in files)
@@ -113,7 +111,7 @@ public class IndexingController
             var unknownDirectory = directoriesByPath.TryGetValue(fileInfo.DirectoryName!, out var directory) == false;
             if (unknownDirectory)
             {
-                unknownDirectoryFiles.Add(fileInfo); // new directory (created / moved / renamed)
+                unknownFiles.Add(fileInfo); // new directory (created / moved / renamed)
                 continue;
             }
 
@@ -125,31 +123,48 @@ public class IndexingController
             {
                 unknownFiles.Add(fileInfo); // new file (created / moved / renamed)
             }
-
-            /*if (FileWasUpdated(fileInfo, fileEntity)) <-- these will be selected from db later, on processing phase
-            {
-                changed.Add(fileInfo); // file was edited (needs reprocessing)
-            }*/
         }
 
         // files present in db, but missing in fs
         var missingFiles = _context.Files
             .Include(x => x.Directory)
-            .Where(x => directories.Select(dir => dir.Id).Contains(x.DirectoryId))
+            .Where(x => existingDirectories.Select(dir => dir.Id).Contains(x.DirectoryId))
+            .AsEnumerable()
             .Where(x => !File.Exists(Path.Combine(x.Directory.Path, x.Name)))
             .ToList();
 
         // try to match unknown files to missing ones
-        //  unknownDirectoryFiles > check db on name ^ size ^ modified > 1 (renaming doesn't update modified date)
-        //      Y: create new db-directory for these files, update files by id
-        //      N: add to unknownFiles
-        //  unknownFiles > check db on name ^ size ^ modified > 1
-        //      Y: update files by id
-        //      N: add to db as new
 
-        // add unmatched
+        var locatedMissingFiles = new List<Entities.File>();
 
-        // remove empty directories from db
+        foreach (var unknownFile in unknownFiles)
+        {
+            var equivalent = missingFiles.FirstOrDefault(x => FilesAreEquivalent(unknownFile, x));
+            if (equivalent != null)
+            {
+                await _fileService.UpdateFile(equivalent, unknownFile);
+                locatedMissingFiles.Add(equivalent);
+                continue;
+            }
+
+            await _fileService.AddFile(unknownFile);
+        }
+
+        var lostFiles = missingFiles.Except(locatedMissingFiles);
+
+        _context.Files.RemoveRange(lostFiles);
+        await _context.SaveChangesAsync();
+
+        var emptyDirectories = _context.Directories.Where
+        (
+            dir => !_context.Files
+                .Select(file => file.DirectoryId)
+                .Distinct()
+                .Contains(dir.Id)
+        );
+
+        _context.Directories.RemoveRange(emptyDirectories);
+        await _context.SaveChangesAsync();
 
 
         // WHEN NEW FILE(s) ADDED (spotted by file watcher)
@@ -164,7 +179,7 @@ public class IndexingController
         // 4. file processed in the background
     }
 
-    private bool FilesAreTheSame(FileInfo fileInfo, Entities.File entity)
+    private static bool FilesAreEquivalent(FileInfo fileInfo, Entities.File entity)
     {
         var sum = 0;
 
@@ -185,7 +200,9 @@ public class IndexingController
 
     public void StartIndexing()
     {
-        OvertakeMissingFiles();
+        // todo ask to locate missing dirs
+
+        OvertakeMissingFiles().Wait();
 
         _watch.Start();
     }
