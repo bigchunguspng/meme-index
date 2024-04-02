@@ -88,4 +88,29 @@ public static class ColorHelpers
             colors.Sum(x => x.B) / colors.Length
         );
     }
+
+    public static Color GetPixelColor(this AnyBitmap image, int x, int y, byte[] pixels, byte[]? alphas)
+    {
+        if (x < 0 || x >= image.Width)
+            throw new ArgumentOutOfRangeException(nameof(x), "x is < 0 or >= Width.");
+
+        if (y < 0 || y >= image.Height)
+            throw new ArgumentOutOfRangeException(nameof(y), "y is < 0 or >= Height.");
+
+        var pos1 = y * image.Width + x;
+        var pos3 = pos1 * 3;
+
+        var r = pixels[pos3];
+        var g = pixels[pos3 + 1];
+        var b = pixels[pos3 + 2];
+
+        return alphas is null ? new Color(r, g, b) : new Color(alphas[pos1], r, g, b);
+    }
+
+    public static byte[]? GetAlphaBuffer(this AnyBitmap image)
+    {
+        return image.BitsPerPixel == 32 ? new AnyBitmap(image, image.Width, image.Height).ExtractAlphaData() : null;
+
+        // AnyBitmap needs to be copied because ExtractAlphaData() disposes it.
+    }
 }

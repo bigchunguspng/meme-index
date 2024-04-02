@@ -15,12 +15,12 @@ public class ColorTagService
         Init();
     }
 
-    public Task<string?> GetImageColorInfo(string path)
+    public string? GetImageColorInfo(string path)
     {
         var file = new FileInfo(path);
         if (file.Exists == false)
         {
-            return Task.FromResult<string?>(null);
+            return null;
         }
 
         using var image = AnyBitmap.FromFile(path);
@@ -43,6 +43,9 @@ public class ColorTagService
 
         var dots = new List<KeyValuePair<string, Color>>();
 
+        var pixels = image.GetRGBBuffer();
+        var alphas = image.GetAlphaBuffer();
+
         for (var x = (w - stepX * (chunksX - 1)) / 2; x < w - margin; x += stepX)
         for (var y = (h - stepY * (chunksY - 1)) / 2; y < h - margin; y += stepY)
         {
@@ -51,7 +54,7 @@ public class ColorTagService
             for (var i = -margin; i <= margin; i += 2 * margin)
             for (var j = -margin; j <= margin; j += 2 * margin)
             {
-                colors[index++] = image.GetPixel(x + i, y + j);
+                colors[index++] = image.GetPixelColor(x + i, y + j, pixels, alphas);
 #if DEBUG
                 image.SetPixel(x + i, y + j, Color.Red);
 #endif
@@ -79,8 +82,8 @@ public class ColorTagService
             .GroupBy(x => x)
             .OrderByDescending(g => g.Count())
             .Select(x => x.Key);
-        var result = string.Join(' ', data);
-        return Task.FromResult<string?>(result);
+
+        return string.Join(' ', data);
     }
 
     private KeyValuePair<string, Color> FindClosestKnownColor(Color color)

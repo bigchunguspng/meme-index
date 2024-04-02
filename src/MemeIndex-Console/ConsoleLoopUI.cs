@@ -35,9 +35,9 @@ public class ConsoleLoopUI : IHostedService
 
     private void Cycle()
     {
-        try
+        while (true)
         {
-            while (true)
+            try
             {
                 var input = Console.ReadLine()?.Trim()!;
 
@@ -63,24 +63,24 @@ public class ConsoleLoopUI : IHostedService
                 var timer = new Stopwatch();
 
                 // online ocr eng eng-2
-                timer.Start();
-                var text = _ocrService.GetTextRepresentation(path, "eng").Result;
-                Logger.Log(ConsoleColor.Blue, "Text: {0}", text);
-                Logger.Log(ConsoleColor.Cyan, "Time: {0:F3}", timer.ElapsedMilliseconds / 1000F);
-                
+                //timer.Start();
+                //var text = _ocrService.GetTextRepresentation(path, "eng").Result;
+                //Logger.Log(ConsoleColor.Blue, "Text: {0}", text);
+                //Logger.Log(ConsoleColor.Cyan, "Time: {0:F3}", timer.ElapsedMilliseconds / 1000F);
+
                 // color tag
                 timer.Start();
-                var tags = _colorTagService.GetImageColorInfo(path).Result;
+                var tags = _colorTagService.GetImageColorInfo(path);
                 Logger.Log(ConsoleColor.Blue, "Tags: {0}", tags);
                 Logger.Log(ConsoleColor.Cyan, "Time: {0:F3}", timer.ElapsedMilliseconds / 1000F);
             }
-        }
-        catch (Exception e)
-        {
-            Trace.TraceError(e.ToString());
-            Logger.Log("Unexpected Error: " + e.Message);
-            Logger.Log("Details: ");
-            Logger.Log(e.ToString());
+            catch (Exception e)
+            {
+                Trace.TraceError(e.ToString());
+                Logger.Log("Unexpected Error: " + e.Message);
+                Logger.Log("Details: ");
+                Logger.Log(e.ToString());
+            }
         }
     }
 }
