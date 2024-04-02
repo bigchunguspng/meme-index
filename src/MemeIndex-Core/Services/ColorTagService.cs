@@ -1,17 +1,14 @@
 using IronSoftware.Drawing;
+using MemeIndex_Core.Utils;
 
 namespace MemeIndex_Core.Services;
 
 public class ColorTagService
 {
-    public Dictionary<string, Color> Colors { get; } = new();
+    public Dictionary<char,   Dictionary<string, Color>> ColorsFunny     { get; } = new();
+    public Dictionary<string, Color>                     ColorsGrayscale { get; } = new();
 
-    public List<char> Hues { get; } = new()
-    {
-        'R', 'o', 'Y', 's', // Red      orange  Yellow  spring
-        'G', 'g', 'C', 'h', // Green    grass   Cyan    heaven
-        'B', 'p', 'M', 'f', // Blue     purple  Magenta flamingo
-    };
+    public List<char> Hues { get; } = Enumerable.Range(65, 24).Select(x => (char)x).ToList();
 
     public ColorTagService()
     {
@@ -31,54 +28,83 @@ public class ColorTagService
         var w = image.Width;
         var h = image.Height;
 
-        var stepX = w < 32 ? w / 3 : w < 128 ? 12 : w > 320 ? w / 12 : 16;
-        var stepY = h < 32 ? h / 3 : h < 128 ? 12 : h > 320 ? h / 12 : 16;
+        var margin = Math.Min(w, h) < 80 ? 1 : 2;
+
+        var w2 = w - 2 * margin;
+        var h2 = h - 2 * margin;
+
+        var stepX = GetStep(w2);
+        var stepY = GetStep(h2);
+
+        int GetStep(int side) => side < 80 ? Math.Max(side / 8, 4) : side >> 4;
+
+        var chunksX = w2 / stepX;
+        var chunksY = h2 / stepY;
 
         var dots = new List<KeyValuePair<string, Color>>();
 
-        for (var x = w % stepX / 2; x < w; x += stepX)
-        for (var y = h % stepY / 2; y < h; y += stepY)
+        for (var x = (w - stepX * (chunksX - 1)) / 2; x < w - margin; x += stepX)
+        for (var y = (h - stepY * (chunksY - 1)) / 2; y < h - margin; y += stepY)
         {
-            var color = image.GetPixel(x, y);
-            dots.Add(FindClosestColor(color));
+            var colors = new Color[4];
+            var index = 0;
+            for (var i = -margin; i <= margin; i += 2 * margin)
+            for (var j = -margin; j <= margin; j += 2 * margin)
+            {
+                colors[index++] = image.GetPixel(x + i, y + j);
+#if DEBUG
+                image.SetPixel(x + i, y + j, Color.Red);
+#endif
+            }
+
+            var color = FindClosestKnownColor(ColorHelpers.GetAverageColor(colors));
+            dots.Add(color);
         }
 
-        var offset = h / stepY + 1;
+#if DEBUG
+        image.SaveAs("baka-dots.jpg", AnyBitmap.ImageFormat.Jpeg, 50);
+
         for (var x = 0; x < w; x++)
         for (var y = 0; y < h; y++)
         {
-            image.SetPixel(x, y, dots[Math.Clamp(x / stepX * offset + y / stepY, 0, dots.Count - 1)].Value);
+            var dot = x / stepX * chunksY + y / stepY;
+            image.SetPixel(x, y, dots[Math.Clamp(dot, 0, dots.Count - 1)].Value);
         }
 
-        image.SaveAs("baka.jpg", AnyBitmap.ImageFormat.Jpeg, 50);
+        image.SaveAs("baka-colors.jpg", AnyBitmap.ImageFormat.Jpeg, 50);
+#endif
 
-        var result = string.Join(' ', dots.Select(x => x.Key).Distinct().OrderBy(x => x));
+        var data = dots
+            .Select(x => x.Key)
+            .GroupBy(x => x)
+            .OrderByDescending(g => g.Count())
+            .Select(x => x.Key);
+        var result = string.Join(' ', data);
         return Task.FromResult<string?>(result);
-        
-        // todo make color picker less vulnerable to details
     }
 
-    private KeyValuePair<string, Color> FindClosestColor(Color color)
+    private KeyValuePair<string, Color> FindClosestKnownColor(Color color)
     {
-        return Colors.MinBy(x => GetDifference(x.Value, color));
-    }
-
-    private static int GetDifference(Color a, Color b)
-    {
-        return Math.Abs(a.R - b.R) + Math.Abs(a.G - b.G) + Math.Abs(a.B - b.B);
+        var chunk = color.IsGrayscale()
+            ? ColorsGrayscale
+            : ColorsFunny[Hues[color.GetHue() / 15]];
+        return chunk.MinBy(x => ColorHelpers.GetDifference(x.Value, color));
     }
 
     private void PrintColors()
     {
-        const int w = 16 * 12;
-        const int h = 16 * 6;
+        var w = 16 * ColorsFunny.Count;
+        var h = 16 * ColorsFunny.First().Value.Count;
 
         using var image = new AnyBitmap(w, h);
 
         for (var x = 0; x < w; x++)
-        for (var y = 0; y < h; y++)
         {
-            image.SetPixel(x, y, Colors.ElementAt(5 + x / 16 + y / 16 * 12).Value);
+            var hue = ColorsFunny[(char)(65 + x / 16)];
+            for (var y = 0; y < h; y++)
+            {
+                image.SetPixel(x, y, hue.ElementAt(y / 16).Value);
+            }
         }
 
         image.SaveAs("colors.png");
@@ -86,53 +112,22 @@ public class ColorTagService
 
     private void Init()
     {
-        // calculate colors
-
         for (var i = 0; i < 5; i++) // WHITE & BLACK
         {
             var value = Math.Max(0, i * 64 - 1);
-            Colors.Add($"wb{i}", new Color(value, value, value));
+            ColorsGrayscale.Add($"_{i}", new Color(value, value, value));
         }
 
-        for (var hue = 0; hue < 360; hue += 30)
-        for (var sat = 0; sat < 2; sat++)
-        for (var lig = 1; lig < 4; lig++)
+        for (var h = 0; h < 360; h += 15)
         {
-            var saturation = 1D - sat * 0.5D;
-            var lightness  = 1D - lig * 0.25D;
-            var code = $"{Hues[hue / 30]}{sat}{lig}";
-            Colors.Add(code, ColorFromHSL(hue, saturation, lightness));
+            var hue = Hues[h / 15];
+            ColorsFunny[hue] = new Dictionary<string, Color>();
+
+            for (var l = 0; l <= 6; l++)
+            {
+                var lightness = Math.Clamp(0.95D - l * 0.15D, 0.1D, 0.9D);
+                ColorsFunny[hue].Add($"{hue}{l}", ColorHelpers.ColorFromHSL(h, 0.75D, lightness));
+            }
         }
-    }
-
-    private static Color ColorFromHSL(double hue, double saturation, double lightness)
-    {
-        if (saturation == 0)
-        {
-            var value = (int)lightness;
-            return new Color(value, value, value);
-        }
-
-        var h = hue / 360D;
-
-        var max = lightness < 0.5D ? lightness * (1 + saturation) : lightness + saturation - lightness * saturation;
-        var min = lightness * 2D - max;
-
-        return new Color
-        (
-            (int)(255 * RGBChannelFromHue(min, max, h + 1 / 3D)),
-            (int)(255 * RGBChannelFromHue(min, max, h)),
-            (int)(255 * RGBChannelFromHue(min, max, h - 1 / 3D))
-        );
-    }
-
-    private static double RGBChannelFromHue(double min, double max, double hue)
-    {
-        hue = (hue + 1D) % 1D;
-        if (hue < 0) hue += 1;
-        if (hue * 6 < 1) return min + (max - min) * 6 * hue;
-        if (hue * 2 < 1) return max;
-        if (hue * 3 < 2) return min + (max - min) * 6 * (2D / 3D - hue);
-        return min;
     }
 }
