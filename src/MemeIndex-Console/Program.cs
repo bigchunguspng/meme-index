@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Text;
 using MemeIndex_Core;
 using MemeIndex_Core.Controllers;
 using MemeIndex_Core.Data;
@@ -16,6 +17,11 @@ internal static class Program
         Logger.Log("[Start]", ConsoleColor.Magenta);
 
         CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+
+        if (Environment.OSVersion.Platform is PlatformID.Win32NT)
+        {
+            Console.InputEncoding = Encoding.Unicode;
+        }
 
         var builder = Host.CreateApplicationBuilder(args);
 
