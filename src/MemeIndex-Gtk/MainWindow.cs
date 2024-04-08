@@ -35,6 +35,7 @@ namespace MemeIndex_Gtk
             }
 
             DeleteEvent += Window_DeleteEvent;
+            _menuFileQuit.Activated += Window_DeleteEvent;
             _search.SearchChanged += OnSearchChanged;
         }
 
@@ -45,7 +46,7 @@ namespace MemeIndex_Gtk
             _files.Model = store;
         }
 
-        private void Window_DeleteEvent(object sender, DeleteEventArgs a)
+        private void Window_DeleteEvent(object? sender, EventArgs a)
         {
             Application.Quit();
         }
