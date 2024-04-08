@@ -19,7 +19,7 @@ public class Config
         }
     }
 
-    [DefaultValue(@"Data Source=[data]\meme-index.db")]
+    [DefaultValue(@"Data Source=[data][/]meme-index.db")]
     public string? DbConnectionString { get; set; }
 
     /// <summary>

@@ -20,6 +20,9 @@ public class MemeDbContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         var config = ConfigRepository.GetConfig();
-        optionsBuilder.UseSqlite(config.DbConnectionString!.Replace("[data]", config.DataPath));
+        var connectionString = config.DbConnectionString!
+            .Replace("[data]", config.DataPath)
+            .Replace("[/]", Path.DirectorySeparatorChar.ToString());
+        optionsBuilder.UseSqlite(connectionString);
     }
 }
