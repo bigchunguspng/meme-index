@@ -1,15 +1,18 @@
 using Gtk;
+using Pango;
 using UI = Gtk.Builder.ObjectAttribute;
 using Window = Gtk.Window;
 
 namespace MemeIndex_Gtk
 {
-    class MainWindow : Window
+    internal class MainWindow : Window
     {
         [UI] private readonly SearchEntry _search = default!;
-        [UI] private readonly ScrolledWindow _scroll = default!;
+      //[UI] private readonly ScrolledWindow _scroll = default!;
         [UI] private readonly TreeView _files = default!;
         [UI] private readonly Statusbar _status = default!;
+
+        [UI] private readonly MenuItem _menuFileQuit = default!;
 
         public MainWindow() : this(new Builder("meme-index.glade"))
         {
@@ -19,26 +22,23 @@ namespace MemeIndex_Gtk
         {
             builder.Autoconnect(this);
 
-            var c1 = new TreeViewColumn();
-            var c2 = new TreeViewColumn();
-            var r1 = new CellRendererText();
-            var r2 = new CellRendererText();
-            c1.Title = "Name";
-            c2.Title = "Path";
-            c1.PackStart(r1, true);
-            c2.PackStart(r2, true);
+            _files.AppendColumn("Name", new CellRendererText { Ellipsize = EllipsizeMode.End }, "text", 0);
+            _files.AppendColumn("Path", new CellRendererText { Ellipsize = EllipsizeMode.End }, "text", 1);
+            _files.EnableSearch = false;
 
-            _files.AppendColumn(c1);
-            _files.AppendColumn(c2);
-
-            c1.AddAttribute(r1, "text", 0);
-            c2.AddAttribute(r2, "text", 1);
+            foreach (var column in _files.Columns)
+            {
+                column.Resizable = true;
+                column.Reorderable = true;
+                column.FixedWidth = 200;
+                column.Expand = true;
+            }
 
             DeleteEvent += Window_DeleteEvent;
             _search.SearchChanged += OnSearchChanged;
         }
 
-        private void OnSearchChanged(object sender, EventArgs e)
+        private void OnSearchChanged(object? sender, EventArgs e)
         {
             var store = CreateStore();
             FillStore(store, new DirectoryInfo(@"D:\Desktop\…"), _search.Text);
