@@ -62,7 +62,7 @@ public class DirectoryService : IDirectoryService
         }
         else
         {
-            _context.Directories.RemoveRange(GetDirectoryAndSubdirectories(entity));
+            _context.Directories.RemoveRange(GetDirectoryAndSubdirectories(entity.Path));
         }
 
         await _context.SaveChangesAsync();
@@ -70,16 +70,9 @@ public class DirectoryService : IDirectoryService
 
     public async Task Update(string oldPath, string newPath)
     {
-        var entity = await GetByPathAsync(oldPath);
-        if (entity is null)
-        {
-            return;
-        }
-
-        foreach (var directory in GetDirectoryAndSubdirectories(entity))
+        foreach (var directory in GetDirectoryAndSubdirectories(oldPath))
         {
             directory.Path = directory.Path.Replace(oldPath, newPath);
-            _context.Directories.Update(directory);
         }
 
         await _context.SaveChangesAsync();
@@ -89,7 +82,7 @@ public class DirectoryService : IDirectoryService
     {
         var emptyDirectories = _context.Directories.Where
         (
-            dir => !_context.Files
+            dir => !dir.IsTracked && !_context.Files
                 .Select(file => file.DirectoryId)
                 .Distinct()
                 .Contains(dir.Id)
@@ -105,9 +98,9 @@ public class DirectoryService : IDirectoryService
         return _context.Directories.FirstOrDefaultAsync(x => x.Path == path);
     }
 
-    private IEnumerable<Directory> GetDirectoryAndSubdirectories(Directory directory)
+    private IEnumerable<Directory> GetDirectoryAndSubdirectories(string path)
     {
-        return _context.Directories.Where(x => x.Path.StartsWith(directory.Path));
+        return _context.Directories.Where(x => x.Path.StartsWith(path));
     }
 
     private Task<bool> IsInsideOtherTrackedDirectory(Directory directory)
