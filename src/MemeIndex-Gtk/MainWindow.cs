@@ -13,6 +13,12 @@ namespace MemeIndex_Gtk
         [UI] private readonly Statusbar _status = default!;
 
         [UI] private readonly MenuItem _menuFileQuit = default!;
+        [UI] private readonly MenuItem _menuFileFolders = default!;
+
+        [UI] private readonly Dialog _manageFolders = default!;
+      //[UI] private readonly FileChooserDialog _chooser = default!;
+      //[UI] private readonly ListBox _listBox = default!;
+      //[UI] private readonly Box _box = default!;
 
         public MainWindow() : this(new Builder("meme-index.glade"))
         {
@@ -36,7 +42,19 @@ namespace MemeIndex_Gtk
 
             DeleteEvent += Window_DeleteEvent;
             _menuFileQuit.Activated += Window_DeleteEvent;
+            _menuFileFolders.Activated += ManageFolders;
             _search.SearchChanged += OnSearchChanged;
+        }
+
+        private void ManageFolders(object? sender, EventArgs e)
+        {
+            //_box.Add(new FileChooserButton("+", FileChooserAction.SelectFolder));
+            //_manageFolders.Show();
+            new ManageFoldersDialog(this).Show();
+            //var box = new Box(Orientation.Vertical, 5);
+            //box.Add(new FileChooserButton("+", FileChooserAction.SelectFolder));
+            //box.Add(new FileChooserButton("+", FileChooserAction.SelectFolder));
+            //box.Add(new FileChooserButton("+", FileChooserAction.SelectFolder));
         }
 
         private void OnSearchChanged(object? sender, EventArgs e)
@@ -88,5 +106,53 @@ namespace MemeIndex_Gtk
             else
                 return String.Compare (a_name, b_name);
         }*/
+    }
+
+    public class ManageFoldersDialog : Dialog
+    {
+        [UI] private readonly Box _folders = default!;
+
+        [UI] private readonly Button _buttonOk = default!;
+        [UI] private readonly Button _buttonCancel = default!;
+
+        private readonly ListBox _listBox;
+
+        public ManageFoldersDialog(Widget parent) : this(new Builder("meme-index.glade"))
+        {
+            Parent = parent;
+        }
+
+        private ManageFoldersDialog(Builder builder) : base(builder.GetRawOwnedObject("ManageFoldersDialog"))
+        {
+            builder.Autoconnect(this);
+
+            Title = "Manage folders";
+
+            _listBox = new ListBox();
+            _listBox.Expand = true;
+            _folders.Add(_listBox);
+
+            _buttonOk.Clicked += Ok;
+            _buttonCancel.Clicked += Cancel;
+        }
+
+        private void Ok(object? sender, EventArgs e)
+        {
+            Hide();
+        }
+
+        private void Cancel(object? sender, EventArgs e)
+        {
+            //var row = new ListBoxRow();
+            //row.Add(new Button("XD") { HeightRequest = 20 });
+            //lb.Add(row);
+            var box = new Box(Orientation.Horizontal, 5);
+            box.Add(new FileChooserButton(string.Empty, FileChooserAction.SelectFolder));
+            box.Add(new Button { Label = "-",/* HeightRequest = 20, Expand = true*/ });
+            _listBox.Add(box);
+            //_listBox.Insert(new Button { Label = "XD", HeightRequest = 20, Expand = true }, -1);
+            ShowAll();
+            //_folders.Add();
+        }
     }
 }
