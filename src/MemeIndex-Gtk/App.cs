@@ -17,28 +17,24 @@ public class App
         ColorTagService = colorTagService;
     }
 
-    public Task StartAsync(CancellationToken cancellationToken = default)
+    public void Start()
     {
         Application.Init();
 
         var app = new Application("org.MemeIndex_Gtk.MemeIndex_Gtk", GLib.ApplicationFlags.None);
-        app.Register(GLib.Cancellable.Current);
-
         var win = new MainWindow(this);
+
+        app.Register(GLib.Cancellable.Current);
         app.AddWindow(win);
 
-        Controller.StartIndexing(); // move into app ?
+        Controller.StartIndexing();
 
         win.Show();
         Application.Run();
-
-        return Task.CompletedTask;
     }
 
-    /*
-    public Task StopAsync(CancellationToken cancellationToken = default)
+    public void Stop()
     {
         Controller.StopIndexing();
-        return Task.CompletedTask;
-    }*/
+    }
 }

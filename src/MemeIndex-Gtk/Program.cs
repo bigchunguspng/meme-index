@@ -39,7 +39,8 @@ namespace MemeIndex_Gtk
 
             var app = host.Services.GetRequiredService<App>();
 
-            app.StartAsync();
+            app.Start();
+            app.Stop();
         }
     }
 }
