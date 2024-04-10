@@ -49,15 +49,44 @@ public class ManageFoldersDialog : Dialog
         _folders.Add(_listBox);
     }
 
-    private void Ok(object? sender, EventArgs e)
+    private async void Ok(object? sender, EventArgs e)
     {
-        // todo save changes
-        // rem removed, add added tracked folders
         Hide();
+        await Task.Run(SaveChangesAsync);
     }
 
     private void Cancel(object? sender, EventArgs e)
     {
         Hide();
+    }
+
+    private async void SaveChangesAsync()
+    {
+        App.SetStatus("Updating watching list...");
+        var directoriesDb = App.Controller.GetTrackedDirectories().Select(x => x.Path).ToList();
+        var directoriesMf = _listBox.Children
+            .Select(x => (FolderSelectionWidget)((ListBoxRow)x).Child)
+            .Where(x => x.DirectorySelected)
+            .Select(x => x.Choice!)
+            .ToList();
+
+        var removeList = directoriesDb.Except(directoriesMf).ToList();
+        var updateList = directoriesMf.Except(directoriesDb).ToList();
+
+        App.SetStatus($"Removing {removeList.Count} directories...");
+        foreach (var directory in removeList)
+        {
+            await App.Controller.RemoveDirectory(directory);
+        }
+
+        App.SetStatus($"Adding {updateList.Count} directories...");
+        foreach (var directory in updateList)
+        {
+            await App.Controller.AddDirectory(directory);
+        }
+
+        App.SetStatus("Watching list updated.");
+        await Task.Delay(4000);
+        App.SetStatus();
     }
 }
