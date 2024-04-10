@@ -19,7 +19,7 @@ public class ManageFoldersDialog : Dialog
         Parent = parent;
         App = parent.App;
 
-        var directories = App.Controller.GetTrackedDirectories();
+        var directories = App.IndexingController.GetTrackedDirectories();
         foreach (var directory in directories)
         {
             if (System.IO.Path.Exists(directory.Path))
@@ -63,7 +63,7 @@ public class ManageFoldersDialog : Dialog
     private async void SaveChangesAsync()
     {
         App.SetStatus("Updating watching list...");
-        var directoriesDb = App.Controller.GetTrackedDirectories().Select(x => x.Path).ToList();
+        var directoriesDb = App.IndexingController.GetTrackedDirectories().Select(x => x.Path).ToList();
         var directoriesMf = _listBox.Children
             .Select(x => (FolderSelectionWidget)((ListBoxRow)x).Child)
             .Where(x => x.DirectorySelected)
@@ -76,13 +76,13 @@ public class ManageFoldersDialog : Dialog
         App.SetStatus($"Removing {removeList.Count} directories...");
         foreach (var directory in removeList)
         {
-            await App.Controller.RemoveDirectory(directory);
+            await App.IndexingController.RemoveDirectory(directory);
         }
 
         App.SetStatus($"Adding {updateList.Count} directories...");
         foreach (var directory in updateList)
         {
-            await App.Controller.AddDirectory(directory);
+            await App.IndexingController.AddDirectory(directory);
         }
 
         App.SetStatus("Watching list updated.");

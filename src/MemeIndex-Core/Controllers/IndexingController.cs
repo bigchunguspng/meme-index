@@ -216,8 +216,3 @@ public class IndexingController
         _watch.Stop();
     }
 }
-
-public class SearchController
-{
-    // - search files
-}

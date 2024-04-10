@@ -10,13 +10,21 @@ public class App
 {
     private Statusbar? _status;
 
-    public IndexingController Controller { get; init; }
+    public SearchController SearchController { get; init; }
+    public IndexingController IndexingController { get; init; }
     public IOcrService OcrService { get; init; }
     public ColorTagService ColorTagService { get; init; }
 
-    public App(IndexingController controller, IOcrService ocrService, ColorTagService colorTagService)
+    public App
+    (
+        IndexingController indexingController,
+        SearchController searchController,
+        IOcrService ocrService,
+        ColorTagService colorTagService
+    )
     {
-        Controller = controller;
+        IndexingController = indexingController;
+        SearchController = searchController;
         OcrService = ocrService;
         ColorTagService = colorTagService;
     }
@@ -31,7 +39,7 @@ public class App
         app.Register(Cancellable.Current);
         app.AddWindow(win);
 
-        Controller.StartIndexing();
+        IndexingController.StartIndexing();
 
         win.Show();
         Application.Run();
@@ -39,7 +47,7 @@ public class App
 
     public void Stop()
     {
-        Controller.StopIndexing();
+        IndexingController.StopIndexing();
     }
 
     public void SetStatusBar(Statusbar bar) => _status = bar;

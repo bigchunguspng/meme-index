@@ -59,7 +59,6 @@ public class MainWindow : Window
     private void Window_DeleteEvent(object? sender, EventArgs a)
     {
         Application.Quit();
-        //App.StopAsync();
     }
 
     ListStore CreateStore()
@@ -72,22 +71,18 @@ public class MainWindow : Window
         return store;
     }
 
-    public List<FileInfo>? Files { get; set; }
-
     void FillStore(ListStore store, string search)
     {
         store.Clear();
 
-        Files ??= App.Controller.GetTrackedDirectories()
-            .SelectMany(x => new DirectoryInfo(x.Path).GetFiles("*.*", SearchOption.AllDirectories))
-            .ToList();
-
-        var files = Files.Where(x => x.Name.Contains(search)).ToList();
-
-        App.SetStatus($"Files: {files.Count}, search: {search}.");
-        foreach (var file in files)
+        var files = App.SearchController.SearchByText(search).Result?.ToList();
+        if (files != null)
         {
-            if (!file.Name.StartsWith(".")) store.AppendValues(file.Name, file.DirectoryName);
+            App.SetStatus($"Files: {files.Count}, search: {search}.");
+            foreach (var file in files)
+            {
+                store.AppendValues(file.Name, file.Directory.Path);
+            }
         }
     }
 

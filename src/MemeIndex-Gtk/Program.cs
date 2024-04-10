@@ -31,6 +31,7 @@ namespace MemeIndex_Gtk
             builder.Services.AddSingleton<IOcrService, OnlineOcrService>();
             builder.Services.AddSingleton<ColorTagService>();
             builder.Services.AddSingleton<IndexingController>();
+            builder.Services.AddSingleton<SearchController>();
             builder.Services.AddSingleton<App>();
 
             using var host = builder.Build();
