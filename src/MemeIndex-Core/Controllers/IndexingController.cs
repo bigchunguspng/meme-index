@@ -22,6 +22,8 @@ public class IndexingController
         _directoryService = directoryService;
     }
 
+    public event Action<string?>? Log;
+
     public IEnumerable<Entities.Directory> GetTrackedDirectories()
     {
         return _directoryService.GetTracked();
@@ -31,6 +33,8 @@ public class IndexingController
     {
         if (path.IsDirectory())
         {
+            Log?.Invoke($"Adding \"{path}\"...");
+
             // add to db, start watching
             await _directoryService.AddTracking(path);
             _watch.AddDirectory(path);
@@ -68,6 +72,8 @@ public class IndexingController
 
         if (path.IsDirectory())
         {
+            Log?.Invoke($"Removing \"{path}\"...");
+
             await _directoryService.RemoveTracking(path);
             _watch.RemoveDirectory(path);
 

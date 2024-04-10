@@ -27,6 +27,8 @@ public class App
         SearchController = searchController;
         OcrService = ocrService;
         ColorTagService = colorTagService;
+
+        IndexingController.Log += SetStatus;
     }
 
     public void Start()

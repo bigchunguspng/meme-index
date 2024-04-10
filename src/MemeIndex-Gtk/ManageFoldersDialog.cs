@@ -73,13 +73,11 @@ public class ManageFoldersDialog : Dialog
         var removeList = directoriesDb.Except(directoriesMf).ToList();
         var updateList = directoriesMf.Except(directoriesDb).ToList();
 
-        App.SetStatus($"Removing {removeList.Count} directories...");
         foreach (var directory in removeList)
         {
             await App.IndexingController.RemoveDirectory(directory);
         }
 
-        App.SetStatus($"Adding {updateList.Count} directories...");
         foreach (var directory in updateList)
         {
             await App.IndexingController.AddDirectory(directory);
