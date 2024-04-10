@@ -22,6 +22,11 @@ public class IndexingController
         _directoryService = directoryService;
     }
 
+    public IEnumerable<Entities.Directory> GetTrackedDirectories()
+    {
+        return _directoryService.GetTracked();
+    }
+
     public async Task AddDirectory(string path)
     {
         if (path.IsDirectory())
