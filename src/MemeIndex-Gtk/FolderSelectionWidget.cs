@@ -6,17 +6,18 @@ public class FolderSelectionWidget : Box
 {
     private readonly ListBox _listBox;
 
-    private FileChooserButton Chooser { get; set; }
-    private Button RemoveButton { get; set; }
+    public FileChooserButton Chooser { get; set; }
+    public Button RemoveButton { get; set; }
 
-    private string? PreviousChoice { get; set; }
-    private bool DirectorySelected => !string.IsNullOrEmpty(Chooser.Filename);
+    public string? PreviousChoice { get; set; }
+    public string? Choice => Chooser.Filename;
+    public bool DirectorySelected => !string.IsNullOrEmpty(Choice);
 
-    private IEnumerable<string> Directories => _listBox.Children.Select(x =>
+    private IEnumerable<string?> Directories => _listBox.Children.Select(x =>
     {
         var row = (ListBoxRow)x;
         var box = (FolderSelectionWidget)row.Child;
-        return box.Chooser.Filename;
+        return box.Choice;
     });
 
     public FolderSelectionWidget(ListBox listBox, string? path = null) : base(Orientation.Horizontal, 5)
@@ -47,7 +48,7 @@ public class FolderSelectionWidget : Box
     private void ChooserOnFileSet(object? sender, EventArgs e)
     {
         // prevent duplicates
-        if (Directories.Count(x => x == Chooser.Filename) > 1)
+        if (Directories.Count(x => x == Choice) > 1)
         {
             SelectDirectory(PreviousChoice);
         }
@@ -59,7 +60,7 @@ public class FolderSelectionWidget : Box
             _listBox.Add(new FolderSelectionWidget(_listBox));
         }
 
-        PreviousChoice = Chooser.Filename;
+        PreviousChoice = Choice;
         RemoveButton.Sensitive = DirectorySelected;
 
         _listBox.ShowAll();

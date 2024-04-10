@@ -19,6 +19,7 @@ public class MainWindow : Window
     public MainWindow(App app) : this(new Builder("meme-index.glade"))
     {
         App = app;
+        app.SetStatusBar(_status);
     }
 
     private MainWindow(Builder builder) : base(builder.GetRawOwnedObject("MainWindow"))
@@ -83,7 +84,7 @@ public class MainWindow : Window
 
         var files = Files.Where(x => x.Name.Contains(search)).ToList();
 
-        _status.Push(0, $"Files: {files.Count}, search: {search}.");
+        App.SetStatus($"Files: {files.Count}, search: {search}.");
         foreach (var file in files)
         {
             if (!file.Name.StartsWith(".")) store.AppendValues(file.Name, file.DirectoryName);
