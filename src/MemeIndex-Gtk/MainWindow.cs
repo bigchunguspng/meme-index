@@ -51,7 +51,7 @@ public class MainWindow : Window
     private void OnSearchChanged(object? sender, EventArgs e)
     {
         var store = CreateStore();
-        FillStore(store, new DirectoryInfo(@"D:\Desktop\…"), _search.Text);
+        FillStore(store, _search.Text);
         _files.Model = store;
     }
 
@@ -71,12 +71,19 @@ public class MainWindow : Window
         return store;
     }
 
-    void FillStore(ListStore store, DirectoryInfo directory, string search)
+    public List<FileInfo>? Files { get; set; }
+
+    void FillStore(ListStore store, string search)
     {
         store.Clear();
 
-        var files = directory.GetFiles($"*{search}*", SearchOption.AllDirectories);
-        _status.Push(0, $"Files: {files.Length}, search: {search}.");
+        Files ??= App.Controller.GetTrackedDirectories()
+            .SelectMany(x => new DirectoryInfo(x.Path).GetFiles("*.*", SearchOption.AllDirectories))
+            .ToList();
+
+        var files = Files.Where(x => x.Name.Contains(search)).ToList();
+
+        _status.Push(0, $"Files: {files.Count}, search: {search}.");
         foreach (var file in files)
         {
             if (!file.Name.StartsWith(".")) store.AppendValues(file.Name, file.DirectoryName);
