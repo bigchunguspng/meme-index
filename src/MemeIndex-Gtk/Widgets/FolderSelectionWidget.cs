@@ -1,6 +1,6 @@
 using Gtk;
 
-namespace MemeIndex_Gtk;
+namespace MemeIndex_Gtk.Widgets;
 
 public class FolderSelectionWidget : Box
 {

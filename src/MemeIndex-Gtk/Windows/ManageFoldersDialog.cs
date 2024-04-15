@@ -1,7 +1,8 @@
 using Gtk;
+using MemeIndex_Gtk.Widgets;
 using UI = Gtk.Builder.ObjectAttribute;
 
-namespace MemeIndex_Gtk;
+namespace MemeIndex_Gtk.Windows;
 
 public class ManageFoldersDialog : Dialog
 {
@@ -19,7 +20,7 @@ public class ManageFoldersDialog : Dialog
         Parent = parent;
         App = parent.App;
 
-        var directories = App.IndexingController.GetTrackedDirectories();
+        var directories = App.IndexingService.GetTrackedDirectories();
         foreach (var directory in directories)
         {
             if (System.IO.Path.Exists(directory.Path))
@@ -63,7 +64,7 @@ public class ManageFoldersDialog : Dialog
     private async void SaveChangesAsync()
     {
         App.SetStatus("Updating watching list...");
-        var directoriesDb = App.IndexingController.GetTrackedDirectories().Select(x => x.Path).ToList();
+        var directoriesDb = App.IndexingService.GetTrackedDirectories().Select(x => x.Path).ToList();
         var directoriesMf = _listBox.Children
             .Select(x => (FolderSelectionWidget)((ListBoxRow)x).Child)
             .Where(x => x.DirectorySelected)
@@ -75,15 +76,16 @@ public class ManageFoldersDialog : Dialog
 
         foreach (var directory in removeList)
         {
-            await App.IndexingController.RemoveDirectory(directory);
+            await App.IndexingService.RemoveDirectory(directory);
         }
 
         foreach (var directory in updateList)
         {
-            await App.IndexingController.AddDirectory(directory);
+            await App.IndexingService.AddDirectory(directory);
         }
 
         App.SetStatus("Watching list updated.");
+        // todo trigger color / ocr indexing process start
         await Task.Delay(4000);
         App.SetStatus();
     }

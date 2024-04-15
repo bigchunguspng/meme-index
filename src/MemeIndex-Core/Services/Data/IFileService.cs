@@ -1,4 +1,4 @@
-namespace MemeIndex_Core.Services;
+namespace MemeIndex_Core.Services.Data;
 
 public interface IFileService
 {

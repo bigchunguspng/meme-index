@@ -1,7 +1,7 @@
 using IronSoftware.Drawing;
 using MemeIndex_Core.Utils;
 
-namespace MemeIndex_Core.Services;
+namespace MemeIndex_Core.Services.Indexing;
 
 public class ColorTagService
 {

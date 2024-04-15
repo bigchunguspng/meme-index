@@ -1,6 +1,5 @@
 using System.Diagnostics;
-using MemeIndex_Core.Controllers;
-using MemeIndex_Core.Services;
+using MemeIndex_Core.Services.Indexing;
 using MemeIndex_Core.Utils;
 using Microsoft.Extensions.Hosting;
 
@@ -8,13 +7,13 @@ namespace MemeIndex_Console;
 
 public class ConsoleLoopUI : IHostedService
 {
-    private readonly IndexingController _controller;
+    private readonly IndexingService _service;
     private readonly IOcrService _ocrService;
     private readonly ColorTagService _colorTagService;
 
-    public ConsoleLoopUI(IndexingController controller, IOcrService ocrService, ColorTagService colorTagService)
+    public ConsoleLoopUI(IndexingService service, IOcrService ocrService, ColorTagService colorTagService)
     {
-        _controller = controller;
+        _service = service;
         _ocrService = ocrService;
         _colorTagService = colorTagService;
     }
@@ -22,14 +21,14 @@ public class ConsoleLoopUI : IHostedService
     public Task StartAsync(CancellationToken cancellationToken)
     {
         Task.Run(Cycle, cancellationToken);
-        _controller.StartIndexing();
+        _service.StartIndexing();
 
         return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        _controller.StopIndexing();
+        _service.StopIndexing();
         return Task.CompletedTask;
     }
 
@@ -43,12 +42,12 @@ public class ConsoleLoopUI : IHostedService
 
                 if (input.StartsWith("/add "))
                 {
-                    _controller.AddDirectory(input[5..].Trim('"')).Wait();
+                    _service.AddDirectory(input[5..].Trim('"')).Wait();
                     continue;
                 }
                 if (input.StartsWith("/rem "))
                 {
-                    _controller.RemoveDirectory(input[5..].Trim('"')).Wait();
+                    _service.RemoveDirectory(input[5..].Trim('"')).Wait();
                     continue;
                 }
 

@@ -1,16 +1,16 @@
 using System.Diagnostics;
-using MemeIndex_Core.Services;
+using MemeIndex_Core.Services.Data;
 using MemeIndex_Core.Utils;
 
-namespace MemeIndex_Core.Controllers;
+namespace MemeIndex_Core.Services.Indexing;
 
-public class IndexingController
+public class IndexingService
 {
     private readonly FileWatchService _watch;
     private readonly IFileService _fileService;
     private readonly IDirectoryService _directoryService;
 
-    public IndexingController
+    public IndexingService
     (
         FileWatchService watch,
         IFileService fileService,

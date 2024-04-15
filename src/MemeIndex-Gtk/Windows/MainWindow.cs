@@ -3,7 +3,7 @@ using Pango;
 using UI = Gtk.Builder.ObjectAttribute;
 using Window = Gtk.Window;
 
-namespace MemeIndex_Gtk;
+namespace MemeIndex_Gtk.Windows;
 
 public class MainWindow : Window
 {
@@ -75,7 +75,7 @@ public class MainWindow : Window
     {
         store.Clear();
 
-        var files = App.SearchController.SearchByText(search).Result?.ToList();
+        var files = App.SearchService.SearchByText(search).Result?.ToList();
         if (files != null)
         {
             App.SetStatus($"Files: {files.Count}, search: {search}.");

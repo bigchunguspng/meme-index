@@ -1,6 +1,7 @@
+using MemeIndex_Core.Services.Data;
 using MemeIndex_Core.Utils;
 
-namespace MemeIndex_Core.Services;
+namespace MemeIndex_Core.Services.Indexing;
 
 public class FileWatchService
 {
@@ -129,6 +130,11 @@ public class FileWatchService
         // delete from db
         Logger.Log("Deleted", ConsoleColor.Yellow);
     }
+
+    // file copied >> created + 3-4 x changed
+    // file moved  >> deleted created
+    // file edited with Paint >>    6 x changed
+    // file edited with Pinta >> ~100 x changed
 
     #endregion
 }

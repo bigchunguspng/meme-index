@@ -2,7 +2,7 @@ using IronSoftware.Drawing;
 using MemeIndex_Core.Utils;
 using Newtonsoft.Json.Linq;
 
-namespace MemeIndex_Core.Services;
+namespace MemeIndex_Core.Services.Indexing;
 
 public class OnlineOcrService : IOcrService
 {

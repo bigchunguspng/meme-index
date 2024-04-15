@@ -1,7 +1,8 @@
 using GLib;
 using Gtk;
-using MemeIndex_Core.Controllers;
-using MemeIndex_Core.Services;
+using MemeIndex_Core.Services.Indexing;
+using MemeIndex_Core.Services.Search;
+using MemeIndex_Gtk.Windows;
 using Application = Gtk.Application;
 
 namespace MemeIndex_Gtk;
@@ -10,25 +11,25 @@ public class App
 {
     private Statusbar? _status;
 
-    public SearchController SearchController { get; init; }
-    public IndexingController IndexingController { get; init; }
+    public SearchService SearchService { get; init; }
+    public IndexingService IndexingService { get; init; }
     public IOcrService OcrService { get; init; }
     public ColorTagService ColorTagService { get; init; }
 
     public App
     (
-        IndexingController indexingController,
-        SearchController searchController,
+        IndexingService indexingService,
+        SearchService searchService,
         IOcrService ocrService,
         ColorTagService colorTagService
     )
     {
-        IndexingController = indexingController;
-        SearchController = searchController;
+        IndexingService = indexingService;
+        SearchService = searchService;
         OcrService = ocrService;
         ColorTagService = colorTagService;
 
-        IndexingController.Log += SetStatus;
+        IndexingService.Log += SetStatus;
     }
 
     public void Start()
@@ -41,7 +42,7 @@ public class App
         app.Register(Cancellable.Current);
         app.AddWindow(win);
 
-        IndexingController.StartIndexing();
+        IndexingService.StartIndexing();
 
         win.Show();
         Application.Run();
@@ -49,7 +50,7 @@ public class App
 
     public void Stop()
     {
-        IndexingController.StopIndexing();
+        IndexingService.StopIndexing();
     }
 
     public void SetStatusBar(Statusbar bar) => _status = bar;

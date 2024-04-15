@@ -1,9 +1,9 @@
 ﻿using System.Globalization;
 using System.Text;
 using MemeIndex_Core;
-using MemeIndex_Core.Controllers;
 using MemeIndex_Core.Data;
-using MemeIndex_Core.Services;
+using MemeIndex_Core.Services.Data;
+using MemeIndex_Core.Services.Indexing;
 using MemeIndex_Core.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -34,7 +34,7 @@ internal static class Program
         builder.Services.AddSingleton<FileWatchService>();
         builder.Services.AddSingleton<IOcrService, OnlineOcrService>();
         builder.Services.AddSingleton<ColorTagService>();
-        builder.Services.AddSingleton<IndexingController>();
+        builder.Services.AddSingleton<IndexingService>();
 
         using var host = builder.Build();
 

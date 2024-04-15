@@ -1,11 +1,11 @@
 using MemeIndex_Core.Data;
-using MemeIndex_Core.Services;
+using MemeIndex_Core.Services.Data;
 using Microsoft.EntityFrameworkCore;
 using File = MemeIndex_Core.Entities.File;
 
-namespace MemeIndex_Core.Controllers;
+namespace MemeIndex_Core.Services.Search;
 
-public class SearchController
+public class SearchService
 {
     private readonly IFileService _fileService;
     private readonly IDirectoryService _directoryService;
@@ -14,7 +14,7 @@ public class SearchController
     private bool _dirty = true;
     private IList<File>? _files;
 
-    public SearchController(IFileService fileService, IDirectoryService directoryService, MemeDbContext context)
+    public SearchService(IFileService fileService, IDirectoryService directoryService, MemeDbContext context)
     {
         _fileService = fileService;
         _directoryService = directoryService;

@@ -2,7 +2,7 @@ using MemeIndex_Core.Data;
 using Microsoft.EntityFrameworkCore;
 using Directory = MemeIndex_Core.Entities.Directory;
 
-namespace MemeIndex_Core.Services;
+namespace MemeIndex_Core.Services.Data;
 
 public class FileService : IFileService
 {
