@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace MemeIndex_Core.Entities;
 
 /// <summary>
-/// Since user tracks only specific folders, it is be better to move them here
+/// Since user tracks only specific folders, it is better to store them here
 /// </summary>
 [Table("Directories")]
 public class Directory : AbstractEntity
