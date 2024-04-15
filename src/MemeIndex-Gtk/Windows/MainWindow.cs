@@ -13,10 +13,11 @@ public class MainWindow : Window
 
     [UI] private readonly MenuItem _menuFileQuit = default!;
     [UI] private readonly MenuItem _menuFileFolders = default!;
+    [UI] private readonly MenuItem _menuFileSettings = default!;
 
     public App App { get; init; } = default!;
 
-    public MainWindow(App app) : this(new Builder("meme-index.glade"))
+    public MainWindow(App app) : this(new Builder("MainWindow.glade"))
     {
         App = app;
         app.SetStatusBar(_status);
@@ -41,12 +42,18 @@ public class MainWindow : Window
         DeleteEvent += Window_DeleteEvent;
         _menuFileQuit.Activated += Window_DeleteEvent;
         _menuFileFolders.Activated += ManageFolders;
+        _menuFileSettings.Activated += Settings;
         _search.SearchChanged += OnSearchChanged;
     }
 
     private void ManageFolders(object? sender, EventArgs e)
     {
         new ManageFoldersDialog(this).Show();
+    }
+    
+    private void Settings(object? sender, EventArgs e)
+    {
+        new SettingsDialog(this).Show();
     }
 
     private void OnSearchChanged(object? sender, EventArgs e)

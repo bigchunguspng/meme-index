@@ -15,7 +15,7 @@ public class ManageFoldersDialog : Dialog
 
     private App App { get; init; } = default!;
 
-    public ManageFoldersDialog(MainWindow parent) : this(new Builder("meme-index.glade"))
+    public ManageFoldersDialog(MainWindow parent) : this(new Builder("ManageFoldersDialog.glade"))
     {
         Parent = parent;
         App = parent.App;
@@ -85,8 +85,8 @@ public class ManageFoldersDialog : Dialog
         }
 
         App.SetStatus("Watching list updated.");
+        App.ClearStatusLater();
+
         // todo trigger color / ocr indexing process start
-        await Task.Delay(4000);
-        App.SetStatus();
     }
 }

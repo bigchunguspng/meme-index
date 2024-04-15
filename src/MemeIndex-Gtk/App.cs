@@ -4,6 +4,7 @@ using MemeIndex_Core.Services.Indexing;
 using MemeIndex_Core.Services.Search;
 using MemeIndex_Gtk.Windows;
 using Application = Gtk.Application;
+using Task = System.Threading.Tasks.Task;
 
 namespace MemeIndex_Gtk;
 
@@ -63,4 +64,10 @@ public class App
             _status?.Push(0, message);
         }
     });
+
+    public async void ClearStatusLater()
+    {
+        await Task.Delay(4000);
+        SetStatus();
+    }
 }
