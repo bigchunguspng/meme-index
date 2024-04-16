@@ -115,7 +115,7 @@ public class ColorTagService
 
     private void Init()
     {
-        ColorsGrayscale.Add("_-", new Color(0, 0, 0, 0)); // TRANSPARENT
+        ColorsGrayscale.Add("_-", new Color(0, 0, 128, 255)); // TRANSPARENT
 
         for (var i = 0; i < 5; i++) // WHITE & BLACK
         {
