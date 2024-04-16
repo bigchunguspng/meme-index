@@ -101,7 +101,7 @@ public class App
             AppendStyle(sb, color.Key, color.Value);
         }
 
-        foreach (var color in ColorTagService.ColorsGrayscale)
+        foreach (var color in ColorTagService.ColorsGrayscale.Where(x => x.Value.A > 0))
         {
             AppendStyle(sb, color.Key, color.Value);
         }

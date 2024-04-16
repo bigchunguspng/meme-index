@@ -115,13 +115,15 @@ public class ColorTagService
 
     private void Init()
     {
+        ColorsGrayscale.Add("_-", new Color(0, 0, 0, 0)); // TRANSPARENT
+
         for (var i = 0; i < 5; i++) // WHITE & BLACK
         {
             var value = Math.Max(0, i * 64 - 1);
             ColorsGrayscale.Add($"_{i}", new Color(value, value, value));
         }
 
-        for (var h = 0; h < 360; h += 15)
+        for (var h = 0; h < 360; h += 15) // SATURATED
         {
             var hue = Hues[h / 15];
             ColorsFunny[hue] = new Dictionary<string, Color>();

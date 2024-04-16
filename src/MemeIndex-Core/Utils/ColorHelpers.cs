@@ -56,6 +56,8 @@ public static class ColorHelpers
 
     public static bool IsGrayscale(this Color c)
     {
+        if (c.A < 64) return true;
+
         var max = Math.Max(Math.Max(c.R, c.G), c.B);
         var min = Math.Min(Math.Min(c.R, c.G), c.B);
         var delta = max - min;
@@ -69,16 +71,16 @@ public static class ColorHelpers
 
     public static int GetDifference(Color a, Color b)
     {
-        var result = Math.Abs(a.R - b.R) + Math.Abs(a.G - b.G) + Math.Abs(a.B - b.B);
+        if (a.A < 64 && b.A < 64) return 0;
 
-        return result;
+        return Math.Abs(a.R - b.R) + Math.Abs(a.G - b.G) + Math.Abs(a.B - b.B);
     }
 
     public static Color GetAverageColor(Color[] colors)
     {
         if (colors.Max(x => x.A) < 64)
         {
-            return new Color(255, 255, 255);
+            return new Color(0, 0, 0, 0);
         }
 
         return new Color
