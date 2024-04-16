@@ -1,5 +1,6 @@
 using GLib;
 using Gtk;
+using MemeIndex_Core.Data;
 using MemeIndex_Core.Services.Indexing;
 using MemeIndex_Core.Services.Search;
 using MemeIndex_Gtk.Windows;
@@ -16,19 +17,22 @@ public class App
     public IndexingService IndexingService { get; init; }
     public IOcrService OcrService { get; init; }
     public ColorTagService ColorTagService { get; init; }
+    public MemeDbContext Context { get; init; }
 
     public App
     (
         IndexingService indexingService,
         SearchService searchService,
         IOcrService ocrService,
-        ColorTagService colorTagService
+        ColorTagService colorTagService,
+        MemeDbContext context
     )
     {
         IndexingService = indexingService;
         SearchService = searchService;
         OcrService = ocrService;
         ColorTagService = colorTagService;
+        Context = context;
 
         IndexingService.Log += SetStatus;
     }
@@ -42,10 +46,15 @@ public class App
 
         app.Register(Cancellable.Current);
         app.AddWindow(win);
-
-        IndexingService.StartIndexing();
-
         win.Show();
+
+        Task.Run(() =>
+        {
+            SetStatus("Loading database...");
+            DatabaseInitializer.EnsureCreated(Context);
+            IndexingService.StartIndexingAsync();
+        });
+
         Application.Run();
     }
 

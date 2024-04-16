@@ -21,7 +21,7 @@ public class ConsoleLoopUI : IHostedService
     public Task StartAsync(CancellationToken cancellationToken)
     {
         Task.Run(Cycle, cancellationToken);
-        _service.StartIndexing();
+        _service.StartIndexingAsync();
 
         return Task.CompletedTask;
     }

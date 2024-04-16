@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 using MemeIndex_Core.Services.Data;
 using MemeIndex_Core.Utils;
 
@@ -104,6 +105,7 @@ public class IndexingService
         var timer = new Stopwatch();
         timer.Start();
         Logger.Log("Overtaking: start", ConsoleColor.Yellow);
+        Log?.Invoke("Overtaking file system changes...");
 
         var existingDirectoriesAll     = _directoryService.GetAll()    .GetExisting().ToList();
         var existingDirectoriesTracked = _directoryService.GetTracked().GetExisting().ToList();
@@ -113,6 +115,7 @@ public class IndexingService
 
         Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} files loaded", files.Count);
         Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} files records available", fileRecords.Count);
+        Log?.Invoke($"Overtaking {files.Count} files & {fileRecords.Count} records...");
 
         var directoriesByPath = existingDirectoriesAll.ToDictionary(x => x.Path);
 
@@ -175,6 +178,20 @@ public class IndexingService
 
         Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} empty directories removed", c2);
         Logger.Log(ConsoleColor.Yellow, "Overtaking: elapsed {0}", timer.Elapsed);
+        if (Log != null)
+        {
+            var builder = new StringBuilder("Changes overtaken!");
+            if (missingFiles.Count > 0)
+                builder
+                    .Append(" Missing files located: ")
+                    .Append(locatedMissingFiles.Count).Append('/')
+                    .Append( /* */ missingFiles.Count).Append('.');
+
+            if (c0 > 0) builder.Append(" Files added: "  ).Append(c0).Append('.');
+            if (c1 > 0) builder.Append(" Files removed: ").Append(c1).Append('.');
+
+            Log(builder.ToString());
+        }
 
 
         // WHEN NEW FILE(s) ADDED (spotted by file watcher)
@@ -203,16 +220,17 @@ public class IndexingService
 
     private bool FileWasUpdated(FileInfo fileInfo, Entities.File entity)
     {
+        // (so it needs reindexing by visual means)
         return fileInfo.Length != entity.Size ||
                fileInfo.LastWriteTimeUtc > entity.Tracked ||
                fileInfo.CreationTimeUtc  > entity.Tracked;
     }
 
-    public void StartIndexing()
+    public async void StartIndexingAsync()
     {
         // todo ask to locate missing dirs
 
-        OvertakeMissingFiles().Wait();
+        await OvertakeMissingFiles();
 
         _watch.Start();
     }

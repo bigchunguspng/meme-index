@@ -24,7 +24,6 @@ namespace MemeIndex_Gtk
 
             var builder = Host.CreateApplicationBuilder(args);
 
-            builder.Services.AddSingleton<Config>(_ => ConfigRepository.GetConfig());
             builder.Services.AddDbContext<MemeDbContext>(ServiceLifetime.Singleton, ServiceLifetime.Singleton);
             builder.Services.AddSingleton<IDirectoryService, DirectoryService>();
             builder.Services.AddSingleton<IFileService, FileService>();
@@ -36,8 +35,6 @@ namespace MemeIndex_Gtk
             builder.Services.AddSingleton<App>();
 
             using var host = builder.Build();
-
-            DatabaseInitializer.EnsureCreated(host.Services.GetRequiredService<MemeDbContext>());
 
             var app = host.Services.GetRequiredService<App>();
 
