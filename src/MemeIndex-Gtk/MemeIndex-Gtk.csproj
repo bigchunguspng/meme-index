@@ -16,6 +16,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="**\*.css" />
+    <EmbeddedResource Include="**\*.css">
+      <LogicalName>%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\MemeIndex-Core\MemeIndex-Core.csproj" />
   </ItemGroup>
 

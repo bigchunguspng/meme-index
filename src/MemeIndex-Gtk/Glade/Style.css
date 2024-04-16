@@ -1,0 +1,9 @@
+checkbutton.color check {
+  min-width: 16px;
+  min-height: 16px;
+  border-style: solid;
+}
+
+checkbutton.color:checked check {
+  border-style: dashed;
+}

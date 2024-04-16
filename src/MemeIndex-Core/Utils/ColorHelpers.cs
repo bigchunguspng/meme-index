@@ -113,4 +113,11 @@ public static class ColorHelpers
 
         // AnyBitmap needs to be copied because ExtractAlphaData() disposes it.
     }
+
+    public static Color GetDarkerColor(this Color color) => new
+    (
+        Math.Clamp((int)(color.R * 0.75), 0, 255),
+        Math.Clamp((int)(color.G * 0.75), 0, 255),
+        Math.Clamp((int)(color.B * 0.75), 0, 255)
+    );
 }

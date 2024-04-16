@@ -1,8 +1,11 @@
+using System.Text;
+using Gdk;
 using GLib;
 using Gtk;
 using MemeIndex_Core.Data;
 using MemeIndex_Core.Services.Indexing;
 using MemeIndex_Core.Services.Search;
+using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Windows;
 using Application = Gtk.Application;
 using Task = System.Threading.Tasks.Task;
@@ -42,6 +45,14 @@ public class App
         Application.Init();
 
         var app = new Application("org.MemeIndex_Gtk.MemeIndex_Gtk", ApplicationFlags.None);
+        
+        var css1 = new CssProvider();
+        var css2 = new CssProvider();
+        css1.LoadFromResource("Style.css");
+        css2.LoadFromData(GetColorSelectionCss());
+        StyleContext.AddProviderForScreen(Screen.Default, css1, StyleProviderPriority.Application);
+        StyleContext.AddProviderForScreen(Screen.Default, css2, StyleProviderPriority.Application);
+
         var win = new MainWindow(this);
 
         app.Register(Cancellable.Current);
@@ -78,5 +89,35 @@ public class App
     {
         await Task.Delay(4000);
         SetStatus();
+    }
+
+    // todo move
+    private string GetColorSelectionCss()
+    {
+        var sb = new StringBuilder();
+        foreach (var hue in ColorTagService.ColorsFunny)
+        foreach (var color in hue.Value)
+        {
+            AppendStyle(sb, color.Key, color.Value);
+        }
+
+        foreach (var color in ColorTagService.ColorsGrayscale)
+        {
+            AppendStyle(sb, color.Key, color.Value);
+        }
+
+        return sb.ToString();
+    }
+
+    private static void AppendStyle(StringBuilder sb, string key, IronSoftware.Drawing.Color color)
+    {
+        var colorA = color                 .ToHtmlCssColorCode();
+        var colorB = color.GetDarkerColor().ToHtmlCssColorCode();
+
+        sb.Append("checkbutton.").Append(key).Append(" check ");
+        sb.Append("{ ");
+        sb.Append("background: "  ).Append(colorA).Append("; ");
+        sb.Append("border-color: ").Append(colorB).Append("; ");
+        sb.Append("} ");
     }
 }
