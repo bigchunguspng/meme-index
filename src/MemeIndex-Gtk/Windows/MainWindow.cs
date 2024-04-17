@@ -105,8 +105,17 @@ public class MainWindow : Window
 
         _files.EnableSearch = false;
         _files.ActivateOnSingleClick = true;
-        _files.RowActivated += (o, args) => App.SetStatus(o.ToString()); // just for test
-        _files.UnselectAll  += (o, args) => App.SetStatus("UnselectAll");
+        _files.RowActivated += (_, args) =>
+        {
+            var column = (TreeViewColumn)args.Args[1];
+            var renderer = (CellRendererText)column.Cells[0];
+            App.SetStatus(renderer.Text);
+        };
+        _files.FocusOutEvent += (_, _) =>
+        {
+            _files.Selection.UnselectAll();
+            App.SetStatus();
+        };
     }
 
     private static ListStore CreateStore()
