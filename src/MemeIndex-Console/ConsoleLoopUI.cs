@@ -62,16 +62,17 @@ public class ConsoleLoopUI : IHostedService
                 var timer = new Stopwatch();
 
                 // online ocr eng eng-2
-                //timer.Start();
-                //var text = _ocrService.GetTextRepresentation(path, "eng").Result;
-                //Logger.Log(ConsoleColor.Blue, "Text: {0}", text);
-                //Logger.Log(ConsoleColor.Cyan, "Time: {0:F3}", timer.ElapsedMilliseconds / 1000F);
+                timer.Start();
+                var text = _ocrService.GetTextRepresentation(path, "eng").Result;
+                if (text is null) continue;
+                Logger.Log(ConsoleColor.Blue, "Text:  \n{0}", string.Join('\n', text.OrderBy(x => x.Rank)));
+                Logger.Log(ConsoleColor.Cyan, "Time: {0:F3}", timer.ElapsedMilliseconds / 1000F);
 
                 // color tag
-                timer.Start();
-                var tags = _colorTagService.GetImageColorInfo(path);
-                Logger.Log(ConsoleColor.Blue, "Tags: {0}", tags);
-                Logger.Log(ConsoleColor.Cyan, "Time: {0:F3}", timer.ElapsedMilliseconds / 1000F);
+                //timer.Start();
+                //var tags = _colorTagService.GetImageColorInfo(path);
+                //Logger.Log(ConsoleColor.Blue, "Tags: {0}", tags);
+                //Logger.Log(ConsoleColor.Cyan, "Time: {0:F3}", timer.ElapsedMilliseconds / 1000F);
             }
             catch (Exception e)
             {
