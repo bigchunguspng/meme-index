@@ -1,11 +1,8 @@
-using System.Text;
-using Gdk;
 using GLib;
 using Gtk;
 using MemeIndex_Core.Data;
 using MemeIndex_Core.Services.Indexing;
 using MemeIndex_Core.Services.Search;
-using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils;
 using MemeIndex_Gtk.Windows;
 using Application = Gtk.Application;
@@ -16,12 +13,13 @@ namespace MemeIndex_Gtk;
 public class App
 {
     private Statusbar? _status;
+    private readonly CustomCss _css;
 
-    public SearchService SearchService { get; init; }
-    public IndexingService IndexingService { get; init; }
-    public IOcrService OcrService { get; init; }
-    public ColorTagService ColorTagService { get; init; }
-    public MemeDbContext Context { get; init; }
+    public SearchService SearchService { get; }
+    public IndexingService IndexingService { get; }
+    public IOcrService OcrService { get; }
+    public ColorTagService ColorTagService { get; }
+    public MemeDbContext Context { get; }
 
     public App
     (
@@ -29,9 +27,12 @@ public class App
         SearchService searchService,
         IOcrService ocrService,
         ColorTagService colorTagService,
-        MemeDbContext context
+        MemeDbContext context,
+        CustomCss css
     )
     {
+        _css = css;
+
         IndexingService = indexingService;
         SearchService = searchService;
         OcrService = ocrService;
@@ -45,14 +46,9 @@ public class App
     {
         Application.Init();
 
-        var app = new Application("org.MemeIndex_Gtk.MemeIndex_Gtk", ApplicationFlags.None);
-        
-        var css1 = new CssProvider();
-        var css2 = new CssProvider();
-        css1.LoadFromResource("Style.css");
-        css2.LoadFromData(GetColorSelectionCss());
-        StyleContext.AddProviderForScreen(Screen.Default, css1, StyleProviderPriority.Application);
-        StyleContext.AddProviderForScreen(Screen.Default, css2, StyleProviderPriority.Application);
+        var app = new Application("only.in.ohio.MemeIndex", ApplicationFlags.None);
+
+        _css.AddProviders();
 
         var win = new MainWindow(this, new WindowBuilder(nameof(MainWindow)));
 
@@ -90,35 +86,5 @@ public class App
     {
         await Task.Delay(4000);
         SetStatus();
-    }
-
-    // todo move
-    private string GetColorSelectionCss()
-    {
-        var sb = new StringBuilder();
-        foreach (var hue in ColorTagService.ColorsFunny)
-        foreach (var color in hue.Value)
-        {
-            AppendStyle(sb, color.Key, color.Value);
-        }
-
-        foreach (var color in ColorTagService.ColorsGrayscale.Where(x => x.Value.A > 0))
-        {
-            AppendStyle(sb, color.Key, color.Value);
-        }
-
-        return sb.ToString();
-    }
-
-    private static void AppendStyle(StringBuilder sb, string key, IronSoftware.Drawing.Color color)
-    {
-        var colorA = color                 .ToHtmlCssColorCode();
-        var colorB = color.GetDarkerColor().ToHtmlCssColorCode();
-
-        sb.Append("checkbutton.").Append(key).Append(" check ");
-        sb.Append("{ ");
-        sb.Append("background: "  ).Append(colorA).Append("; ");
-        sb.Append("border-color: ").Append(colorB).Append("; ");
-        sb.Append("} ");
     }
 }

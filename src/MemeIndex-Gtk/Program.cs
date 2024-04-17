@@ -1,10 +1,10 @@
 using System.Globalization;
 using System.Text;
-using MemeIndex_Core;
 using MemeIndex_Core.Data;
 using MemeIndex_Core.Services.Data;
 using MemeIndex_Core.Services.Indexing;
 using MemeIndex_Core.Services.Search;
+using MemeIndex_Gtk.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -33,6 +33,7 @@ namespace MemeIndex_Gtk
             builder.Services.AddSingleton<IndexingService>();
             builder.Services.AddSingleton<SearchService>();
             builder.Services.AddSingleton<App>();
+            builder.Services.AddTransient<CustomCss>();
 
             using var host = builder.Build();
 
