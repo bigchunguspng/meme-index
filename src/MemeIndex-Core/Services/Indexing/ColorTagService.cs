@@ -5,8 +5,8 @@ namespace MemeIndex_Core.Services.Indexing;
 
 public class ColorTagService
 {
-    public Dictionary<char,   Dictionary<string, Color>> ColorsFunny     { get; } = new();
-    public Dictionary<string, Color>                     ColorsGrayscale { get; } = new();
+    public Dictionary<char, Dictionary<string, Color>> ColorsFunny     { get; } = new();
+    public                  Dictionary<string, Color>  ColorsGrayscale { get; } = new();
 
     public List<char> Hues { get; } = Enumerable.Range(65, 24).Select(x => (char)x).ToList();
 
@@ -17,12 +17,14 @@ public class ColorTagService
 
     public string? GetImageColorInfo(string path)
     {
+        // CHECK FILE
         var file = new FileInfo(path);
         if (file.Exists == false)
         {
             return null;
         }
 
+        // GET DATA / MEASUREMENTS
         using var image = AnyBitmap.FromFile(path);
 
         var w = image.Width;
@@ -36,7 +38,12 @@ public class ColorTagService
         var stepX = GetStep(w2);
         var stepY = GetStep(h2);
 
-        int GetStep(int side) => side < 80 ? Math.Max(side / 8, 4) : side >> 4;
+        int GetStep(int side) =>
+            side < 80
+                ? Math.Max(side >> 3, 4)
+                : side < 720
+                    ? side >> 4
+                    : side >> 5;
 
         var chunksX = w2 / stepX;
         var chunksY = h2 / stepY;
@@ -46,6 +53,7 @@ public class ColorTagService
         var pixels = image.GetRGBBuffer();
         var alphas = image.GetAlphaBuffer();
 
+        // SCAN IMAGE
         for (var x = (w - stepX * (chunksX - 1)) / 2; x < w - margin; x += stepX)
         for (var y = (h - stepY * (chunksY - 1)) / 2; y < h - margin; y += stepY)
         {
@@ -128,7 +136,7 @@ public class ColorTagService
             var hue = Hues[h / 15];
             ColorsFunny[hue] = new Dictionary<string, Color>();
 
-            for (var l = 0; l <= 6; l++)
+            for (var l = 0; l <= 5; l++)
             {
                 var lightness = Math.Clamp(0.95D - l * 0.15D, 0.1D, 0.9D);
                 ColorsFunny[hue].Add($"{hue}{l}", ColorHelpers.ColorFromHSL(h, 0.75D, lightness));
