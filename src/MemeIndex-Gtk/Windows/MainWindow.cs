@@ -20,6 +20,9 @@ public class MainWindow : Window
     [UI] private readonly Grid _gridColorsFunny = default!;
     [UI] private readonly Grid _gridColorsGray = default!;
 
+    [UI] private readonly Frame _colorSearch = default!;
+
+    [UI] private readonly ToggleButton _buttonColorSearch = default!;
     [UI] private readonly Button _buttonClearColorSelection = default!;
 
     public App App { get; init; } = default!;
@@ -54,7 +57,9 @@ public class MainWindow : Window
         _menuFileSettings.Activated += Settings;
         _search.SearchChanged += OnSearchChanged;
         _buttonClearColorSelection.Clicked += ClearColorSelectionOnClicked;
-        
+        _colorSearch.Visible = _buttonColorSearch.Active;
+        _buttonColorSearch.Clicked += ButtonColorSearchOnClicked;
+
         // todo move that crap to upper ctor
     }
 
@@ -114,6 +119,14 @@ public class MainWindow : Window
     {
         DeactivateCheckboxes(_gridColorsFunny);
         DeactivateCheckboxes(_gridColorsGray);
+    }
+
+    private void ButtonColorSearchOnClicked(object? sender, EventArgs e)
+    {
+        if (_buttonColorSearch.Active)
+            _colorSearch.Show();
+        else
+            _colorSearch.Hide();
     }
 
     private static void DeactivateCheckboxes(Container grid)
