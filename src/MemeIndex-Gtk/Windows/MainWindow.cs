@@ -55,7 +55,7 @@ public class MainWindow : Window
         _menuFileQuit.Activated += Window_DeleteEvent;
         _menuFileFolders.Activated += ManageFolders;
         _menuFileSettings.Activated += Settings;
-        _search.SearchChanged += OnSearchChanged;
+        _search.SearchChanged += OnSearchChangedAsync;
         _buttonClearColorSelection.Clicked += ClearColorSelectionOnClicked;
         _colorSearch.Visible = _buttonColorSearch.Active;
         _buttonColorSearch.Clicked += ButtonColorSearchOnClicked;
@@ -108,10 +108,10 @@ public class MainWindow : Window
         new SettingsDialog(this).Show();
     }
 
-    private void OnSearchChanged(object? sender, EventArgs e)
+    private async void OnSearchChangedAsync(object? sender, EventArgs e)
     {
         var store = CreateStore();
-        FillStore(store, _search.Text);
+        await Task.Run(() => FillStore(store, _search.Text));
         _files.Model = store;
     }
 
