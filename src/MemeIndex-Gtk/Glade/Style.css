@@ -19,3 +19,7 @@ checkbutton._- check {
   background-position: 0 0, 0 4px, 4px -4px, -4px 0;
   border-color: #333;
 }
+
+list {
+  background-color: transparent;
+}

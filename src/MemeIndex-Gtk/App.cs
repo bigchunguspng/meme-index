@@ -6,6 +6,7 @@ using MemeIndex_Core.Data;
 using MemeIndex_Core.Services.Indexing;
 using MemeIndex_Core.Services.Search;
 using MemeIndex_Core.Utils;
+using MemeIndex_Gtk.Utils;
 using MemeIndex_Gtk.Windows;
 using Application = Gtk.Application;
 using Task = System.Threading.Tasks.Task;
@@ -53,7 +54,7 @@ public class App
         StyleContext.AddProviderForScreen(Screen.Default, css1, StyleProviderPriority.Application);
         StyleContext.AddProviderForScreen(Screen.Default, css2, StyleProviderPriority.Application);
 
-        var win = new MainWindow(this);
+        var win = new MainWindow(this, new WindowBuilder(nameof(MainWindow)));
 
         app.Register(Cancellable.Current);
         app.AddWindow(win);

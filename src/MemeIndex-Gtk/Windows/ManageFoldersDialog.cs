@@ -1,4 +1,5 @@
 using Gtk;
+using MemeIndex_Gtk.Utils;
 using MemeIndex_Gtk.Widgets;
 using UI = Gtk.Builder.ObjectAttribute;
 
@@ -6,30 +7,21 @@ namespace MemeIndex_Gtk.Windows;
 
 public class ManageFoldersDialog : Dialog
 {
-    [UI] private readonly Box _folders = default!;
+    [UI] private readonly ListBox _folders = default!;
 
     [UI] private readonly Button _buttonOk = default!;
     [UI] private readonly Button _buttonCancel = default!;
 
-    private readonly ListBox _listBox;
+    private App App { get; }
 
-    private App App { get; init; } = default!;
-
-    public ManageFoldersDialog(MainWindow parent) : this(new Builder("ManageFoldersDialog.glade"))
+    public ManageFoldersDialog(MainWindow parent, WindowBuilder builder) : base(builder.Raw)
     {
+        builder.Builder.Autoconnect(this);
+
         Parent = parent;
         App = parent.App;
 
-        var directories = App.IndexingService.GetTrackedDirectories();
-        foreach (var directory in directories)
-        {
-            if (System.IO.Path.Exists(directory.Path))
-            {
-                _listBox.Add(new FolderSelectionWidget(_listBox, directory.Path));
-            }
-        }
-
-        _listBox.Add(new FolderSelectionWidget(_listBox));
+        LoadData();
 
         ShowAll();
 
@@ -37,17 +29,18 @@ public class ManageFoldersDialog : Dialog
         _buttonCancel.Clicked += Cancel;
     }
 
-    private ManageFoldersDialog(Builder builder) : base(builder.GetRawOwnedObject("ManageFoldersDialog"))
+    private void LoadData()
     {
-        builder.Autoconnect(this);
+        var directories = App.IndexingService.GetTrackedDirectories();
+        foreach (var directory in directories)
+        {
+            if (System.IO.Path.Exists(directory.Path))
+            {
+                _folders.Add(new FolderSelectorWidget(_folders, directory.Path));
+            }
+        }
 
-        Title = "Manage folders";
-        WidthRequest = 360;
-
-        _listBox = new ListBox();
-        _listBox.Expand = true;
-        _listBox.SelectionMode = SelectionMode.None;
-        _folders.Add(_listBox);
+        _folders.Add(new FolderSelectorWidget(_folders));
     }
 
     private async void Ok(object? sender, EventArgs e)
@@ -65,8 +58,8 @@ public class ManageFoldersDialog : Dialog
     {
         App.SetStatus("Updating watching list...");
         var directoriesDb = App.IndexingService.GetTrackedDirectories().Select(x => x.Path).ToList();
-        var directoriesMf = _listBox.Children
-            .Select(x => (FolderSelectionWidget)((ListBoxRow)x).Child)
+        var directoriesMf = _folders.Children
+            .Select(x => (FolderSelectorWidget)((ListBoxRow)x).Child)
             .Where(x => x.DirectorySelected)
             .Select(x => x.Choice!)
             .ToList();

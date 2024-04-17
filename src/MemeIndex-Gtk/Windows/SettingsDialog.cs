@@ -1,5 +1,6 @@
 using Gtk;
 using MemeIndex_Core;
+using MemeIndex_Gtk.Utils;
 using UI = Gtk.Builder.ObjectAttribute;
 
 namespace MemeIndex_Gtk.Windows;
@@ -11,10 +12,12 @@ public class SettingsDialog : Dialog
     [UI] private readonly Button _buttonOk = default!;
     [UI] private readonly Button _buttonCancel = default!;
 
-    private App App { get; init; } = default!;
+    private App App { get; }
 
-    public SettingsDialog(MainWindow parent) : this(new Builder("SettingsDialog.glade"))
+    public SettingsDialog(MainWindow parent, WindowBuilder builder) : base(builder.Raw)
     {
+        builder.Autoconnect(this);
+        
         Parent = parent;
         App = parent.App;
 
@@ -24,14 +27,6 @@ public class SettingsDialog : Dialog
 
         _buttonOk.Clicked += Ok;
         _buttonCancel.Clicked += Cancel;
-    }
-
-    private SettingsDialog(Builder builder) : base(builder.GetRawOwnedObject("SettingsDialog"))
-    {
-        builder.Autoconnect(this);
-
-        Title = "Settings";
-        WidthRequest = 360;
     }
 
     private async void Ok(object? sender, EventArgs e)

@@ -1,4 +1,5 @@
 using Gtk;
+using MemeIndex_Gtk.Utils;
 using Pango;
 using Application = Gtk.Application;
 using MenuItem = Gtk.MenuItem;
@@ -25,42 +26,30 @@ public class MainWindow : Window
     [UI] private readonly ToggleButton _buttonColorSearch = default!;
     [UI] private readonly Button _buttonClearColorSelection = default!;
 
-    public App App { get; init; } = default!;
+    public App App { get; }
 
-    public MainWindow(App app) : this(new Builder("MainWindow.glade"))
+    public MainWindow(App app, WindowBuilder builder) : base(builder.Raw)
     {
+        builder.Builder.Autoconnect(this);
+
+        // Decorated = false; // todo make custom decoration for windows 
+
         App = app;
         app.SetStatusBar(_status);
 
         ConstructColorSearchPalette();
-    }
+        ConstructFilesView();
 
-    private MainWindow(Builder builder) : base(builder.GetRawOwnedObject("MainWindow"))
-    {
-        builder.Autoconnect(this);
-
-        _files.AppendColumn("Name", new CellRendererText { Ellipsize = EllipsizeMode.End }, "text", 0);
-        _files.AppendColumn("Path", new CellRendererText { Ellipsize = EllipsizeMode.End }, "text", 1);
-        _files.EnableSearch = false;
-
-        foreach (var column in _files.Columns)
-        {
-            column.Resizable = true;
-            column.Reorderable = true;
-            column.FixedWidth = 200;
-            column.Expand = true;
-        }
-
-        DeleteEvent += Window_DeleteEvent;
+        DeleteEvent             += Window_DeleteEvent;
         _menuFileQuit.Activated += Window_DeleteEvent;
-        _menuFileFolders.Activated += ManageFolders;
-        _menuFileSettings.Activated += Settings;
-        _search.SearchChanged += OnSearchChangedAsync;
-        _buttonClearColorSelection.Clicked += ClearColorSelectionOnClicked;
-        _colorSearch.Visible = _buttonColorSearch.Active;
-        _buttonColorSearch.Clicked += ButtonColorSearchOnClicked;
+        _menuFileFolders .Activated += OpenManageFoldersDialog;
+        _menuFileSettings.Activated += OpenSettingsDialog;
 
-        // todo move that crap to upper ctor
+        _search.SearchChanged += OnSearchChangedAsync;
+
+        _buttonClearColorSelection.Clicked += ClearColorSelectionOnClicked;
+        _buttonColorSearch.Clicked += ButtonColorSearchOnClicked;
+        _colorSearch.Visible = _buttonColorSearch.Active;
     }
 
     private void ConstructColorSearchPalette()
@@ -98,14 +87,79 @@ public class MainWindow : Window
         grid.Attach(checkbutton, left, top, 1, 1);
     }
 
-    private void ManageFolders(object? sender, EventArgs e)
+
+    #region FILES
+
+    private void ConstructFilesView()
     {
-        new ManageFoldersDialog(this).Show();
+        _files.AppendColumn("Name", new CellRendererText { Ellipsize = EllipsizeMode.End }, "text", 0);
+        _files.AppendColumn("Path", new CellRendererText { Ellipsize = EllipsizeMode.End }, "text", 1);
+
+        foreach (var column in _files.Columns)
+        {
+            column.Resizable = true;
+            column.Reorderable = true;
+            column.FixedWidth = 200;
+            column.Expand = true;
+        }
+
+        _files.EnableSearch = false;
+        _files.ActivateOnSingleClick = true;
+        _files.RowActivated += (o, args) => App.SetStatus(o.ToString()); // just for test
+        _files.UnselectAll  += (o, args) => App.SetStatus("UnselectAll");
     }
-    
-    private void Settings(object? sender, EventArgs e)
+
+    private static ListStore CreateStore()
     {
-        new SettingsDialog(this).Show();
+        var store = new ListStore(typeof(string), typeof(string));
+
+        //store.DefaultSortFunc = SortFunc;
+        store.SetSortColumnId(1, SortType.Ascending);
+
+        return store;
+    }
+
+    private void FillStore(ListStore store, string search)
+    {
+        store.Clear();
+
+        var files = App.SearchService.SearchByText(search).Result?.ToList();
+        if (files != null)
+        {
+            App.SetStatus($"Files: {files.Count}, search: {search}.");
+            foreach (var file in files)
+            {
+                store.AppendValues(file.Name, file.Directory.Path);
+            }
+        }
+    }
+
+    /*private static int SortFunc(ITreeModel model, TreeIter a, TreeIter b)
+    {
+        var aPath = (string)model.GetValue(a, 1);
+        var bPath = (string)model.GetValue(b, 1);
+        var aName = (string)model.GetValue(a, 0);
+        var bName = (string)model.GetValue(b, 0);
+
+        var dirs = string.CompareOrdinal(aPath, bPath);
+        return dirs == 0 ? string.CompareOrdinal(aName, bName) : dirs;
+    }*/
+
+    #endregion
+
+
+    #region EVENT HANDLERS
+
+    private void OpenManageFoldersDialog(object? sender, EventArgs e)
+    {
+        var builder = new WindowBuilder(nameof(ManageFoldersDialog));
+        new ManageFoldersDialog(this, builder).Show();
+    }
+
+    private void OpenSettingsDialog(object? sender, EventArgs e)
+    {
+        var builder = new WindowBuilder(nameof(SettingsDialog));
+        new SettingsDialog(this, builder).Show();
     }
 
     private async void OnSearchChangedAsync(object? sender, EventArgs e)
@@ -135,49 +189,10 @@ public class MainWindow : Window
         foreach (var checkButton in active) checkButton.Active = false;
     }
 
-    private void Window_DeleteEvent(object? sender, EventArgs a)
+    private static void Window_DeleteEvent(object? sender, EventArgs a)
     {
         Application.Quit();
     }
 
-    ListStore CreateStore()
-    {
-        var store = new ListStore(typeof(string), typeof(string));
-
-        //store.DefaultSortFunc = SortFunc;
-        store.SetSortColumnId(1, SortType.Ascending);
-
-        return store;
-    }
-
-    void FillStore(ListStore store, string search)
-    {
-        store.Clear();
-
-        var files = App.SearchService.SearchByText(search).Result?.ToList();
-        if (files != null)
-        {
-            App.SetStatus($"Files: {files.Count}, search: {search}.");
-            foreach (var file in files)
-            {
-                store.AppendValues(file.Name, file.Directory.Path);
-            }
-        }
-    }
-
-    /*int SortFunc (TreeModel model, TreeIter a, TreeIter b)
-    {
-        // sorts folders before files
-        bool a_is_dir = (bool) model.GetValue (a, COL_IS_DIRECTORY);
-        bool b_is_dir = (bool) model.GetValue (b, COL_IS_DIRECTORY);
-        string a_name = (string) model.GetValue (a, COL_DISPLAY_NAME);
-        string b_name = (string) model.GetValue (b, COL_DISPLAY_NAME);
-
-        if (!a_is_dir && b_is_dir)
-            return 1;
-        else if (a_is_dir && !b_is_dir)
-            return -1;
-        else
-            return String.Compare (a_name, b_name);
-    }*/
+    #endregion
 }
