@@ -52,6 +52,8 @@ public class MainWindow : Window
         _colorSearch.Visible = _buttonColorSearch.Active;
     }
 
+    #region COLOR SEARCH
+
     private void ConstructColorSearchPalette()
     {
         int top;
@@ -86,6 +88,8 @@ public class MainWindow : Window
         // todo += checked handler;
         grid.Attach(checkbutton, left, top, 1, 1);
     }
+
+    #endregion
 
 
     #region FILES
