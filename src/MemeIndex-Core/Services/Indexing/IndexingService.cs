@@ -1,7 +1,11 @@
 using System.Diagnostics;
 using System.Text;
+using MemeIndex_Core.Entities;
+using MemeIndex_Core.Model;
 using MemeIndex_Core.Services.Data;
 using MemeIndex_Core.Utils;
+using Directory = System.IO.Directory;
+using File = System.IO.File;
 
 namespace MemeIndex_Core.Services.Indexing;
 
@@ -10,40 +14,44 @@ public class IndexingService
     private readonly FileWatchService _watch;
     private readonly IFileService _fileService;
     private readonly IDirectoryService _directoryService;
+    private readonly IMonitoringService _monitoringService;
 
     public IndexingService
     (
         FileWatchService watch,
         IFileService fileService,
-        IDirectoryService directoryService
+        IDirectoryService directoryService,
+        IMonitoringService monitoringService
     )
     {
         _watch = watch;
         _fileService = fileService;
         _directoryService = directoryService;
+        _monitoringService = monitoringService;
     }
 
     public event Action<string?>? Log;
 
-    public IEnumerable<Entities.Directory> GetTrackedDirectories()
+    public Task<List<MonitoredDirectory>> GetTrackedDirectories()
     {
-        return _directoryService.GetTracked();
+        return _monitoringService.GetDirectories();
     }
 
-    public async Task AddDirectory(string path)
+    public async Task AddDirectory(DirectoryMonitoringOptions options)
     {
+        var path = options.Path;
         if (path.IsDirectory())
         {
             Log?.Invoke($"Adding \"{path}\"...");
 
             // add to db, start watching
-            await _directoryService.AddTracking(path);
-            _watch.AddDirectory(path);
+            await _monitoringService.AddDirectory(options);
+            _watch.AddDirectory(path, options.Recursive);
 
             Logger.Log(ConsoleColor.Magenta, "Directory [{0}] added", path);
 
             // add to db all files
-            var files = GetImageFiles(path);
+            var files = GetImageFiles(path, options.Recursive);
 
             Logger.Log(ConsoleColor.Magenta, "Files: {0}", files.Count);
 
@@ -54,11 +62,12 @@ public class IndexingService
         }
     }
 
-    private static List<FileInfo> GetImageFiles(string path)
+    private static List<FileInfo> GetImageFiles(string path, bool recursive)
     {
+        var searchOption = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
         var directory = new DirectoryInfo(path);
         return Helpers.GetImageExtensions()
-            .SelectMany(x => directory.GetFiles($"*{x}", SearchOption.AllDirectories))
+            .SelectMany(x => directory.GetFiles($"*{x}", searchOption))
             .ToList();
     }
 
@@ -75,16 +84,17 @@ public class IndexingService
         {
             Log?.Invoke($"Removing \"{path}\"...");
 
-            await _directoryService.RemoveTracking(path);
+            await _monitoringService.RemoveDirectory(path);
             _watch.RemoveDirectory(path);
 
             Logger.Log(ConsoleColor.Magenta, "Directory [{0}] removed", path);
         }
     }
 
-    public IEnumerable<Entities.Directory> GetMissingDirectories()
+    public async Task<IEnumerable<MonitoredDirectory>> GetMissingDirectories()
     {
-        return _directoryService.GetTracked().Where(x => !Directory.Exists(x.Path));
+        var monitored = await _monitoringService.GetDirectories();
+        return monitored.Where(x => !Directory.Exists(x.Directory.Path));
     }
 
     public void MoveDirectory(string oldPath, string newPath)
@@ -107,24 +117,27 @@ public class IndexingService
         Logger.Log("Overtaking: start", ConsoleColor.Yellow);
         Log?.Invoke("Overtaking file system changes...");
 
-        var existingDirectoriesAll     = _directoryService.GetAll()    .GetExisting().ToList();
-        var existingDirectoriesTracked = _directoryService.GetTracked().GetExisting().ToList();
+        var existingDirectoriesAll = _directoryService.GetAll().GetExisting().ToList();
+        var existingDirectoriesTracked = await _monitoringService.GetDirectories();
 
-        var files = existingDirectoriesTracked.SelectMany(x => GetImageFiles(x.Path)).ToList();
+        var files = existingDirectoriesTracked.SelectMany(x => GetImageFiles(x.Directory.Path, x.Recursive)).ToList();
         var fileRecords = await _fileService.GetAllFilesWithPath();
 
         Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} files loaded", files.Count);
         Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} files records available", fileRecords.Count);
         Log?.Invoke($"Overtaking {files.Count} files & {fileRecords.Count} records...");
 
+        // directories that: are known to db + exist in fs
         var directoriesByPath = existingDirectoriesAll.ToDictionary(x => x.Path);
 
         var unknownFiles = files // that present in fs, but missing as records in db
             .Where(info =>
             {
-                var unknown = directoriesByPath.TryGetValue(info.DirectoryName!, out var directory) == false;
-                if (unknown) return true;
+                // file is unknown if its directory is unknown
+                var directoryUnknown = !directoriesByPath.TryGetValue(info.DirectoryName!, out var directory);
+                if (directoryUnknown) return true;
 
+                // file is unknown if record for its name + path combination don't exist
                 return !fileRecords.Any(file => file.DirectoryId == directory!.Id && file.Name == info.Name);
             })
             .ToList();
@@ -134,14 +147,10 @@ public class IndexingService
         var missingFiles = fileRecords // that present in db, but missing as files in fs
             .Where(x =>
             {
-                var directoryExist = existingDirectoriesAll.Select(dir => dir.Id).Contains(x.DirectoryId);
-                if (directoryExist)
-                {
-                    var path = Path.Combine(x.Directory.Path, x.Name);
-                    return !File.Exists(path);
-                }
+                var directoryMissing = !existingDirectoriesAll.Select(dir => dir.Id).Contains(x.DirectoryId);
+                if (directoryMissing) return true;
 
-                return false;
+                return !File.Exists(Path.Combine(x.Directory.Path, x.Name));
             })
             .ToList();
 
@@ -232,11 +241,18 @@ public class IndexingService
 
         await OvertakeMissingFiles();
 
-        _watch.Start();
+        // todo check all files for changes with FileWasUpdated()
+
+        await _watch.Start();
     }
 
     public void StopIndexing()
     {
         _watch.Stop();
     }
+}
+
+public class Overtaker
+{
+    
 }

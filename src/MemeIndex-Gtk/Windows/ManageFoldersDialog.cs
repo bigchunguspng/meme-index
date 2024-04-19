@@ -1,4 +1,6 @@
 using Gtk;
+using MemeIndex_Core.Entities;
+using MemeIndex_Core.Model;
 using MemeIndex_Gtk.Utils;
 using MemeIndex_Gtk.Widgets;
 using UI = Gtk.Builder.ObjectAttribute;
@@ -31,12 +33,12 @@ public class ManageFoldersDialog : Dialog
 
     private void LoadData()
     {
-        var directories = App.IndexingService.GetTrackedDirectories();
+        var directories = App.IndexingService.GetTrackedDirectories().Result;
         foreach (var directory in directories)
         {
-            if (System.IO.Path.Exists(directory.Path))
+            if (System.IO.Path.Exists(directory.Directory.Path))
             {
-                _folders.Add(new FolderSelectorWidget(_folders, directory.Path));
+                _folders.Add(new FolderSelectorWidget(_folders, directory.Directory.Path));
             }
         }
 
@@ -57,15 +59,22 @@ public class ManageFoldersDialog : Dialog
     private async void SaveChangesAsync()
     {
         App.SetStatus("Updating watching list...");
-        var directoriesDb = App.IndexingService.GetTrackedDirectories().Select(x => x.Path).ToList();
+        var tracked = await App.IndexingService.GetTrackedDirectories();
+        var directoriesDb = tracked.Select(x => x.Directory.Path).ToList();
         var directoriesMf = _folders.Children
             .Select(x => (FolderSelectorWidget)((ListBoxRow)x).Child)
             .Where(x => x.DirectorySelected)
             .Select(x => x.Choice!)
+            /*.Select(x => new MonitoredDirectory
+            {
+                Recursive = true,
+                Directory = new MemeIndex_Core.Entities.Directory { Path = x.Choice! },
+                IndexingOptions = new List<IndexingOption> { new() { MeanId = 1 }, new() { MeanId = 2 } }
+            })*/
             .ToList();
 
-        var removeList = directoriesDb.Except(directoriesMf).ToList();
-        var updateList = directoriesMf.Except(directoriesDb).ToList();
+        var removeList = directoriesDb.Except(directoriesMf).OrderByDescending(x => x.Length).ToList();
+        var updateList = directoriesMf.Except(directoriesDb).OrderBy          (x => x.Length).ToList();
 
         foreach (var directory in removeList)
         {
@@ -74,7 +83,8 @@ public class ManageFoldersDialog : Dialog
 
         foreach (var directory in updateList)
         {
-            await App.IndexingService.AddDirectory(directory);
+            var options = new DirectoryMonitoringOptions(directory, true, new HashSet<int> { 1, 2 });
+            await App.IndexingService.AddDirectory(options);
         }
 
         App.SetStatus("Watching list updated.");

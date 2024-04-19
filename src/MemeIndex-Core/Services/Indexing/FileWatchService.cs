@@ -1,77 +1,59 @@
+using MemeIndex_Core.Data;
 using MemeIndex_Core.Services.Data;
 using MemeIndex_Core.Utils;
+using Microsoft.EntityFrameworkCore;
 
 namespace MemeIndex_Core.Services.Indexing;
 
 public class FileWatchService
 {
     private readonly IDirectoryService _directoryService;
-    private readonly List<FileSystemWatcher> _watchers;
+    private readonly IFileService _fileService;
+    private readonly IMonitoringService _monitoringService;
+    private readonly MemeDbContext _context;
+    private readonly List<DirectoryMonitor> _watchers;
+    private readonly List<FileChange> _fileChanges;
 
-    // created for tracked folders on startup
-    // added new when adding folder to tracking list
-
-    public FileWatchService(IDirectoryService directoryService)
+    public FileWatchService(IDirectoryService directoryService, IFileService fileService, IMonitoringService monitoringService, MemeDbContext context)
     {
         _directoryService = directoryService;
-        _watchers = new List<FileSystemWatcher>();
+        _fileService = fileService;
+        _monitoringService = monitoringService;
+        _context = context;
+        _watchers = new List<DirectoryMonitor>();
+        _fileChanges = new List<FileChange>();
     }
 
     #region WATCHING
 
-    public void Start()
+    public async Task Start()
     {
-        var watchers = _directoryService
-            .GetTracked()
-            .Select(x => x.Path)
-            .Where(Directory.Exists)
-            .Select(x => new FileSystemWatcher(x));
+        var monitored = await _monitoringService.GetDirectories();
+        var watchers = monitored
+            .Where(x => Directory.Exists(x.Directory.Path))
+            .Select(x => new DirectoryMonitor(this, x.Directory.Path, x.Recursive));
         _watchers.AddRange(watchers);
 
-        foreach (var watcher in _watchers) Start(watcher);
+        foreach (var watcher in _watchers) watcher.Start();
     }
 
     public void Stop()
     {
-        foreach (var watcher in _watchers) Stop(watcher);
+        foreach (var watcher in _watchers) watcher.Stop();
     }
 
-    public void AddDirectory(string path)
+    public void AddDirectory(string path, bool recursive)
     {
-        var watcher = new FileSystemWatcher(path);
+        var watcher = new DirectoryMonitor(this, path, recursive);
         _watchers.Add(watcher);
-        Start(watcher);
+        watcher.Start();
     }
 
     public void RemoveDirectory(string path)
     {
         var watcher = _watchers.First(x => x.Path == path);
         _watchers.Remove(watcher);
-        Stop(watcher);
-    }
-
-    private void Start(FileSystemWatcher watcher)
-    {
-        watcher.NotifyFilter = NotifyFilters.FileName
-                               | NotifyFilters.DirectoryName
-                               | NotifyFilters.LastWrite
-                               | NotifyFilters.CreationTime;
-        watcher.Filter = "*.*";
-        watcher.IncludeSubdirectories = true;
-        watcher.Created += OnCreated;
-        watcher.Changed += OnChanged;
-        watcher.Renamed += OnRenamed;
-        watcher.Deleted += OnDeleted;
-        watcher.EnableRaisingEvents = true;
-    }
-
-    private void Stop(FileSystemWatcher watcher)
-    {
-        watcher.Created -= OnCreated;
-        watcher.Changed -= OnChanged;
-        watcher.Renamed -= OnRenamed;
-        watcher.Deleted -= OnDeleted;
-        watcher.Dispose();
+        watcher.Stop();
     }
 
     #endregion
@@ -79,62 +61,108 @@ public class FileWatchService
 
     #region EVENTS
 
-    private void OnCreated(object sender, FileSystemEventArgs e)
+    public void OnCreated(object sender, FileSystemEventArgs e)
     {
-        // add to db, ocr
+        if (e.FullPath.IsFile())
+        {
+            var file = new FileInfo(e.FullPath);
+            if (file.IsImage())
+            {
+                RegisterEvent(e);
+            }
+        }
+        else if (e.FullPath.IsDirectory())
+        {
+            // created directory can contain files
+            RegisterEvent(e);
+        }
+
         Logger.Log("Created", ConsoleColor.Yellow);
+    }
+
+    public async void OnRenamed(object sender, RenamedEventArgs e)
+    {
+        // rename is handled instantly
+
         if (e.FullPath.IsFile())
         {
             var file = new FileInfo(e.FullPath);
             if (file.IsImage())
             {
-                // index
-                // process
+                var entity = await _context.Files.FirstOrDefaultAsync
+                (
+                    x => x.Name == e.OldName && x.Size == file.Length && x.Modified == file.LastWriteTime
+                );
+                if (entity != null)
+                {
+                    await _fileService.UpdateFile(entity, file);
+                }
             }
         }
         else if (e.FullPath.IsDirectory())
         {
-            // index
-            // index and process files
+            await _directoryService.Update(e.OldFullPath, e.FullPath);
         }
-    }
 
-    private void OnRenamed(object sender, RenamedEventArgs e)
-    {
-        // update db entry
         Logger.Log("Renamed", ConsoleColor.Yellow);
+    }
+
+    public void OnChanged(object source, FileSystemEventArgs e)
+    {
+        if (e.FullPath.IsDirectory()) return;
+
         if (e.FullPath.IsFile())
         {
             var file = new FileInfo(e.FullPath);
             if (file.IsImage())
             {
-                // update file
+                RegisterEvent(e);
             }
         }
-        else if (e.FullPath.IsDirectory())
-        {
-            _directoryService.Update(e.OldFullPath, e.FullPath);
-        }
-    }
-
-    private void OnChanged(object source, FileSystemEventArgs e)
-    {
-        // update db entry, size differs => ocr
-        if (e.FullPath.IsDirectory()) return;
 
         Logger.Log("Changed", ConsoleColor.Yellow);
     }
 
-    private void OnDeleted(object sender, FileSystemEventArgs e)
+    public void OnDeleted(object sender, FileSystemEventArgs e)
     {
-        // delete from db
+        if (e.FullPath.IsFile())
+        {
+            var file = new FileInfo(e.FullPath);
+            if (file.IsImage())
+            {
+                RegisterEvent(e);
+            }
+        }
+        else if (e.FullPath.IsDirectory())
+        {
+            // deleted directory can contain files
+            RegisterEvent(e);
+        }
+
         Logger.Log("Deleted", ConsoleColor.Yellow);
     }
 
+    private void RegisterEvent(FileSystemEventArgs e)
+    {
+        _fileChanges.Add(new FileChange(e.FullPath, e.ChangeType));
+    }
+    // after registration:
+    // wait for 1 second (debounce)
+    // if no new was added >> interpret events >> process
+    
+    
+    
     // file copied >> created + 3-4 x changed
     // file moved  >> deleted created
     // file edited with Paint >>    6 x changed
     // file edited with Pinta >> ~100 x changed
+    // folder deleted >> 1 deleted
+    // folder shift+deleted >> N x deleted (for each file)
+    
+    // changed -> update db entry, size differs => ocr
+    // deleted -> delete from db
 
     #endregion
 }
+
+public record FileChange(string Path, WatcherChangeTypes Type);
