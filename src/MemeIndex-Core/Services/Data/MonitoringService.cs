@@ -55,8 +55,10 @@ public class MonitoringService : IMonitoringService
 
     public async Task AddDirectory(DirectoryMonitoringOptions options)
     {
-        // +dir if ness, +md, +io, add all files
-        // files are added after md list updated, from indexing service
+        // todo handle recursion and nested directories
+        // if this directory is inside of one that is monitored recursively >>
+        // files should be tracked BY THE ONE WITH SHORTER PATH
+
         var directory = await GetDirectoryByPath(options.Path) ?? await AddDirectory(options.Path);
 
         var monitored = new MonitoredDirectory

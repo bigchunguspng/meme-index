@@ -2,8 +2,10 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace MemeIndex_Core.Utils;
 
-public class Logger
+public static class Logger
 {
+    public static event Action<string?>? StatusChange;
+
     public static void Log(string message) => Console.WriteLine(message);
 
     public static void Log([StringSyntax(StringSyntaxAttribute.CompositeFormat)] string format, object? arg)
@@ -11,6 +13,7 @@ public class Logger
         Console.WriteLine(format, arg);
     }
 
+    public static void Log(ConsoleColor color, string message) => Log(message, color);
     public static void Log(string message, ConsoleColor color)
     {
         Console.ForegroundColor = color;
@@ -26,4 +29,11 @@ public class Logger
     }
 
     public static void LogError(string message) => Log(message, ConsoleColor.Red);
+
+    public static bool StatusIsAvailable => StatusChange != null;
+
+    public static void Status(string? message)
+    {
+        StatusChange?.Invoke(message);
+    }
 }

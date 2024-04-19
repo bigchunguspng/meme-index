@@ -3,6 +3,7 @@ using Gtk;
 using MemeIndex_Core.Data;
 using MemeIndex_Core.Services.Indexing;
 using MemeIndex_Core.Services.Search;
+using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils;
 using MemeIndex_Gtk.Windows;
 using Application = Gtk.Application;
@@ -39,7 +40,7 @@ public class App
         ColorTagService = colorTagService;
         Context = context;
 
-        IndexingService.Log += SetStatus;
+        Logger.StatusChange += SetStatus;
     }
 
     public void Start()

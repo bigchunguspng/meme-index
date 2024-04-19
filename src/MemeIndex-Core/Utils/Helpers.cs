@@ -9,8 +9,8 @@ public static partial class Helpers
 
     public static string RemoveLineBreaks(this string text) => LineBreaksRegex().Replace(text, " ");
 
-    public static bool IsFile     (this string path) =>      File.Exists(path);
-    public static bool IsDirectory(this string path) => Directory.Exists(path);
+    public static bool      FileExists(this string path) =>      File.Exists(path);
+    public static bool DirectoryExists(this string path) => Directory.Exists(path);
 
     public static bool IsImage(this FileInfo file)
     {
@@ -25,5 +25,14 @@ public static partial class Helpers
     public static IEnumerable<Entities.Directory> GetExisting(this IEnumerable<Entities.Directory> directories)
     {
         return directories.Where(x => Directory.Exists(x.Path));
+    }
+
+    public static List<FileInfo> GetImageFiles(string path, bool recursive)
+    {
+        var searchOption = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+        var directory = new DirectoryInfo(path);
+        return GetImageExtensions()
+            .SelectMany(x => directory.GetFiles($"*{x}", searchOption))
+            .ToList();
     }
 }

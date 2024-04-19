@@ -63,7 +63,7 @@ public class FileWatchService
 
     public void OnCreated(object sender, FileSystemEventArgs e)
     {
-        if (e.FullPath.IsFile())
+        if (e.FullPath.FileExists())
         {
             var file = new FileInfo(e.FullPath);
             if (file.IsImage())
@@ -71,7 +71,7 @@ public class FileWatchService
                 RegisterEvent(e);
             }
         }
-        else if (e.FullPath.IsDirectory())
+        else if (e.FullPath.DirectoryExists())
         {
             // created directory can contain files
             RegisterEvent(e);
@@ -84,7 +84,7 @@ public class FileWatchService
     {
         // rename is handled instantly
 
-        if (e.FullPath.IsFile())
+        if (e.FullPath.FileExists())
         {
             var file = new FileInfo(e.FullPath);
             if (file.IsImage())
@@ -99,7 +99,7 @@ public class FileWatchService
                 }
             }
         }
-        else if (e.FullPath.IsDirectory())
+        else if (e.FullPath.DirectoryExists())
         {
             await _directoryService.Update(e.OldFullPath, e.FullPath);
         }
@@ -109,9 +109,9 @@ public class FileWatchService
 
     public void OnChanged(object source, FileSystemEventArgs e)
     {
-        if (e.FullPath.IsDirectory()) return;
+        if (e.FullPath.DirectoryExists()) return;
 
-        if (e.FullPath.IsFile())
+        if (e.FullPath.FileExists())
         {
             var file = new FileInfo(e.FullPath);
             if (file.IsImage())
@@ -125,7 +125,7 @@ public class FileWatchService
 
     public void OnDeleted(object sender, FileSystemEventArgs e)
     {
-        if (e.FullPath.IsFile())
+        if (e.FullPath.FileExists())
         {
             var file = new FileInfo(e.FullPath);
             if (file.IsImage())
@@ -133,7 +133,7 @@ public class FileWatchService
                 RegisterEvent(e);
             }
         }
-        else if (e.FullPath.IsDirectory())
+        else if (e.FullPath.DirectoryExists())
         {
             // deleted directory can contain files
             RegisterEvent(e);
