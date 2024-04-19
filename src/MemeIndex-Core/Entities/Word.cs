@@ -4,11 +4,13 @@ using Microsoft.EntityFrameworkCore;
 namespace MemeIndex_Core.Entities;
 
 /// <summary>
-/// Represents a word (text w/o spaces) that can be used in the representation.
+/// A <b>word</b> (text w/o spaces) that can be used as image search tag.
 /// </summary>
 [Index(nameof(Text), IsUnique = true)]
 public class Word : AbstractEntity
 {
     [Required, RegularExpression(@"\S+")]
     public string Text { get; set; } = default!;
+
+    public ICollection<Tag> Tags { get; set; } = default!;
 }

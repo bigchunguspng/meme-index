@@ -1,18 +1,18 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace MemeIndex_Core.Entities;
 
 /// <summary>
 /// Since user tracks only specific folders, it is better to store them here
 /// </summary>
-[Table("Directories")]
+[Table("Directories"), Index(nameof(Path), IsUnique = true)]
 public class Directory : AbstractEntity
 {
     [Required] public string Path { get; set; } = default!;
 
-    /// <summary>
-    /// False for subdirectories
-    /// </summary>
-    public bool IsTracked { get; set; }
+    public ICollection<File> Files { get; set; } = default!;
+
+    //public Directory? Parent { get; set; } // (just an idea)
 }

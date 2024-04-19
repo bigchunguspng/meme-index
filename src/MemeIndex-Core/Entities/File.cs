@@ -3,11 +3,12 @@ using System.ComponentModel.DataAnnotations;
 namespace MemeIndex_Core.Entities;
 
 /// <summary>
-/// Represents an image file.
+/// An <b>image file</b>.
 /// </summary>
 public class File : AbstractEntity
 {
-    public int DirectoryId { get; set; }
+    public int          DirectoryId { get; set; }
+    public int MonitoredDirectoryId { get; set; }
 
     [Required] public string Name { get; set; } = default!;
 
@@ -17,9 +18,16 @@ public class File : AbstractEntity
     [Required] public DateTime Created  { get; set; }
     [Required] public DateTime Modified { get; set; }
 
-    // created + size + path is used to detect changes to files on app startup
-    // files where modified > tracked will be processed and updated
-    
-    public Directory     Directory { get; set; } = default!;
-    public ICollection<Text> Texts { get; set; } = default!;
+    /// <summary>
+    /// Directory that defines indexing options for this file.
+    /// It can be different from the <see cref="Directory"/> property
+    /// if the directory is monitored recursively.
+    /// </summary>
+    public MonitoredDirectory MonitoredDirectory { get; set; } = default!;
+
+    /// <summary>
+    /// Direct parent directory of this file.
+    /// </summary>
+    public Directory   Directory { get; set; } = default!;
+    public ICollection<Tag> Tags { get; set; } = default!;
 }

@@ -1,9 +1,9 @@
 namespace MemeIndex_Core.Entities;
 
 /// <summary>
-/// Represents a word from the representation of an image file, that can be used to find it.
+/// <b>Search tag</b> that can be used to find an image file.
 /// </summary>
-public class Text : AbstractEntity
+public class Tag : AbstractEntity
 {
     public int FileId { get; set; }
     public int WordId { get; set; }
