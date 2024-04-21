@@ -37,7 +37,7 @@ public interface IMonitoringService
     /// <summary>
     /// Adds a directory to monitoring list according to provided options.
     /// </summary>
-    Task AddDirectory(DirectoryMonitoringOptions options);
+    Task AddDirectory(MonitoringOptions options);
     
     /// <summary>
     /// Removes directory from monitoring list.
@@ -49,5 +49,5 @@ public interface IMonitoringService
     /// <summary>
     /// Updates monitoring options of the directory.
     /// </summary>
-    Task UpdateDirectory(DirectoryMonitoringOptions options);
+    Task UpdateDirectory(MonitoringOptions options);
 }

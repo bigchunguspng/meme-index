@@ -6,6 +6,8 @@ public class SearchController
 {
     // (just for now):
 
+    //private Dictionary<string, List<Entities.File>> _cache;
+
     public void Search(IEnumerable<SearchOption> options, LogicalOperator @operator)
     {
         throw new NotImplementedException();

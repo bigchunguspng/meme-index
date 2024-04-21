@@ -2,21 +2,21 @@ using MemeIndex_Core.Model;
 
 namespace MemeIndex_Core.Controllers;
 
-public class ManageController
+public class IndexController
 {
-    public IEnumerable<DirectoryMonitoringOptions> GetMonitoringDirectories()
+    public Task<IEnumerable<MonitoringOptions>> GetMonitoringDirectories()
     {
         // ms.GetDirectories()
         // *convert*
         throw new NotImplementedException();
     }
 
-    public void UpdateMonitoringDirectories(IEnumerable<DirectoryMonitoringOptions> options)
+    public Task UpdateMonitoringDirectories(IEnumerable<MonitoringOptions> options)
     {
         throw new NotImplementedException();
     }
 
-    public void AddDirectory(DirectoryMonitoringOptions options)
+    public Task AddDirectory(MonitoringOptions options)
     {
         // ms.AddDirectory(ops)
         // fs.AddFiles(ops.path, ops.rec)
@@ -26,7 +26,7 @@ public class ManageController
         throw new NotImplementedException();
     }
 
-    public void UpdateDirectory(DirectoryMonitoringOptions options)
+    public Task UpdateDirectory(MonitoringOptions options)
     {
         // var x = ms.UpdateDirectory(ops) recursive changed => true
         // if (x)
@@ -38,12 +38,30 @@ public class ManageController
         throw new NotImplementedException();
     }
 
-    public void RemoveDirectory(string path)
+    public Task RemoveDirectory(string path)
     {
         // var dir = ms.GetDirectory(path)
         // ms.RemoveDirectory(ops)          files will be removed by cascade delete
         // fws.StopWatching(path)
 
+        throw new NotImplementedException();
+    }
+
+    public Task UpdateFileSystemKnowledge()
+    {
+        // ot.Overtake(path? null)
+        throw new NotImplementedException();
+    }
+
+    public Task StartIndexing()
+    {
+        // fws.Start()
+        throw new NotImplementedException();
+    }
+    
+    public void StopIndexing()
+    {
+        // fws.Stop()
         throw new NotImplementedException();
     }
 }

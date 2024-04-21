@@ -1,5 +1,6 @@
 using System.Diagnostics;
-using MemeIndex_Core.Services.Indexing;
+using MemeIndex_Core.Controllers;
+using MemeIndex_Core.Model;
 using MemeIndex_Core.Utils;
 using Microsoft.Extensions.Hosting;
 
@@ -7,28 +8,26 @@ namespace MemeIndex_Console;
 
 public class ConsoleLoopUI : IHostedService
 {
-    private readonly IndexingService _service;
-    private readonly IOcrService _ocrService;
-    private readonly ColorTagService _colorTagService;
+    private readonly IndexController _indexController;
+    private readonly SearchController _searchController;
 
-    public ConsoleLoopUI(IndexingService service, IOcrService ocrService, ColorTagService colorTagService)
+    public ConsoleLoopUI(IndexController indexController, SearchController searchController)
     {
-        _service = service;
-        _ocrService = ocrService;
-        _colorTagService = colorTagService;
+        _indexController = indexController;
+        _searchController = searchController;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
         Task.Run(Cycle, cancellationToken);
-        _service.StartIndexingAsync();
+        _indexController.StartIndexing();
 
         return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        _service.StopIndexing();
+        _indexController.StopIndexing();
         return Task.CompletedTask;
     }
 
@@ -42,31 +41,35 @@ public class ConsoleLoopUI : IHostedService
 
                 if (input.StartsWith("/add "))
                 {
-                    _service.AddDirectory(input[5..].Trim('"')).Wait();
+                    var path = input[5..].Trim('"');
+                    var op = new MonitoringOptions(path, true, MonitoringOptions.DefaultMeans);
+                    _indexController.AddDirectory(op); //.Wait();
                     continue;
                 }
                 if (input.StartsWith("/rem "))
                 {
-                    _service.RemoveDirectory(input[5..].Trim('"')).Wait();
+                    _indexController.RemoveDirectory(input[5..].Trim('"')); //.Wait();
                     continue;
                 }
 
-                var path = input.Trim('"');
+                // if /search ...
+
+                /*var path = input.Trim('"');
 
                 if (!File.Exists(path))
                 {
                     Logger.Log("File don't exist");
                     continue;
-                }
+                }*/
 
-                var timer = new Stopwatch();
+                //var timer = new Stopwatch();
 
                 // online ocr eng eng-2
-                timer.Start();
+                /*timer.Start();
                 var text = _ocrService.GetTextRepresentation(path, "eng").Result;
                 if (text is null) continue;
                 Logger.Log(ConsoleColor.Blue, "Text:  \n{0}", string.Join('\n', text.OrderBy(x => x.Rank)));
-                Logger.Log(ConsoleColor.Cyan, "Time: {0:F3}", timer.ElapsedMilliseconds / 1000F);
+                Logger.Log(ConsoleColor.Cyan, "Time: {0:F3}", timer.ElapsedMilliseconds / 1000F);*/
 
                 // color tag
                 //timer.Start();

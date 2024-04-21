@@ -53,7 +53,7 @@ public class MonitoringService : IMonitoringService
         // rem >> 
     }
 
-    public async Task AddDirectory(DirectoryMonitoringOptions options)
+    public async Task AddDirectory(MonitoringOptions options)
     {
         // todo handle recursion and nested directories
         // if this directory is inside of one that is monitored recursively >>
@@ -116,7 +116,7 @@ public class MonitoringService : IMonitoringService
         await _context.SaveChangesAsync();
     }
 
-    public async Task UpdateDirectory(DirectoryMonitoringOptions options)
+    public async Task UpdateDirectory(MonitoringOptions options)
     {
         var directory = await GetDirectoryByPath(options.Path);
         if (directory is null) return;

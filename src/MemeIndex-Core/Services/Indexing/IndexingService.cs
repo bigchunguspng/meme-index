@@ -35,7 +35,7 @@ public class IndexingService
         return _monitoringService.GetDirectories();
     }
 
-    public async Task AddDirectory(DirectoryMonitoringOptions options)
+    public async Task AddDirectory(MonitoringOptions options)
     {
         var path = options.Path;
         if (path.DirectoryExists())

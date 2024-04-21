@@ -83,7 +83,7 @@ public class ManageFoldersDialog : Dialog
 
         foreach (var directory in updateList)
         {
-            var options = new DirectoryMonitoringOptions(directory, true, new HashSet<int> { 1, 2 });
+            var options = new MonitoringOptions(directory, true, MonitoringOptions.DefaultMeans);
             await App.IndexingService.AddDirectory(options);
         }
 
