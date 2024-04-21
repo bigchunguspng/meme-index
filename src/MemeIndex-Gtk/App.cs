@@ -11,7 +11,7 @@ using Task = System.Threading.Tasks.Task;
 
 namespace MemeIndex_Gtk;
 
-public class App
+public class App : IDisposable
 {
     private Statusbar? _status;
     private readonly CustomCss _css;
@@ -67,7 +67,7 @@ public class App
         Application.Run();
     }
 
-    public void Stop()
+    public void Dispose()
     {
         IndexingService.StopIndexing();
     }

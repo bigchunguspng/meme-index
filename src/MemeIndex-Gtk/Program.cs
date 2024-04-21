@@ -36,11 +36,9 @@ namespace MemeIndex_Gtk
             builder.Services.AddTransient<CustomCss>();
 
             using var host = builder.Build();
-
-            var app = host.Services.GetRequiredService<App>();
+            using var app = host.Services.GetRequiredService<App>();
 
             app.Start();
-            app.Stop();
         }
     }
 }
