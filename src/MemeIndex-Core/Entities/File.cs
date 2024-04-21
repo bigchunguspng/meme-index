@@ -1,10 +1,12 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace MemeIndex_Core.Entities;
 
 /// <summary>
 /// An <b>image file</b>.
 /// </summary>
+[Index(nameof(DirectoryId), nameof(Name), IsUnique = true)]
 public class File : AbstractEntity
 {
     public int          DirectoryId { get; set; }
