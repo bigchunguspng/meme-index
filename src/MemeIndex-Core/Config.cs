@@ -25,6 +25,6 @@ public class Config
     /// <summary>
     /// You can get one here: https://ocr.space/ocrapi/freekey
     /// </summary>
-    [DefaultValue("PASTE YOUR API KEY HERE")]
+    [DefaultValue("helloworld")]
     public string? OrcApiKey { get; set; }
 }

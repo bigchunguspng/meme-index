@@ -22,6 +22,15 @@ public class OnlineOcrService : IOcrService
 
     private List<RankedWord> EmptyResponse { get; } = new() { new("[null]", 1) };
 
+    /*
+
+    Ideas for cheating over API rate limit:
+
+    1. Send images of similar size and ratio combined in 2x2, 3x3, 4x4 grids.
+    2. Filter out images with potentially no text using edge detection algorithm.
+
+    */
+
     public async Task<IList<RankedWord>?> GetTextRepresentation(string path)
     {
         try
