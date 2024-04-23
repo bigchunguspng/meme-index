@@ -2,7 +2,7 @@ using IronSoftware.Drawing;
 using MemeIndex_Core.Utils;
 using Newtonsoft.Json.Linq;
 
-namespace MemeIndex_Core.Services.Indexing;
+namespace MemeIndex_Core.Services.OCR;
 
 public class OnlineOcrService : IOcrService
 {
@@ -20,7 +20,7 @@ public class OnlineOcrService : IOcrService
 
     private HttpClient Client { get; set; }
 
-    public async Task<IList<RankedWord>?> GetTextRepresentation(string path, string lang = "eng")
+    public async Task<IList<RankedWord>?> GetTextRepresentation(string path)
     {
         try
         {
@@ -35,9 +35,9 @@ public class OnlineOcrService : IOcrService
             var form = new MultipartFormDataContent
             {
                 { new StringContent(ApiKey), "apikey" },
-                { new StringContent(lang), "language" },
+                { new StringContent("eng"), "language" },
                 { new StringContent("2"), "OCREngine" },
-                { new StringContent("true"),  "scale" },
+                { new StringContent("true"), "scale" },
                 { new StringContent("true"), "isOverlayRequired" },
             };
 

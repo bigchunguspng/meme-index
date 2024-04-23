@@ -3,6 +3,7 @@ using System.Text;
 using MemeIndex_Core.Data;
 using MemeIndex_Core.Services.Data;
 using MemeIndex_Core.Services.Indexing;
+using MemeIndex_Core.Services.OCR;
 using MemeIndex_Core.Services.Search;
 using MemeIndex_Gtk.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,12 +29,16 @@ namespace MemeIndex_Gtk
             builder.Services.AddSingleton<IDirectoryService, DirectoryService>();
             builder.Services.AddSingleton<IFileService, FileService>();
             builder.Services.AddSingleton<FileWatchService>();
-            builder.Services.AddSingleton<IOcrService, OnlineOcrService>();
-            builder.Services.AddSingleton<ColorTagService>();
             builder.Services.AddSingleton<IndexingService>();
             builder.Services.AddSingleton<SearchService>();
             builder.Services.AddSingleton<App>();
             builder.Services.AddTransient<CustomCss>();
+            builder.Services.AddTransient<OcrServiceResolver>(provider => key => key switch
+            {
+                DatabaseInitializer.RGB_CODE => provider.GetRequiredService<ColorTagService>(),
+                DatabaseInitializer.ENG_CODE => provider.GetRequiredService<OnlineOcrService>(),
+                _ => throw new ArgumentOutOfRangeException(nameof(key))
+            });
 
             using var host = builder.Build();
             using var app = host.Services.GetRequiredService<App>();

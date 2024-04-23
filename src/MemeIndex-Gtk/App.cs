@@ -1,7 +1,9 @@
 using GLib;
 using Gtk;
+using MemeIndex_Core.Controllers;
 using MemeIndex_Core.Data;
 using MemeIndex_Core.Services.Indexing;
+using MemeIndex_Core.Services.OCR;
 using MemeIndex_Core.Services.Search;
 using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils;
@@ -18,6 +20,7 @@ public class App : IDisposable
 
     public SearchService SearchService { get; }
     public IndexingService IndexingService { get; }
+    public IndexController IndexController { get; }
     public IOcrService OcrService { get; }
     public ColorTagService ColorTagService { get; }
     public MemeDbContext Context { get; }
@@ -25,6 +28,7 @@ public class App : IDisposable
     public App
     (
         IndexingService indexingService,
+        IndexController indexController,
         SearchService searchService,
         IOcrService ocrService,
         ColorTagService colorTagService,
@@ -35,6 +39,7 @@ public class App : IDisposable
         _css = css;
 
         IndexingService = indexingService;
+        IndexController = indexController;
         SearchService = searchService;
         OcrService = ocrService;
         ColorTagService = colorTagService;
@@ -61,7 +66,7 @@ public class App : IDisposable
         {
             SetStatus("Loading database...");
             DatabaseInitializer.EnsureCreated(Context);
-            IndexingService.StartIndexingAsync();
+            IndexController.StartIndexing();
         });
 
         Application.Run();
@@ -69,7 +74,7 @@ public class App : IDisposable
 
     public void Dispose()
     {
-        IndexingService.StopIndexing();
+        IndexController.StopIndexing();
     }
 
     public void SetStatusBar(Statusbar bar) => _status = bar;

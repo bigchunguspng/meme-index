@@ -3,6 +3,7 @@ using System;
 using MemeIndex_Core.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MemeIndexCore.Migrations
 {
     [DbContext(typeof(MemeDbContext))]
-    partial class MemeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240423092253_Fifth")]
+    partial class Fifth
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "7.0.0");
@@ -118,8 +121,7 @@ namespace MemeIndexCore.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DirectoryId")
-                        .IsUnique();
+                    b.HasIndex("DirectoryId");
 
                     b.ToTable("MonitoredDirectories");
                 });

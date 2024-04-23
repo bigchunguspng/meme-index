@@ -1,9 +1,9 @@
 using IronSoftware.Drawing;
 using MemeIndex_Core.Utils;
 
-namespace MemeIndex_Core.Services.Indexing;
+namespace MemeIndex_Core.Services.OCR;
 
-public class ColorTagService
+public class ColorTagService : IOcrService
 {
     public Dictionary<char, Dictionary<string, Color>> ColorsFunny     { get; } = new();
     public                  Dictionary<string, Color>  ColorsGrayscale { get; } = new();
@@ -15,7 +15,12 @@ public class ColorTagService
         Init();
     }
 
-    public string? GetImageColorInfo(string path)
+    public Task<IList<RankedWord>?> GetTextRepresentation(string path)
+    {
+        return Task.Run(() => GetImageColorInfo(path));
+    }
+
+    private IList<RankedWord>? GetImageColorInfo(string path)
     {
         // CHECK FILE
         var file = new FileInfo(path);
@@ -89,9 +94,10 @@ public class ColorTagService
             .Select(x => x.Key)
             .GroupBy(x => x)
             .OrderByDescending(g => g.Count())
-            .Select(x => x.Key);
+            .Select((x, i) => new RankedWord(x.Key, i))
+            .ToList();
 
-        return string.Join(' ', data);
+        return data;
     }
 
     private KeyValuePair<string, Color> FindClosestKnownColor(Color color)

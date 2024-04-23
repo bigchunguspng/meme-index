@@ -1,14 +1,41 @@
 using MemeIndex_Core.Model;
+using MemeIndex_Core.Services.Data;
+using MemeIndex_Core.Services.Indexing;
 
 namespace MemeIndex_Core.Controllers;
 
 public class IndexController
 {
-    public Task<IEnumerable<MonitoringOptions>> GetMonitoringDirectories()
+    private readonly IMonitoringService _monitoringService;
+    private readonly IFileService _fileService;
+    private readonly IndexingService _indexingService;
+    private readonly FileWatchService _fileWatchService;
+    private readonly OvertakingService _overtakingService;
+
+    public IndexController
+    (
+        IMonitoringService monitoringService,
+        IFileService fileService,
+        IndexingService indexingService,
+        FileWatchService fileWatchService,
+        OvertakingService overtakingService
+    )
     {
-        // ms.GetDirectories()
-        // *convert*
-        throw new NotImplementedException();
+        _monitoringService = monitoringService;
+        _fileService = fileService;
+        _indexingService = indexingService;
+        _fileWatchService = fileWatchService;
+        _overtakingService = overtakingService;
+    }
+
+    public async Task<IEnumerable<MonitoringOptions>> GetMonitoringOptions()
+    {
+        var directories = await _monitoringService.GetDirectories();
+        return directories.Select(x =>
+        {
+            var means = x.IndexingOptions.Select(o => o.MeanId).Distinct().ToHashSet();
+            return new MonitoringOptions(x.Directory.Path, x.Recursive, means);
+        });
     }
 
     public Task UpdateMonitoringDirectories(IEnumerable<MonitoringOptions> options)
@@ -16,14 +43,12 @@ public class IndexController
         throw new NotImplementedException();
     }
 
-    public Task AddDirectory(MonitoringOptions options)
+    public async Task AddDirectory(MonitoringOptions options)
     {
-        // ms.AddDirectory(ops)
-        // fs.AddFiles(ops.path, ops.rec)
-        // fws.StartWatching(ops.path, ops.rec)
-        // Task.Run(is.ProcessPendingFiles)
-
-        throw new NotImplementedException();
+        var directory = await _monitoringService.AddDirectory(options);
+        await _fileService.AddFiles(directory);
+        _fileWatchService.StartWatching(options.Path, options.Recursive);
+        await _indexingService.ProcessPendingFiles();
     }
 
     public Task UpdateDirectory(MonitoringOptions options)
@@ -38,31 +63,29 @@ public class IndexController
         throw new NotImplementedException();
     }
 
-    public Task RemoveDirectory(string path)
+    public async Task RemoveDirectory(string path)
     {
-        // var dir = ms.GetDirectory(path)
-        // ms.RemoveDirectory(ops)          files will be removed by cascade delete
-        // fws.StopWatching(path)
-
-        throw new NotImplementedException();
+        _fileWatchService.StopWatching(path);
+        await _monitoringService.RemoveDirectory(path);
     }
 
     public Task UpdateFileSystemKnowledge()
     {
         // ot.Overtake(path? null)
-        throw new NotImplementedException();
+        return _overtakingService.OvertakeMissingFiles();
     }
 
-    public Task StartIndexing()
+    public async void StartIndexing()
     {
-        // fws.Start()
-        throw new NotImplementedException();
+        // todo ask to locate missing dirs
+        await UpdateFileSystemKnowledge();
+        // todo check all files for changes with FileWasUpdated()
+        await _fileWatchService.Start();
     }
     
     public void StopIndexing()
     {
-        // fws.Stop()
-        throw new NotImplementedException();
+        _fileWatchService.Stop();
     }
 }
 

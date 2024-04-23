@@ -2,6 +2,7 @@ using System.Text;
 using Gdk;
 using Gtk;
 using MemeIndex_Core.Services.Indexing;
+using MemeIndex_Core.Services.OCR;
 using MemeIndex_Core.Utils;
 
 namespace MemeIndex_Gtk.Utils;

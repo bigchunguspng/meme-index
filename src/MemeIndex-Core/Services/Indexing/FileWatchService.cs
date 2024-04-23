@@ -42,14 +42,14 @@ public class FileWatchService
         foreach (var watcher in _watchers) watcher.Stop();
     }
 
-    public void AddDirectory(string path, bool recursive)
+    public void StartWatching(string path, bool recursive)
     {
         var watcher = new DirectoryMonitor(this, path, recursive);
         _watchers.Add(watcher);
         watcher.Start();
     }
 
-    public void RemoveDirectory(string path)
+    public void StopWatching(string path)
     {
         var watcher = _watchers.First(x => x.Path == path);
         _watchers.Remove(watcher);

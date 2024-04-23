@@ -25,6 +25,15 @@ public class MonitoringService : IMonitoringService
             .ToListAsync();
     }
 
+    public IQueryable<MonitoredDirectory> GetDirectories(int meanId)
+    {
+        return _context.MonitoredDirectories
+            .Include(x => x.Directory)
+            .Include(x => x.IndexingOptions)
+            .AsSplitQuery()
+            .Where(x => x.IndexingOptions.Any(io => io.MeanId == meanId));
+    }
+
     /*
     update changes:
         - dir added to wl
@@ -53,7 +62,7 @@ public class MonitoringService : IMonitoringService
         // rem >> 
     }
 
-    public async Task AddDirectory(MonitoringOptions options)
+    public async Task<MonitoredDirectory> AddDirectory(MonitoringOptions options)
     {
         // todo handle recursion and nested directories
         // if this directory is inside of one that is monitored recursively >>
@@ -67,6 +76,7 @@ public class MonitoringService : IMonitoringService
             Recursive = options.Recursive
         };
         await _context.MonitoredDirectories.AddAsync(monitored);
+        await _context.SaveChangesAsync();
 
         foreach (var mean in options.Means)
         {
@@ -79,6 +89,8 @@ public class MonitoringService : IMonitoringService
         }
 
         await _context.SaveChangesAsync();
+
+        return monitored;
     }
 
     public async Task RemoveDirectory(string path)
@@ -89,7 +101,7 @@ public class MonitoringService : IMonitoringService
         var monitored = await _context.MonitoredDirectories.FirstOrDefaultAsync(x => x.DirectoryId == directory.Id);
         if (monitored is null) return;
 
-        var covering = await GetOuterRecursivelyMonitoredDirectory(directory);
+        /*var covering = await GetOuterRecursivelyMonitoredDirectory(directory);
         if (covering is not null)
         {
             AttachFilesToOtherMonitor(monitored, covering);
@@ -109,9 +121,12 @@ public class MonitoringService : IMonitoringService
 
             /*if (monitored.Recursive)
                 _context.Directories.RemoveRange(GetDirectoryBranch(directory.Path)); // except these
-            else*/
+            else#1#
             _context.Directories.Remove(directory); // this will cascade remove md and files with this directory as md
-        }
+        }*/
+
+        if (monitored.Recursive) _context.Directories.RemoveRange(GetDirectoryBranch(directory.Path));
+        else /*               */ _context.Directories.Remove(directory);
 
         await _context.SaveChangesAsync();
     }
@@ -225,10 +240,10 @@ public class MonitoringService : IMonitoringService
 
     private void AttachFilesToOtherMonitor(MonitoredDirectory toRemove, MonitoredDirectory toReplace)
     {
-        var files = _context.Files.Where(x => x.MonitoredDirectoryId == toRemove.Id);
+        /*var files = _context.Files.Where(x => x.MonitoredDirectoryId == toRemove.Id);
         foreach (var file in files)
         {
             file.MonitoredDirectoryId = toReplace.Id;
-        }
+        }*/
     }
 }

@@ -43,12 +43,12 @@ public class ConsoleLoopUI : IHostedService
                 {
                     var path = input[5..].Trim('"');
                     var op = new MonitoringOptions(path, true, MonitoringOptions.DefaultMeans);
-                    _indexController.AddDirectory(op); //.Wait();
+                    _indexController.AddDirectory(op).Wait();
                     continue;
                 }
                 if (input.StartsWith("/rem "))
                 {
-                    _indexController.RemoveDirectory(input[5..].Trim('"')); //.Wait();
+                    _indexController.RemoveDirectory(input[5..].Trim('"')).Wait();
                     continue;
                 }
 

@@ -31,8 +31,6 @@ public static partial class Helpers
     {
         var searchOption = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
         var directory = new DirectoryInfo(path);
-        return GetImageExtensions()
-            .SelectMany(x => directory.GetFiles($"*{x}", searchOption))
-            .ToList();
+        return GetImageExtensions().SelectMany(x => directory.GetFiles($"*{x}", searchOption)).ToList();
     }
 }

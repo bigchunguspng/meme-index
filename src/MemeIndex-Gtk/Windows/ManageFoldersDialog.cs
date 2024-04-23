@@ -33,12 +33,12 @@ public class ManageFoldersDialog : Dialog
 
     private void LoadData()
     {
-        var directories = App.IndexingService.GetTrackedDirectories().Result;
+        var directories = App.IndexController.GetMonitoringOptions().Result;
         foreach (var directory in directories)
         {
-            if (System.IO.Path.Exists(directory.Directory.Path))
+            if (System.IO.Path.Exists(directory.Path))
             {
-                _folders.Add(new FolderSelectorWidget(_folders, directory.Directory.Path));
+                _folders.Add(new FolderSelectorWidget(_folders, directory.Path));
             }
         }
 
@@ -59,8 +59,8 @@ public class ManageFoldersDialog : Dialog
     private async void SaveChangesAsync()
     {
         App.SetStatus("Updating watching list...");
-        var tracked = await App.IndexingService.GetTrackedDirectories();
-        var directoriesDb = tracked.Select(x => x.Directory.Path).ToList();
+        var monitored = await App.IndexController.GetMonitoringOptions();
+        var directoriesDb = monitored.Select(x => x.Path).ToList();
         var directoriesMf = _folders.Children
             .Select(x => (FolderSelectorWidget)((ListBoxRow)x).Child)
             .Where(x => x.DirectorySelected)
@@ -78,13 +78,13 @@ public class ManageFoldersDialog : Dialog
 
         foreach (var directory in removeList)
         {
-            await App.IndexingService.RemoveDirectory(directory);
+            await App.IndexController.RemoveDirectory(directory);
         }
 
         foreach (var directory in updateList)
         {
             var options = new MonitoringOptions(directory, true, MonitoringOptions.DefaultMeans);
-            await App.IndexingService.AddDirectory(options);
+            await App.IndexController.AddDirectory(options);
         }
 
         App.SetStatus("Watching list updated.");

@@ -1,11 +1,12 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace MemeIndex_Core.Entities;
 
 /// <summary>
 /// <b>Directory</b> that is indexed and monitored for file changes.
 /// </summary>
-[Table("MonitoredDirectories")]
+[Table("MonitoredDirectories"), Index(nameof(DirectoryId), IsUnique = true)]
 public class MonitoredDirectory : AbstractEntity
 {
     public int DirectoryId { get; set; }

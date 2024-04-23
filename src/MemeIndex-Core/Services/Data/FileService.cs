@@ -1,4 +1,6 @@
 using MemeIndex_Core.Data;
+using MemeIndex_Core.Entities;
+using MemeIndex_Core.Utils;
 using Microsoft.EntityFrameworkCore;
 using Directory = MemeIndex_Core.Entities.Directory;
 
@@ -20,7 +22,7 @@ public class FileService : IFileService
 
     public async Task<int> AddFile(FileInfo file)
     {
-        var directory = await GetDirectoryEntity(file.DirectoryName!);
+        var directory = await GetOrAddDirectory(file.DirectoryName!);
 
         var entity = new Entities.File
         {
@@ -38,9 +40,38 @@ public class FileService : IFileService
         return entity.Id;
     }
 
+    public async Task<int> AddFiles(MonitoredDirectory monitoredDirectory)
+    {
+        var files = Helpers.GetImageFiles(monitoredDirectory.Directory.Path, monitoredDirectory.Recursive);
+
+        var tasks = files.Select(async file =>
+        {
+            var directory = await GetOrAddDirectory(file.DirectoryName!);
+
+            return new Entities.File
+            {
+                DirectoryId = directory.Id,
+                Name = file.Name,
+                Size = file.Length,
+                Tracked = DateTime.UtcNow,
+                Created = file.CreationTimeUtc,
+                Modified = file.LastWriteTimeUtc
+            };
+        });
+
+        var results = await Task.WhenAll(tasks);
+
+        await _context.Files.AddRangeAsync(results);
+        await _context.SaveChangesAsync();
+
+        // todo check if file exists in db before adding
+
+        return results.Length;
+    }
+
     public async Task<int> UpdateFile(Entities.File entity, FileInfo file)
     {
-        var directory = await GetDirectoryEntity(file.DirectoryName!);
+        var directory = await GetOrAddDirectory(file.DirectoryName!);
 
         entity.DirectoryId = directory.Id;
         entity.Name = file.Name;
@@ -61,7 +92,7 @@ public class FileService : IFileService
         return await _context.SaveChangesAsync();
     }
 
-    private async Task<Directory> GetDirectoryEntity(string path)
+    private async Task<Directory> GetOrAddDirectory(string path)
     {
         var existing = _context.Directories.FirstOrDefault(x => x.Path == path);
         if (existing != null)

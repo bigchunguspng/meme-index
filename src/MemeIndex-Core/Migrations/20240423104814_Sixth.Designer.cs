@@ -3,6 +3,7 @@ using System;
 using MemeIndex_Core.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MemeIndexCore.Migrations
 {
     [DbContext(typeof(MemeDbContext))]
-    partial class MemeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240423104814_Sixth")]
+    partial class Sixth
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "7.0.0");
@@ -23,11 +26,16 @@ namespace MemeIndexCore.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("MonitoredDirectoryId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Path")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("MonitoredDirectoryId");
 
                     b.HasIndex("Path")
                         .IsUnique();
@@ -118,8 +126,7 @@ namespace MemeIndexCore.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DirectoryId")
-                        .IsUnique();
+                    b.HasIndex("DirectoryId");
 
                     b.ToTable("MonitoredDirectories");
                 });
@@ -169,6 +176,13 @@ namespace MemeIndexCore.Migrations
                         .IsUnique();
 
                     b.ToTable("Words");
+                });
+
+            modelBuilder.Entity("MemeIndex_Core.Entities.Directory", b =>
+                {
+                    b.HasOne("MemeIndex_Core.Entities.MonitoredDirectory", null)
+                        .WithMany("Subdirectories")
+                        .HasForeignKey("MonitoredDirectoryId");
                 });
 
             modelBuilder.Entity("MemeIndex_Core.Entities.File", b =>
@@ -252,6 +266,8 @@ namespace MemeIndexCore.Migrations
             modelBuilder.Entity("MemeIndex_Core.Entities.MonitoredDirectory", b =>
                 {
                     b.Navigation("IndexingOptions");
+
+                    b.Navigation("Subdirectories");
                 });
 
             modelBuilder.Entity("MemeIndex_Core.Entities.Word", b =>

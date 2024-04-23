@@ -12,6 +12,14 @@ public interface IMonitoringService
     /// </summary>
     Task<List<MonitoredDirectory>> GetDirectories();
 
+    /// <summary>
+    /// Returns a list of monitored directories, including
+    /// <see cref="MonitoredDirectory.Directory"/> and
+    /// <see cref="MonitoredDirectory.IndexingOptions"/> properties,
+    /// which should be indexed by a <see cref="Mean"/> with given id.
+    /// </summary>
+    IQueryable<MonitoredDirectory> GetDirectories(int meanId);
+
     // user updates watching list
     /// <summary>
     /// Updates 
@@ -37,8 +45,8 @@ public interface IMonitoringService
     /// <summary>
     /// Adds a directory to monitoring list according to provided options.
     /// </summary>
-    Task AddDirectory(MonitoringOptions options);
-    
+    Task<MonitoredDirectory> AddDirectory(MonitoringOptions options);
+
     /// <summary>
     /// Removes directory from monitoring list.
     /// It also removes all of its files if the directory isn't located
