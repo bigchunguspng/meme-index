@@ -15,10 +15,12 @@ public class OnlineOcrService : IOcrService
         };
     }
 
-    private string ApiKey { get; set; }
-    private string ApiURL { get; set; } = "https://api.ocr.space/parse/image";
+    private string ApiKey { get; }
+    private string ApiURL { get; } = "https://api.ocr.space/parse/image";
 
-    private HttpClient Client { get; set; }
+    private HttpClient Client { get; }
+
+    private List<RankedWord> EmptyResponse { get; } = new() { new("[null]", 1) };
 
     public async Task<IList<RankedWord>?> GetTextRepresentation(string path)
     {
@@ -65,7 +67,7 @@ public class OnlineOcrService : IOcrService
                     .OrderByDescending(line => line?.MaxHeight)
                     .ToList()!;
 
-                if (lines.Count == 0) return null;
+                if (lines.Count == 0) return EmptyResponse;
 
                 var maxHeight = lines[0].MaxHeight;
                 var countPenalty = (int)Math.Sqrt(lines.Count - 1);
@@ -98,7 +100,7 @@ public class OnlineOcrService : IOcrService
                 return result;
             }
 
-            return null;
+            return EmptyResponse;
         }
         catch (Exception e)
         {

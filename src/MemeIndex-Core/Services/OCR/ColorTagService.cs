@@ -78,7 +78,9 @@ public class ColorTagService : IOcrService
         }
 
 #if DEBUG
-        image.SaveAs("baka-dots.jpg", AnyBitmap.ImageFormat.Jpeg, 50);
+        var ticks = DateTime.UtcNow.Ticks;
+        Directory.CreateDirectory("img");
+        image.SaveAs(Path.Combine("img", $"baka-{ticks}-dots.jpg"), AnyBitmap.ImageFormat.Jpeg, 50);
 
         for (var x = 0; x < w; x++)
         for (var y = 0; y < h; y++)
@@ -87,7 +89,7 @@ public class ColorTagService : IOcrService
             image.SetPixel(x, y, dots[Math.Clamp(dot, 0, dots.Count - 1)].Value);
         }
 
-        image.SaveAs("baka-colors.jpg", AnyBitmap.ImageFormat.Jpeg, 50);
+        image.SaveAs(Path.Combine("img", $"baka-{ticks}-colors.jpg"), AnyBitmap.ImageFormat.Jpeg, 50);
 #endif
 
         var data = dots
