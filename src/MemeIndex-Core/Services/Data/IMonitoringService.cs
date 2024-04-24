@@ -57,5 +57,5 @@ public interface IMonitoringService
     /// <summary>
     /// Updates monitoring options of the directory.
     /// </summary>
-    Task UpdateDirectory(MonitoringOptions options);
+    Task<bool> UpdateDirectory(MonitoringOptions options);
 }

@@ -20,6 +20,8 @@ public class OnlineOcrService : IOcrService
 
     private HttpClient Client { get; }
 
+    private AvailabilityTimer Availability { get; } = new();
+
     private List<RankedWord> EmptyResponse { get; } = new() { new("[null]", 1) };
 
     /*
@@ -35,6 +37,8 @@ public class OnlineOcrService : IOcrService
     {
         try
         {
+            if (Availability.Unavailable) return null;
+
             // CHECK FILE
             var file = new FileInfo(path);
             if (file.Exists == false)
@@ -60,6 +64,11 @@ public class OnlineOcrService : IOcrService
 
             // PROCESS RESPONSE
             var json = await response.Content.ReadAsStringAsync();
+            if (json.StartsWith('{') == false)
+            {
+                Logger.Status("API is unavailable x_x");
+                Availability.MakeUnavailableFor(seconds: 60 * 5);
+            }
             var obj = JObject.Parse(json);
 
             var exitCode = (int)obj.SelectToken("OCRExitCode")!;

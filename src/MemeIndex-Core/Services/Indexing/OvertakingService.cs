@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using MemeIndex_Core.Data;
 using MemeIndex_Core.Services.Data;
 using MemeIndex_Core.Utils;
 using Directory = MemeIndex_Core.Entities.Directory;
@@ -11,24 +12,28 @@ public class OvertakingService
     private readonly IFileService _fileService;
     private readonly IDirectoryService _directoryService;
     private readonly IMonitoringService _monitoringService;
+    private readonly MemeDbContext _context;
 
     public OvertakingService
     (
         IFileService fileService,
         IDirectoryService directoryService,
-        IMonitoringService monitoringService
+        IMonitoringService monitoringService,
+        MemeDbContext context
     )
     {
         _fileService = fileService;
         _directoryService = directoryService;
         _monitoringService = monitoringService;
+        _context = context;
     }
 
     /// <summary>
-    /// Overtakes changes in file system, and updates the database
+    /// Overtakes the changes in file system, and updates the database
     /// to represent the real state of file system.
     /// </summary>
-    public async Task OvertakeMissingFiles()
+    /// <returns> The number of files that need visual processing. </returns>
+    public async Task<int> UpdateFileSystemKnowledge()
     {
         // ON STARTUP
         // 1. a bunch of new files added to db
@@ -40,7 +45,7 @@ public class OvertakingService
         var timer = new Stopwatch();
         timer.Start();
         Logger.Log(ConsoleColor.Yellow, "Overtaking: start");
-        Logger.Status("Overtaking file system changes...");
+        Logger.Status("Updating database...");
 
         var existingDirectoriesAll = _directoryService.GetAll().GetExisting().ToList();
         var existingDirectoriesTracked = await _monitoringService.GetDirectories();
@@ -50,7 +55,7 @@ public class OvertakingService
 
         Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} files loaded", files.Count);
         Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} files records available", fileRecords.Count);
-        Logger.Status($"Overtaking {files.Count} files & {fileRecords.Count} records...");
+        Logger.Status($"Comparing {files.Count} files & {fileRecords.Count} records...");
 
         // ANALYZE
 
@@ -94,11 +99,15 @@ public class OvertakingService
         var c2 = await _directoryService.ClearEmpty();
 
         Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} empty directories removed", c2);
+        
+        var c3 = await UnindexUpdatedFiles();
+
+        Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} updated files unindexed", c3);
         Logger.Log(ConsoleColor.Yellow, "Overtaking: elapsed {0}", timer.Elapsed);
 
         if (Logger.StatusIsAvailable)
         {
-            var builder = new StringBuilder("Changes overtaken!");
+            var builder = new StringBuilder("Database updated!");
             if (missingFiles.Count > 0)
                 builder
                     .Append(" Missing files located: ")
@@ -111,6 +120,7 @@ public class OvertakingService
             Logger.Status(builder.ToString());
         }
 
+        return c0 + c3;
 
         // WHEN NEW FILE(s) ADDED (spotted by file watcher)
         // 1. file change object added to purgatory
@@ -122,6 +132,35 @@ public class OvertakingService
         // IF FILE ADDED:
         // 3. file added to db
         // 4. file processed in the background
+    }
+
+    /// <summary>
+    /// Removes search tags for each file that was updated.
+    /// </summary>
+    /// <returns> The number of updated files. </returns>
+    private async Task<int> UnindexUpdatedFiles()
+    {
+        var fileRecords = await _fileService.GetAllFilesWithPath();
+        var updated = fileRecords
+            .Select(x => new
+            {
+                File = x,
+                FileInfo = new FileInfo(Path.Combine(x.Directory.Path, x.Name))
+            })
+            .Where(x => FileWasUpdated(x.FileInfo, x.File))
+            .ToList();
+
+        foreach (var file in updated)
+        {
+            await _fileService.UpdateFile(file.File, file.FileInfo);
+        }
+
+        var ids = updated.Select(x => x.File.Id);
+        var tags = _context.Tags.Where(x => ids.Contains(x.FileId));
+        _context.Tags.RemoveRange(tags);
+        await _context.SaveChangesAsync();
+
+        return updated.Count;
     }
 
     /// <summary>
@@ -185,5 +224,15 @@ public class OvertakingService
         if (fileInfo. CreationTimeUtc == entity. Created) similarity++;
 
         return similarity > 1;
+    }
+
+    /// <summary>
+    /// Returns true if the file content was probably changed.
+    /// </summary>
+    private static bool FileWasUpdated(FileInfo fileInfo, Entities.File entity)
+    {
+        return fileInfo.Length != entity.Size
+            || fileInfo.LastWriteTimeUtc > entity.Tracked
+            || fileInfo.CreationTimeUtc  > entity.Tracked;
     }
 }

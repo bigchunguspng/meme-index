@@ -26,6 +26,8 @@ internal static class Program
             Console.InputEncoding = Encoding.Unicode;
         }
 
+        Logger.StatusChange += Logger.Log!;
+
         var builder = Host.CreateApplicationBuilder(args);
 
         builder.Logging.SetMinimumLevel(LogLevel.Warning);

@@ -1,6 +1,7 @@
 using MemeIndex_Core.Model;
 using MemeIndex_Core.Services.Data;
 using MemeIndex_Core.Services.Indexing;
+using MemeIndex_Core.Utils;
 
 namespace MemeIndex_Core.Controllers;
 
@@ -26,6 +27,8 @@ public class IndexController
         _indexingService = indexingService;
         _fileWatchService = fileWatchService;
         _overtakingService = overtakingService;
+
+        _fileWatchService.UpdateFileSystemKnowledge += UpdateFileSystemKnowledge;
     }
 
     public async Task<IEnumerable<MonitoringOptions>> GetMonitoringOptions()
@@ -49,40 +52,44 @@ public class IndexController
         await _fileService.AddFiles(directory);
         _fileWatchService.StartWatching(options.Path, options.Recursive);
         await _indexingService.ProcessPendingFiles();
+
+        Logger.Status($"Added {options.Path}");
     }
 
-    public Task UpdateDirectory(MonitoringOptions options)
+    public async Task UpdateDirectory(MonitoringOptions options)
     {
-        // var x = ms.UpdateDirectory(ops) recursive changed => true
-        // if (x)
-        // {
-        //     fs.UpdateFiles(ops.path)
-        //     fws.UpdateWatcher(ops.path, ops.rec)     or StartWatching(,)
-        //     Task.Run(is.ProcessPendingFiles)
+        var changed = await _monitoringService.UpdateDirectory(options);
+        if (changed)
+        {
+            _fileWatchService.ChangeRecursion(options.Path, options.Recursive);
+            await UpdateFileSystemKnowledge();
 
-        throw new NotImplementedException();
+            Logger.Status($"Updated {options.Path}");
+        }
     }
 
     public async Task RemoveDirectory(string path)
     {
         _fileWatchService.StopWatching(path);
         await _monitoringService.RemoveDirectory(path);
+
+        Logger.Status($"Removed {path}");
     }
 
-    public Task UpdateFileSystemKnowledge()
+    public async Task UpdateFileSystemKnowledge()
     {
-        // ot.Overtake(path? null)
-        return _overtakingService.OvertakeMissingFiles();
+        var files = await _overtakingService.UpdateFileSystemKnowledge();
+        if (files > 0) await _indexingService.ProcessPendingFiles();
     }
 
     public async void StartIndexing()
     {
-        // todo ask to locate missing dirs
+        // todo ask to locate missing dirs (another method, called by ui before this one)
+
         await UpdateFileSystemKnowledge();
-        // todo check all files for changes with FileWasUpdated()
         await _fileWatchService.Start();
     }
-    
+
     public void StopIndexing()
     {
         _fileWatchService.Stop();

@@ -131,18 +131,20 @@ public class MonitoringService : IMonitoringService
         await _context.SaveChangesAsync();
     }
 
-    public async Task UpdateDirectory(MonitoringOptions options)
+    public async Task<bool> UpdateDirectory(MonitoringOptions options)
     {
         var directory = await GetDirectoryByPath(options.Path);
-        if (directory is null) return;
+        if (directory is null) return false;
 
         var monitored = await _context.MonitoredDirectories.FirstOrDefaultAsync(x => x.DirectoryId == directory.Id);
-        if (monitored is null) return;
+        if (monitored is null) return false;
+
+        var result = false;
 
         if (monitored.Recursive != options.Recursive)
         {
             monitored.Recursive = options.Recursive;
-            await _context.SaveChangesAsync();
+            result = await _context.SaveChangesAsync() > 0;
 
             // files anyway will be added / removed by indexing service
             /*var covering = await GetOuterRecursivelyMonitoredDirectory(directory);
@@ -188,8 +190,10 @@ public class MonitoringService : IMonitoringService
                 if (option is not null) _context.IndexingOptions.Remove(option);
             }
 
-            await _context.SaveChangesAsync();
+            result = await _context.SaveChangesAsync() > 0;
         }
+
+        return result;
     }
 
 

@@ -10,6 +10,12 @@ public class DirectoryMonitor
 
     public string Path => _watcher.Path;
 
+    public bool Recursive
+    {
+        get => _watcher.IncludeSubdirectories;
+        set => _watcher.IncludeSubdirectories = value;
+    }
+
     public DirectoryMonitor(FileWatchService service, string path, bool recursive)
     {
         _service = service;

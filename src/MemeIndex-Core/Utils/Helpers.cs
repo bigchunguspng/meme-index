@@ -14,7 +14,12 @@ public static partial class Helpers
 
     public static bool IsImage(this FileInfo file)
     {
-        return GetImageExtensions().Contains(file.Extension.ToLower());
+        return file.Extension.IsImageFileExtension();
+    }
+
+    public static bool IsImageFileExtension(this string extension)
+    {
+        return GetImageExtensions().Contains(extension.ToLower());
     }
 
     public static IList<string> GetImageExtensions()
