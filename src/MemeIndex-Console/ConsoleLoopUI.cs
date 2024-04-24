@@ -73,6 +73,19 @@ public class ConsoleLoopUI : IHostedService
                     continue;
                 }
 
+                if (input.StartsWith("/s "))
+                {
+                    var split = input.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                    var query = split[1];
+                    var words = query.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    var files = _searchController.SearchAll(new SearchRequestItem(2, words[0])).Result;
+                    if (files.Count == 0) continue;
+
+                    foreach (var file in files)
+                    {
+                        Logger.Log(ConsoleColor.Yellow, $"{file.Directory.Path}{Path.DirectorySeparatorChar}{file.Name}");
+                    }
+                }
                 // if /search ...
 
                 /*var path = input.Trim('"');

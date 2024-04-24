@@ -1,21 +1,39 @@
-using MemeIndex_Core.Entities;
+using MemeIndex_Core.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace MemeIndex_Core.Controllers;
 
 public class SearchController
 {
-    // (just for now):
-
     //private Dictionary<string, List<Entities.File>> _cache;
 
-    public void Search(IEnumerable<SearchOption> options, LogicalOperator @operator)
+    private readonly MemeDbContext _context;
+
+    public SearchController(MemeDbContext context)
+    {
+        _context = context;
+    }
+
+    public void Search(IEnumerable<SearchQuery> queries, LogicalOperator @operator)
     {
         throw new NotImplementedException();
     }
 
-    public void SearchAll(SearchRequestItem word)
+    public async Task<List<Entities.File>> SearchAll(SearchRequestItem item)
     {
-        throw new NotImplementedException();
+        var files = await _context.Tags
+            .Include(x => x.Word)
+            .Include(x => x.File)
+            .ThenInclude(x => x.Directory)
+            .Where(x => x.MeanId == item.MeanId)
+            .Where(x => x.Word.Text == item.Word || EF.Functions.Like(x.Word.Text, $"{item.Word}%"))
+            .GroupBy(x => x.File)
+            .OrderBy(g => g.Count())
+            .ThenBy(g => g.Min(x => x.Rank))
+            .Select(g => g.Key)
+            .ToListAsync();
+
+        return files;
     }
 
     public void SearchCached(SearchRequestItem word)
@@ -24,9 +42,9 @@ public class SearchController
     }
 }
 
-public record SearchRequestItem(Mean Mean, string Word);
+public record SearchRequestItem(int MeanId, string Word);
 
-public record SearchOption(Mean Mean, IEnumerable<string> Words, LogicalOperator Operator);
+public record SearchQuery(int MeanId, IEnumerable<string> Words, LogicalOperator Operator);
 
 public enum LogicalOperator
 {
