@@ -62,9 +62,8 @@ public class IndexingService
         var dirs1 = monitored
             .Where(x => x.Recursive == false)
             .Select(x => x.Directory.Id);
-        var dirs2 = monitored
-            .Where(x => x.Recursive == true)
-            .SelectMany(x => _context.Directories.Where(d => d.Path.StartsWith(d.Path)))
+        var dirs2 = _context.Directories
+            .Where(x => monitored.Any(m => x.Path.StartsWith(m.Directory.Path)))
             .Select(x => x.Id);
         return _context.Files
             .Where(x => dirs1.Contains(x.DirectoryId) || dirs2.Contains(x.DirectoryId))

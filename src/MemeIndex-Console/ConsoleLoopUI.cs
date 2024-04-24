@@ -41,14 +41,35 @@ public class ConsoleLoopUI : IHostedService
 
                 if (input.StartsWith("/add "))
                 {
-                    var path = input[5..].Trim('"');
-                    var op = new MonitoringOptions(path, true, MonitoringOptions.DefaultMeans);
+                    var split = input.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
+                    var path = split[1].Trim('"');
+                    var recursive = split.Length <= 2 || split[2].Contains("-r");
+                    var eng = split.Length > 2 && split[2].Contains("eng");
+                    var rgb = split.Length > 2 && split[2].Contains("rgb");
+                    var means = eng || rgb
+                        ? new MonitoringOptions.MeansBuilder().WithRgb(rgb).WithEng(eng).Build()
+                        : MonitoringOptions.DefaultMeans;
+                    var op = new MonitoringOptions(path, recursive, means);
                     _indexController.AddDirectory(op).Wait();
                     continue;
                 }
                 if (input.StartsWith("/rem "))
                 {
                     _indexController.RemoveDirectory(input[5..].Trim('"')).Wait();
+                    continue;
+                }
+                if (input.StartsWith("/upd "))
+                {
+                    var split = input.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
+                    var path = split[1].Trim('"');
+                    var recursive = split.Length <= 2 || split[2].Contains("-r");
+                    var eng = split.Length > 2 && split[2].Contains("eng");
+                    var rgb = split.Length > 2 && split[2].Contains("rgb");
+                    var means = eng || rgb
+                        ? new MonitoringOptions.MeansBuilder().WithRgb(rgb).WithEng(eng).Build()
+                        : MonitoringOptions.DefaultMeans;
+                    var op = new MonitoringOptions(path, recursive, means);
+                    _indexController.UpdateDirectory(op).Wait();
                     continue;
                 }
 

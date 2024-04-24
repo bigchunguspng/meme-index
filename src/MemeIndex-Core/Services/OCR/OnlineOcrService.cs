@@ -68,7 +68,9 @@ public class OnlineOcrService : IOcrService
             {
                 Logger.Status("API is unavailable x_x");
                 Availability.MakeUnavailableFor(seconds: 60 * 5);
+                return null;
             }
+
             var obj = JObject.Parse(json);
 
             var exitCode = (int)obj.SelectToken("OCRExitCode")!;
