@@ -84,6 +84,31 @@ public class MainWindow : Window
             _files.Selection.UnselectAll();
             App.SetStatus();
         };
+        
+        _files.PopupMenu += FilesOnPopupMenu;
+        _files.ButtonReleaseEvent += FilesOnButtonPressEvent;
+    }
+
+    private void FilesOnButtonPressEvent(object o, ButtonReleaseEventArgs args)
+    {
+        if (args.Event.Button == 3) OpenFilesContextMenu();
+    }
+
+    private void FilesOnPopupMenu(object o, PopupMenuArgs args)
+    {
+        OpenFilesContextMenu();
+    }
+
+    private void OpenFilesContextMenu()
+    {
+        var menu = new Menu();
+        var item1 = new MenuItem("Open");
+        var item2 = new MenuItem("Show in Explorer");
+        menu.Add(item1);
+        menu.Add(item2);
+        menu.ShowAll();
+
+        menu.Popup();
     }
 
     private static ListStore CreateStore()
