@@ -50,7 +50,7 @@ public class MainWindow : Window
 
         _search.SearchChanged += OnSearchChangedAsync;
 
-        _buttonColorSearch.Clicked += ButtonColorSearchOnClicked;
+        _buttonColorSearch.Toggled += ButtonColorSearchOnToggled;
         _colorSearch.Visible = _buttonColorSearch.Active;
     }
 
@@ -144,7 +144,7 @@ public class MainWindow : Window
         _files.Model = store;
     }
 
-    private void ButtonColorSearchOnClicked(object? sender, EventArgs e)
+    private void ButtonColorSearchOnToggled(object? sender, EventArgs e)
     {
         _buttonColorSearch.Active.Execute(_colorSearch.Show, _colorSearch.Hide);
     }
