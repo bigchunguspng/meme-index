@@ -8,6 +8,8 @@ public class MemeDbContext : DbContext
     {
     }
 
+    public bool IsReadyToUse { get; set; } = true;
+
     public DbSet<Entities.Tag>  Tags  { get; set; } = default!;
     public DbSet<Entities.File> Files { get; set; } = default!;
     public DbSet<Entities.Word> Words { get; set; } = default!;

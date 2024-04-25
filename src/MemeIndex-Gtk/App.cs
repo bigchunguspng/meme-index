@@ -2,9 +2,7 @@ using GLib;
 using Gtk;
 using MemeIndex_Core.Controllers;
 using MemeIndex_Core.Data;
-using MemeIndex_Core.Services.Indexing;
 using MemeIndex_Core.Services.OCR;
-using MemeIndex_Core.Services.Search;
 using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils;
 using MemeIndex_Gtk.Windows;
@@ -59,8 +57,10 @@ public class App : IDisposable
         Task.Run(() =>
         {
             SetStatus("Loading database...");
-            DatabaseInitializer.EnsureCreated(Context);
+            Context.IsReadyToUse = false;
+            Context.EnsureCreated();
             IndexController.StartIndexing();
+            Context.IsReadyToUse = true;
         });
 
         Application.Run();

@@ -7,7 +7,7 @@ public static class DatabaseInitializer
 {
     public const int RGB_CODE = 1, ENG_CODE = 2;
 
-    public static void EnsureCreated(MemeDbContext context)
+    public static void EnsureCreated(this MemeDbContext context)
     {
         if (context.Database.GetPendingMigrations().Any())
         {

@@ -160,6 +160,11 @@ public class MainWindow : Window
 
     private async void Search()
     {
+        while (!App.Context.IsReadyToUse)
+        {
+            await Task.Delay(50);
+        }
+
         var files = App.SearchController.Search(_queries, LogicalOperator.AND).Result.ToList();
 
         var txt = _queries.Select(x => $"Mean #{x.MeanId}: [{string.Join(' ', x.Words)}]");
