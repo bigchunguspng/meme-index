@@ -81,7 +81,7 @@ public class ConsoleLoopUI : IHostedService
                     var queries = qbm.Select(x =>
                     {
                         var meanId = int.Parse(x[0].ToString());
-                        var words = x.Split(' ', StringSplitOptions.RemoveEmptyEntries).Skip(1);
+                        var words = x.Split(' ', StringSplitOptions.RemoveEmptyEntries).Skip(1).ToList();
                         var op = x[1] == '&' ? LogicalOperator.AND : LogicalOperator.OR;
                         return new SearchQuery(meanId, words, op);
                     });
