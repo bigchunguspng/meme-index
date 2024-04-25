@@ -48,7 +48,8 @@ public class MainWindow : Window
         _menuFileFolders .Activated += OpenManageFoldersDialog;
         _menuFileSettings.Activated += OpenSettingsDialog;
 
-        _search.SearchChanged += OnSearchChangedAsync;
+        _search.SearchChanged += OnSearchChanged;
+        _colorSearchPanel.SelectionChanged += OnColorSelectionChanged;
 
         _buttonColorSearch.Toggled += ButtonColorSearchOnToggled;
         _colorSearch.Visible = _buttonColorSearch.Active;
@@ -95,14 +96,10 @@ public class MainWindow : Window
         return store;
     }
 
-    private void FillStore(ListStore store, string search)
+    private static void FillStore(ListStore store, List< MemeIndex_Core.Entities.File> files)
     {
         store.Clear();
 
-        var query = new SearchQuery(2, search.Split(' ', StringSplitOptions.RemoveEmptyEntries), LogicalOperator.AND);
-        var files = App.SearchController.Search(new[] { query }, LogicalOperator.AND).Result.ToList();
-
-        App.SetStatus($"Files: {files.Count}, search: {search}.");
         foreach (var file in files)
         {
             store.AppendValues(file.Name, file.Directory.Path);
@@ -119,6 +116,34 @@ public class MainWindow : Window
         var dirs = string.CompareOrdinal(aPath, bPath);
         return dirs == 0 ? string.CompareOrdinal(aName, bName) : dirs;
     }*/
+
+    private readonly List<SearchQuery> _queries = new(2);
+
+    private void UpdateQuery(int meanId, IEnumerable<string> words)
+    {
+        var query = _queries.FirstOrDefault(x => x.MeanId == meanId);
+        if (query is not null)
+        {
+            query.Words.Clear();
+            query.Words.AddRange(words);
+        }
+        else
+        {
+            _queries.Add(new SearchQuery(meanId, words.ToList(), LogicalOperator.AND));
+        }
+    }
+
+    private async void Search()
+    {
+        var files = App.SearchController.Search(_queries, LogicalOperator.AND).Result.ToList();
+
+        var txt = _queries.Select(x => $"Mean #{x.MeanId}: [{string.Join(' ', x.Words)}]");
+        App.SetStatus($"Files: {files.Count}, search: {string.Join(' ', txt)}");
+
+        var store = CreateStore();
+        await Task.Run(() => FillStore(store, files));
+        _files.Model = store;
+    }
 
     #endregion
 
@@ -137,11 +162,17 @@ public class MainWindow : Window
         new SettingsDialog(this, builder).Show();
     }
 
-    private async void OnSearchChangedAsync(object? sender, EventArgs e)
+    private void OnSearchChanged(object? sender, EventArgs e)
     {
-        var store = CreateStore();
-        await Task.Run(() => FillStore(store, _search.Text));
-        _files.Model = store;
+        var words = _search.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
+        UpdateQuery(2, words);
+        Search();
+    }
+
+    private void OnColorSelectionChanged(object? sender, EventArgs e)
+    {
+        UpdateQuery(1, _colorSearchPanel.SelectedColors);
+        Search();
     }
 
     private void ButtonColorSearchOnToggled(object? sender, EventArgs e)

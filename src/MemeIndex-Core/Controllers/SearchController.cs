@@ -69,9 +69,9 @@ public class SearchController
         throw new NotImplementedException();
     }
 
-    private static void JoinResults<T>(ISet<T> accumulator, IEnumerable<T> addition, LogicalOperator @operator)
+    private static void JoinResults<T>(ISet<T> accumulator, ICollection<T> addition, LogicalOperator @operator)
     {
-        var unite = @operator == LogicalOperator.OR || accumulator.Count == 0;
+        var unite = @operator == LogicalOperator.OR || accumulator.Count == 0 || addition.Count == 0;
         unite.Switch(accumulator.UnionWith, accumulator.IntersectWith)(addition);
     }
 
@@ -84,7 +84,7 @@ public class SearchController
 
 public record SearchRequestItem(int MeanId, string Word, SearchStrategy Strategy);
 
-public record SearchQuery(int MeanId, IEnumerable<string> Words, LogicalOperator Operator);
+public record SearchQuery(int MeanId, List<string> Words, LogicalOperator Operator);
 
 public enum LogicalOperator
 {

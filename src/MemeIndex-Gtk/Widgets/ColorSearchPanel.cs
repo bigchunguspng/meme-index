@@ -12,9 +12,9 @@ public class ColorSearchPanel : Frame
 
     [UI] private readonly Button _buttonClearColorSelection = default!;
 
-    private HashSet<string> SelectedColors = new();
-
     private App App { get; }
+
+    public HashSet<string> SelectedColors { get; } = new();
 
     public ColorSearchPanel(App app, WindowBuilder builder) : base(builder.Raw)
     {
@@ -63,6 +63,8 @@ public class ColorSearchPanel : Frame
             checkButton.Active.Switch(SelectedColors.Add, SelectedColors.Remove)(checkButton.Key);
 
             App.SetStatus($"Selected colors: {string.Join(' ', SelectedColors)}");
+
+            SelectionChanged?.Invoke(this, e);
         }
     }
 
@@ -70,6 +72,8 @@ public class ColorSearchPanel : Frame
     {
         DeactivateCheckboxes(_gridColorsFunny);
         DeactivateCheckboxes(_gridColorsGray);
+
+        SelectionChanged?.Invoke(this, e);
     }
 
     private void DeactivateCheckboxes(Container grid)
@@ -79,4 +83,6 @@ public class ColorSearchPanel : Frame
 
         App.SetStatus($"Selected colors: {string.Join(' ', SelectedColors)}");
     }
+
+    public event EventHandler? SelectionChanged;
 }
