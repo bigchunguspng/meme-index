@@ -73,12 +73,19 @@ public class ConsoleLoopUI : IHostedService
                     continue;
                 }
 
-                if (input.StartsWith("/s "))
+                if (input.StartsWith("/s ")) // /s -2& me when -1| b0 g2
                 {
                     var split = input.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
                     var query = split[1];
-                    var words = query.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    var files = _searchController.SearchAll(new SearchRequestItem(2, words[0])).Result;
+                    var qbm = query.Split('-', StringSplitOptions.RemoveEmptyEntries);
+                    var queries = qbm.Select(x =>
+                    {
+                        var meanId = int.Parse(x[0].ToString());
+                        var words = x.Split(' ', StringSplitOptions.RemoveEmptyEntries).Skip(1);
+                        var op = x[1] == '&' ? LogicalOperator.AND : LogicalOperator.OR;
+                        return new SearchQuery(meanId, words, op);
+                    });
+                    var files = _searchController.Search(queries, LogicalOperator.AND).Result;
                     if (files.Count == 0) continue;
 
                     foreach (var file in files)

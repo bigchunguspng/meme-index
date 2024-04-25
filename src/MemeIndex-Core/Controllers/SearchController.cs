@@ -14,19 +14,46 @@ public class SearchController
         _context = context;
     }
 
-    public void Search(IEnumerable<SearchQuery> queries, LogicalOperator @operator)
+    public async Task<HashSet<Entities.File>> Search(IEnumerable<SearchQuery> queries, LogicalOperator @operator)
     {
-        throw new NotImplementedException();
+        var filesAll = new HashSet<Entities.File>();
+        foreach (var query in queries)
+        {
+            var filesByQuery = new HashSet<Entities.File>();
+            foreach (var word in query.Words)
+            {
+                var item = new SearchRequestItem(query.MeanId, word, SearchStrategyByMeanId(query.MeanId));
+                var result = await SearchAll(item);
+                JoinResults(filesByQuery, result, query.Operator);
+            }
+
+            JoinResults(filesAll, filesByQuery, @operator);
+        }
+
+        return filesAll;
     }
 
     public async Task<List<Entities.File>> SearchAll(SearchRequestItem item)
     {
-        var files = await _context.Tags
+        var tagsByMean = _context.Tags
             .Include(x => x.Word)
             .Include(x => x.File)
             .ThenInclude(x => x.Directory)
-            .Where(x => x.MeanId == item.MeanId)
-            .Where(x => x.Word.Text == item.Word || EF.Functions.Like(x.Word.Text, $"{item.Word}%"))
+            .Where(x => x.MeanId == item.MeanId);
+
+        var tagsFiltered = item.Strategy switch
+        {
+            SearchStrategy.EQUALS_ONLY
+                => tagsByMean.Where(x => x.Word.Text == item.Word),
+            SearchStrategy.EQUALS_AND_START
+                => tagsByMean.Where(x => x.Word.Text == item.Word || EF.Functions.Like(x.Word.Text, $"{item.Word}%")),
+            SearchStrategy.EQUALS_AND_END
+                => tagsByMean.Where(x => x.Word.Text == item.Word || EF.Functions.Like(x.Word.Text, $"%{item.Word}")),
+            _
+                => tagsByMean.Where(x => x.Word.Text == item.Word || EF.Functions.Like(x.Word.Text, $"%{item.Word}%")),
+        };
+
+        var files = await tagsFiltered
             .GroupBy(x => x.File)
             .OrderBy(g => g.Count())
             .ThenBy(g => g.Min(x => x.Rank))
@@ -40,14 +67,36 @@ public class SearchController
     {
         throw new NotImplementedException();
     }
+
+    private static void JoinResults<T>(ISet<T> accumulator, IEnumerable<T> addition, LogicalOperator @operator)
+    {
+        if (@operator == LogicalOperator.OR || accumulator.Count == 0)
+            accumulator.UnionWith(addition);
+        else
+            accumulator.IntersectWith(addition);
+    }
+
+    private static SearchStrategy SearchStrategyByMeanId(int meanId) => meanId switch
+    {
+        1 => SearchStrategy.EQUALS_ONLY,
+        _ => SearchStrategy.EQUALS_AND_CONTAINS
+    };
 }
 
-public record SearchRequestItem(int MeanId, string Word);
+public record SearchRequestItem(int MeanId, string Word, SearchStrategy Strategy);
 
 public record SearchQuery(int MeanId, IEnumerable<string> Words, LogicalOperator Operator);
 
 public enum LogicalOperator
 {
     OR,
-    AND
+    AND,
+}
+
+public enum SearchStrategy
+{
+    EQUALS_ONLY,
+    EQUALS_AND_START,
+    EQUALS_AND_END,
+    EQUALS_AND_CONTAINS,
 }
