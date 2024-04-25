@@ -1,6 +1,7 @@
 using Gtk;
 using MemeIndex_Core.Controllers;
 using MemeIndex_Gtk.Utils;
+using MemeIndex_Gtk.Widgets;
 using Pango;
 using Application = Gtk.Application;
 using MenuItem = Gtk.MenuItem;
@@ -19,13 +20,11 @@ public class MainWindow : Window
     [UI] private readonly MenuItem _menuFileFolders = default!;
     [UI] private readonly MenuItem _menuFileSettings = default!;
 
-    [UI] private readonly Grid _gridColorsFunny = default!;
-    [UI] private readonly Grid _gridColorsGray = default!;
-
-    [UI] private readonly Frame _colorSearch = default!;
+    [UI] private readonly Box _colorSearch = default!;
 
     [UI] private readonly ToggleButton _buttonColorSearch = default!;
-    [UI] private readonly Button _buttonClearColorSelection = default!;
+
+    private readonly ColorSearchPanel _colorSearchPanel;
 
     public App App { get; }
 
@@ -38,7 +37,9 @@ public class MainWindow : Window
         App = app;
         app.SetStatusBar(_status);
 
-        ConstructColorSearchPalette();
+        _colorSearchPanel = new ColorSearchPanel(app, new WindowBuilder(nameof(ColorSearchPanel)));
+        _colorSearch.PackStart(_colorSearchPanel, true, true, 0);
+
         ConstructFilesView();
 
         DeleteEvent             += Window_DeleteEvent;
@@ -48,49 +49,9 @@ public class MainWindow : Window
 
         _search.SearchChanged += OnSearchChangedAsync;
 
-        _buttonClearColorSelection.Clicked += ClearColorSelectionOnClicked;
         _buttonColorSearch.Clicked += ButtonColorSearchOnClicked;
         _colorSearch.Visible = _buttonColorSearch.Active;
     }
-
-    #region COLOR SEARCH
-
-    private void ConstructColorSearchPalette()
-    {
-        int top;
-        var left = 0;
-        foreach (var hue in App.ColorTagService.ColorsFunny)
-        {
-            top = 0;
-            foreach (var color in hue.Value.Take(6))
-            {
-                AddSearchableColor(top++, left, color.Key, _gridColorsFunny);
-            }
-
-            left++;
-        }
-
-        top = 0;
-        foreach (var color in App.ColorTagService.ColorsGrayscale.Reverse())
-        {
-            AddSearchableColor(top++, 0, color.Key, _gridColorsGray);
-        }
-    }
-
-    private void AddSearchableColor(int top, int left, string key, Grid grid)
-    {
-        var checkbutton = new CheckButton
-        {
-            Visible = true,
-            FocusOnClick = false
-        };
-        checkbutton.StyleContext.AddClass("color");
-        checkbutton.StyleContext.AddClass(key);
-        // todo += checked handler;
-        grid.Attach(checkbutton, left, top, 1, 1);
-    }
-
-    #endregion
 
 
     #region FILES
@@ -182,24 +143,12 @@ public class MainWindow : Window
         _files.Model = store;
     }
 
-    private void ClearColorSelectionOnClicked(object? sender, EventArgs e)
-    {
-        DeactivateCheckboxes(_gridColorsFunny);
-        DeactivateCheckboxes(_gridColorsGray);
-    }
-
     private void ButtonColorSearchOnClicked(object? sender, EventArgs e)
     {
         if (_buttonColorSearch.Active)
             _colorSearch.Show();
         else
             _colorSearch.Hide();
-    }
-
-    private static void DeactivateCheckboxes(Container grid)
-    {
-        var active = grid.Children.OfType<CheckButton>().Where(x => x.Active);
-        foreach (var checkButton in active) checkButton.Active = false;
     }
 
     private static void Window_DeleteEvent(object? sender, EventArgs a)
