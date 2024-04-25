@@ -1,4 +1,5 @@
 using Gtk;
+using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils;
 using UI = Gtk.Builder.ObjectAttribute;
 
@@ -59,10 +60,7 @@ public class ColorSearchPanel : Frame
     {
         if (sender is ColorSearchCheckButton checkButton)
         {
-            if (checkButton.Active)
-                SelectedColors.Add(checkButton.Key);
-            else
-                SelectedColors.Remove(checkButton.Key);
+            checkButton.Active.Switch(SelectedColors.Add, SelectedColors.Remove)(checkButton.Key);
 
             App.SetStatus($"Selected colors: {string.Join(' ', SelectedColors)}");
         }

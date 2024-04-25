@@ -38,4 +38,20 @@ public static partial class Helpers
         var directory = new DirectoryInfo(path);
         return GetImageExtensions().SelectMany(x => directory.GetFiles($"*{x}", searchOption)).ToList();
     }
+
+    /// <summary>
+    /// Executes an action based on a condition value.
+    /// </summary>
+    public static void Execute(this bool condition, Action onTrue, Action onFalse)
+    {
+        (condition ? onTrue : onFalse)();
+    }
+
+    /// <summary>
+    /// Just a wrapper for a ternary operator (useful with delegates). 
+    /// </summary>
+    public static T Switch<T>(this bool condition, T onTrue, T onFalse)
+    {
+        return condition ? onTrue : onFalse;
+    }
 }

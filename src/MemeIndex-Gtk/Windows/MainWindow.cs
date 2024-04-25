@@ -1,5 +1,6 @@
 using Gtk;
 using MemeIndex_Core.Controllers;
+using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils;
 using MemeIndex_Gtk.Widgets;
 using Pango;
@@ -145,10 +146,7 @@ public class MainWindow : Window
 
     private void ButtonColorSearchOnClicked(object? sender, EventArgs e)
     {
-        if (_buttonColorSearch.Active)
-            _colorSearch.Show();
-        else
-            _colorSearch.Hide();
+        _buttonColorSearch.Active.Execute(_colorSearch.Show, _colorSearch.Hide);
     }
 
     private static void Window_DeleteEvent(object? sender, EventArgs a)

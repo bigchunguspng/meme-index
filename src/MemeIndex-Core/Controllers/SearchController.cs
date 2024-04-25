@@ -1,4 +1,5 @@
 using MemeIndex_Core.Data;
+using MemeIndex_Core.Utils;
 using Microsoft.EntityFrameworkCore;
 
 namespace MemeIndex_Core.Controllers;
@@ -70,10 +71,8 @@ public class SearchController
 
     private static void JoinResults<T>(ISet<T> accumulator, IEnumerable<T> addition, LogicalOperator @operator)
     {
-        if (@operator == LogicalOperator.OR || accumulator.Count == 0)
-            accumulator.UnionWith(addition);
-        else
-            accumulator.IntersectWith(addition);
+        var unite = @operator == LogicalOperator.OR || accumulator.Count == 0;
+        unite.Switch(accumulator.UnionWith, accumulator.IntersectWith)(addition);
     }
 
     private static SearchStrategy SearchStrategyByMeanId(int meanId) => meanId switch
