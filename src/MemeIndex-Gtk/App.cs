@@ -18,19 +18,15 @@ public class App : IDisposable
     private Statusbar? _status;
     private readonly CustomCss _css;
 
-    public SearchService SearchService { get; }
-    public IndexingService IndexingService { get; }
     public IndexController IndexController { get; }
-    public IOcrService OcrService { get; }
+    public SearchController SearchController { get; }
     public ColorTagService ColorTagService { get; }
     public MemeDbContext Context { get; }
 
     public App
     (
-        IndexingService indexingService,
         IndexController indexController,
-        SearchService searchService,
-        IOcrService ocrService,
+        SearchController searchController,
         ColorTagService colorTagService,
         MemeDbContext context,
         CustomCss css
@@ -38,10 +34,8 @@ public class App : IDisposable
     {
         _css = css;
 
-        IndexingService = indexingService;
         IndexController = indexController;
-        SearchService = searchService;
-        OcrService = ocrService;
+        SearchController = searchController;
         ColorTagService = colorTagService;
         Context = context;
 

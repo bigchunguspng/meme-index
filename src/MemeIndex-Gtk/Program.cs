@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using MemeIndex_Core.Controllers;
 using MemeIndex_Core.Data;
 using MemeIndex_Core.Services.Data;
 using MemeIndex_Core.Services.Indexing;
@@ -26,19 +27,30 @@ namespace MemeIndex_Gtk
             var builder = Host.CreateApplicationBuilder(args);
 
             builder.Services.AddDbContext<MemeDbContext>(ServiceLifetime.Singleton, ServiceLifetime.Singleton);
+
+            builder.Services.AddSingleton<IMonitoringService, MonitoringService>();
             builder.Services.AddSingleton<IDirectoryService, DirectoryService>();
             builder.Services.AddSingleton<IFileService, FileService>();
+
             builder.Services.AddSingleton<FileWatchService>();
+            builder.Services.AddSingleton<OvertakingService>();
             builder.Services.AddSingleton<IndexingService>();
             builder.Services.AddSingleton<SearchService>();
-            builder.Services.AddSingleton<App>();
-            builder.Services.AddTransient<CustomCss>();
+
+            builder.Services.AddSingleton<IndexController>();
+            builder.Services.AddSingleton<SearchController>();
+
+            builder.Services.AddSingleton<ColorTagService>();
+            builder.Services.AddSingleton<OnlineOcrService>();
             builder.Services.AddTransient<OcrServiceResolver>(provider => key => key switch
             {
                 DatabaseInitializer.RGB_CODE => provider.GetRequiredService<ColorTagService>(),
                 DatabaseInitializer.ENG_CODE => provider.GetRequiredService<OnlineOcrService>(),
                 _ => throw new ArgumentOutOfRangeException(nameof(key))
             });
+
+            builder.Services.AddSingleton<App>();
+            builder.Services.AddTransient<CustomCss>();
 
             using var host = builder.Build();
             using var app = host.Services.GetRequiredService<App>();

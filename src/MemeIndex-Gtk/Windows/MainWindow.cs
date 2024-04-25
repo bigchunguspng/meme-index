@@ -1,4 +1,5 @@
 using Gtk;
+using MemeIndex_Core.Controllers;
 using MemeIndex_Gtk.Utils;
 using Pango;
 using Application = Gtk.Application;
@@ -136,14 +137,13 @@ public class MainWindow : Window
     {
         store.Clear();
 
-        var files = App.SearchService.SearchByText(search).Result?.ToList();
-        if (files != null)
+        var query = new SearchQuery(2, search.Split(' ', StringSplitOptions.RemoveEmptyEntries), LogicalOperator.AND);
+        var files = App.SearchController.Search(new[] { query }, LogicalOperator.AND).Result.ToList();
+
+        App.SetStatus($"Files: {files.Count}, search: {search}.");
+        foreach (var file in files)
         {
-            App.SetStatus($"Files: {files.Count}, search: {search}.");
-            foreach (var file in files)
-            {
-                store.AppendValues(file.Name, file.Directory.Path);
-            }
+            store.AppendValues(file.Name, file.Directory.Path);
         }
     }
 
