@@ -5,6 +5,9 @@ namespace MemeIndex_Gtk.Widgets;
 
 public class FileView : TreeView
 {
+    private List<MemeIndex_Core.Entities.File>? _files;
+    private MemeIndex_Core.Entities.File? _selectedFile;
+
     private App App { get; }
 
     public FileView(App app)
@@ -27,12 +30,18 @@ public class FileView : TreeView
         ActivateOnSingleClick = true;
         RowActivated += (_, args) =>
         {
-            var column = (TreeViewColumn)args.Args[1];
-            var renderer = (CellRendererText)column.Cells[0];
-            App.SetStatus(renderer.Text);
+            var index = args.Path.Indices[0];
+            if (_files is not null && _files.Count > index)
+            {
+                _selectedFile = _files[index];
+                var x = _selectedFile;
+                var fullPath = System.IO.Path.Combine(x.Directory.Path, x.Name);
+                App.SetStatus($"{fullPath}, {x.Size} bytes, Modified: {x.Modified:F}");
+            }
         };
         FocusOutEvent += (_, _) =>
         {
+            _selectedFile = null;
             Selection.UnselectAll();
             App.SetStatus();
         };
@@ -58,8 +67,12 @@ public class FileView : TreeView
         var item2 = new MenuItem("Show in Explorer");
         menu.Add(item1);
         menu.Add(item2);
-        menu.ShowAll();
 
+        var fileSelected = _selectedFile is not null;
+        item1.Sensitive = fileSelected;
+        item2.Sensitive = fileSelected;
+
+        menu.ShowAll();
         menu.Popup();
     }
 
@@ -80,9 +93,12 @@ public class FileView : TreeView
         return store;
     }
 
-    private static void FillStore(ListStore store, List<MemeIndex_Core.Entities.File> files)
+    private void FillStore(ListStore store, List<MemeIndex_Core.Entities.File> files)
     {
         store.Clear();
+
+        _selectedFile = null;
+        _files = files;
 
         foreach (var file in files)
         {
