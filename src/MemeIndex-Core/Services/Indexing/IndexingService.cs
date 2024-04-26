@@ -48,8 +48,7 @@ public class IndexingService
         var ocrService = _ocrServiceResolver(meanId);
         var tasks = files.Select(async file =>
         {
-            var path = Path.Combine(file.Directory.Path, file.Name);
-            var words = await ocrService.GetTextRepresentation(path);
+            var words = await ocrService.GetTextRepresentation(file.GetFullPath());
             Logger.Log(ConsoleColor.Blue, $"Mean-{meanId}: {words?.Count ?? 0} words");
             return words is null ? null : new OcrResult(file, words, meanId);
         });

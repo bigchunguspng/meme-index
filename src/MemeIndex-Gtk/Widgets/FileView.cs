@@ -37,8 +37,7 @@ public class FileView : TreeView
             {
                 _selectedFile = _files[index];
                 var x = _selectedFile;
-                var fullPath = System.IO.Path.Combine(x.Directory.Path, x.Name);
-                App.SetStatus($"{fullPath}, {x.Size} bytes, Modified: {x.Modified:F}");
+                App.SetStatus($"{x.GetFullPath()}, {x.Size} bytes, Modified: {x.Modified:F}");
             }
         };
         SelectCursorRow += (sender, _) => OpenFile(sender, EventArgs.Empty);

@@ -145,7 +145,7 @@ public class OvertakingService
             .Select(x => new
             {
                 File = x,
-                FileInfo = new FileInfo(Path.Combine(x.Directory.Path, x.Name))
+                FileInfo = new FileInfo(x.GetFullPath())
             })
             .Where(x => FileWasUpdated(x.FileInfo, x.File))
             .ToList();
@@ -206,7 +206,7 @@ public class OvertakingService
                 var directoryMissing = !existingDirectories.Select(dir => dir.Id).Contains(x.DirectoryId);
                 if (directoryMissing) return true;
 
-                return !File.Exists(Path.Combine(x.Directory.Path, x.Name));
+                return !File.Exists(x.GetFullPath());
             })
             .ToList();
     }
