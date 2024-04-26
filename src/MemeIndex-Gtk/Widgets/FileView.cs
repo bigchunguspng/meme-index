@@ -41,15 +41,10 @@ public class FileView : TreeView
                 App.SetStatus($"{fullPath}, {x.Size} bytes, Modified: {x.Modified:F}");
             }
         };
+        SelectCursorRow += (sender, _) => OpenFile(sender, EventArgs.Empty);
         ButtonPressEvent += (o, args) =>
         {
             if (args.Event.Type == EventType.DoubleButtonPress) OpenFile(o, EventArgs.Empty);
-        };
-        FocusOutEvent += (_, _) =>
-        {
-            _selectedFile = null;
-            Selection.UnselectAll();
-            App.SetStatus();
         };
 
         PopupMenu += FilesOnPopupMenu;
