@@ -16,8 +16,23 @@ public class FileView : TreeView
     {
         App = app;
 
-        AppendColumn("Name", new CellRendererText { Ellipsize = EllipsizeMode.End }, "text", 0);
-        AppendColumn("Path", new CellRendererText { Ellipsize = EllipsizeMode.End }, "text", 1);
+        var col1 = new TreeViewColumn { Title = "Name" };
+        var col2 = new TreeViewColumn { Title = "Path" };
+
+        var ren0 = new CellRendererPixbuf();
+        var ren1 = new CellRendererText { Ellipsize = EllipsizeMode.End };
+        var ren2 = new CellRendererText { Ellipsize = EllipsizeMode.End };
+
+        col1.PackStart(ren0, false);
+        col1.PackStart(ren1, true);
+        col2.PackStart(ren2, true);
+
+        AppendColumn(col1);
+        AppendColumn(col2);
+
+        col1.AddAttribute(ren0, "pixbuf", 0);
+        col1.AddAttribute(ren1, "text", 1);
+        col2.AddAttribute(ren2, "text", 2);
 
         foreach (var column in Columns)
         {
@@ -105,10 +120,10 @@ public class FileView : TreeView
 
     private static ListStore CreateStore()
     {
-        var store = new ListStore(typeof(string), typeof(string));
+        var store = new ListStore(typeof(Pixbuf), typeof(string), typeof(string));
 
         //store.DefaultSortFunc = SortFunc;
-        store.SetSortColumnId(1, SortType.Ascending);
+        store.SetSortColumnId(2, SortType.Ascending);
 
         return store;
     }
@@ -122,7 +137,9 @@ public class FileView : TreeView
 
         foreach (var file in files)
         {
-            store.AppendValues(file.Name, file.Directory.Path);
+            using var stream = File.OpenRead(file.GetFullPath());
+            var icon = new Pixbuf(stream, 16, 16);
+            store.AppendValues(icon, file.Name, file.Directory.Path);
         }
     }
 
