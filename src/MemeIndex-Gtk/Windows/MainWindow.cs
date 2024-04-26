@@ -98,13 +98,13 @@ public class MainWindow : Window
     private void OpenManageFoldersDialog(object? sender, EventArgs e)
     {
         var builder = new WindowBuilder(nameof(ManageFoldersDialog));
-        new ManageFoldersDialog(this, builder).Show();
+        new ManageFoldersDialog(App, builder).Show();
     }
 
     private void OpenSettingsDialog(object? sender, EventArgs e)
     {
         var builder = new WindowBuilder(nameof(SettingsDialog));
-        new SettingsDialog(this, builder).Show();
+        new SettingsDialog(App, builder).Show();
     }
 
     private void OnSearchChanged(object? sender, EventArgs e)

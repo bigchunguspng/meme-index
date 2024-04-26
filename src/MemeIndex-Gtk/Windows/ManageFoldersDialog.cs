@@ -1,5 +1,4 @@
 using Gtk;
-using MemeIndex_Core.Entities;
 using MemeIndex_Core.Model;
 using MemeIndex_Gtk.Utils;
 using MemeIndex_Gtk.Widgets;
@@ -16,12 +15,12 @@ public class ManageFoldersDialog : Dialog
 
     private App App { get; }
 
-    public ManageFoldersDialog(MainWindow parent, WindowBuilder builder) : base(builder.Raw)
+    public ManageFoldersDialog(App app, WindowBuilder builder) : base(builder.Raw)
     {
         builder.Builder.Autoconnect(this);
 
-        Parent = parent;
-        App = parent.App;
+        App = app;
+        Modal = true;
 
         LoadData();
 

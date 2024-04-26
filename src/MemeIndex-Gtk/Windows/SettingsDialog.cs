@@ -14,12 +14,12 @@ public class SettingsDialog : Dialog
 
     private App App { get; }
 
-    public SettingsDialog(MainWindow parent, WindowBuilder builder) : base(builder.Raw)
+    public SettingsDialog(App app, WindowBuilder builder) : base(builder.Raw)
     {
         builder.Autoconnect(this);
-        
-        Parent = parent;
-        App = parent.App;
+
+        App = app;
+        Modal = true;
 
         _entryApiKey.Text = ConfigRepository.GetConfig().OrcApiKey;
 
