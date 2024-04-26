@@ -1,4 +1,6 @@
+using Gdk;
 using Gtk;
+using MemeIndex_Gtk.Utils;
 using Pango;
 
 namespace MemeIndex_Gtk.Widgets;
@@ -39,6 +41,10 @@ public class FileView : TreeView
                 App.SetStatus($"{fullPath}, {x.Size} bytes, Modified: {x.Modified:F}");
             }
         };
+        ButtonPressEvent += (o, args) =>
+        {
+            if (args.Event.Type == EventType.DoubleButtonPress) OpenFile(o, EventArgs.Empty);
+        };
         FocusOutEvent += (_, _) =>
         {
             _selectedFile = null;
@@ -63,17 +69,37 @@ public class FileView : TreeView
     private void OpenFilesContextMenu()
     {
         var menu = new Menu();
-        var item1 = new MenuItem("Open");
-        var item2 = new MenuItem("Show in Explorer");
-        menu.Add(item1);
-        menu.Add(item2);
+
+        var itemO = new MenuItem("Open");
+        var itemE = new MenuItem("Show in Explorer");
 
         var fileSelected = _selectedFile is not null;
-        item1.Sensitive = fileSelected;
-        item2.Sensitive = fileSelected;
+
+        itemO.Sensitive = fileSelected;
+        itemE.Sensitive = fileSelected;
+
+        itemO.Activated += OpenFile;
+        itemE.Activated += ShowFileInExplorer;
+
+        menu.Add(itemO);
+        menu.Add(itemE);
 
         menu.ShowAll();
         menu.Popup();
+    }
+
+    private void OpenFile(object? sender, EventArgs e)
+    {
+        if (_selectedFile is null) return;
+
+        FileOpener.OpenFileWithDefaultApp(_selectedFile.GetFullPath());
+    }
+
+    private void ShowFileInExplorer(object? sender, EventArgs e)
+    {
+        if (_selectedFile is null) return;
+
+        FileOpener.ShowFileInExplorer(_selectedFile.GetFullPath());
     }
 
     public async Task ShowFiles(List<MemeIndex_Core.Entities.File> files)

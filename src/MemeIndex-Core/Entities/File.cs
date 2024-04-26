@@ -34,4 +34,9 @@ public class File : AbstractEntity
     /// </summary>
     public Directory   Directory { get; set; } = default!;
     public ICollection<Tag> Tags { get; set; } = default!;
+
+    /// <summary>
+    /// Make sure <see cref="Directory"/> is not null when calling this!
+    /// </summary>
+    public string GetFullPath() => Path.Combine(Directory.Path, Name);
 }

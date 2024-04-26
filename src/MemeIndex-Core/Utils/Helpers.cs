@@ -9,6 +9,8 @@ public static partial class Helpers
 
     public static string RemoveLineBreaks(this string text) => LineBreaksRegex().Replace(text, " ");
 
+    public static string Quote(this string text) => $"\"{text}\"";
+
     public static bool      FileExists(this string path) =>      File.Exists(path);
     public static bool DirectoryExists(this string path) => Directory.Exists(path);
 
