@@ -63,19 +63,14 @@ public class FileView : TreeView
             if (args.Event.Type == EventType.DoubleButtonPress) OpenFile(o, EventArgs.Empty);
         };
 
-        PopupMenu += FilesOnPopupMenu;
-        ButtonReleaseEvent += FilesOnButtonPressEvent;
+        PopupMenu += (_, _) => OpenFilesContextMenu();
+        ButtonReleaseEvent += (_, args) =>
+        {
+            if (args.Event.Button == 3) OpenFilesContextMenu();
+        };
     }
 
-    private void FilesOnButtonPressEvent(object o, ButtonReleaseEventArgs args)
-    {
-        if (args.Event.Button == 3) OpenFilesContextMenu();
-    }
-
-    private void FilesOnPopupMenu(object o, PopupMenuArgs args)
-    {
-        OpenFilesContextMenu();
-    }
+    // ACTIONS
 
     private void OpenFilesContextMenu()
     {
@@ -123,6 +118,8 @@ public class FileView : TreeView
 
         await ClipboardService.SetTextAsync(_selectedFile.GetFullPath().Quote());
     }
+
+    // FILES
 
     public async Task ShowFiles(List<MemeIndex_Core.Entities.File> files)
     {
