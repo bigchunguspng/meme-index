@@ -1,5 +1,6 @@
 using Gdk;
 using Gtk;
+using Humanizer;
 using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils;
 using Pango;
@@ -53,8 +54,10 @@ public class FileView : TreeView
             if (_files is not null && _files.Count > index)
             {
                 _selectedFile = _files[index];
-                var x = _selectedFile;
-                App.SetStatus($"{x.GetFullPath()}, {x.Size} bytes, Modified: {x.Modified:F}");
+                var path = _selectedFile.GetFullPath();
+                var size = _selectedFile.Size.Bytes().ToString("#.#");
+                var date = _selectedFile.Modified.Humanize();
+                App.SetStatus($"Size: {size}, Modified: {date}, Path: {path}");
             }
         };
         SelectCursorRow += (sender, _) => OpenFile(sender, EventArgs.Empty);
