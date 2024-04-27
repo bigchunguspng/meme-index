@@ -1,7 +1,9 @@
 using Gdk;
 using Gtk;
+using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils;
 using Pango;
+using TextCopy;
 
 namespace MemeIndex_Gtk.Widgets;
 
@@ -81,17 +83,21 @@ public class FileView : TreeView
 
         var itemO = new MenuItem("Open");
         var itemE = new MenuItem("Show in Explorer");
+        var itemC = new MenuItem("Copy path");
 
         var fileSelected = _selectedFile is not null;
 
         itemO.Sensitive = fileSelected;
         itemE.Sensitive = fileSelected;
+        itemC.Sensitive = fileSelected;
 
         itemO.Activated += OpenFile;
         itemE.Activated += ShowFileInExplorer;
+        itemC.Activated += CopyFilePath;
 
         menu.Add(itemO);
         menu.Add(itemE);
+        menu.Add(itemC);
 
         menu.ShowAll();
         menu.Popup();
@@ -109,6 +115,13 @@ public class FileView : TreeView
         if (_selectedFile is null) return;
 
         FileOpener.ShowFileInExplorer(_selectedFile.GetFullPath());
+    }
+
+    private async void CopyFilePath(object? sender, EventArgs args)
+    {
+        if (_selectedFile is null) return;
+
+        await ClipboardService.SetTextAsync(_selectedFile.GetFullPath().Quote());
     }
 
     public async Task ShowFiles(List<MemeIndex_Core.Entities.File> files)
