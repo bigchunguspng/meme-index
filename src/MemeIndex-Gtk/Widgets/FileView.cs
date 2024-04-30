@@ -69,6 +69,10 @@ public class FileView : TreeView
             }
         };
         RowActivated += (sender, _) => OpenFile(sender, EventArgs.Empty);
+        ButtonPressEvent += (o, args) =>
+        {
+            if (args.Event.Type == EventType.DoubleButtonPress) OpenFile(o, EventArgs.Empty);
+        };
         PopupMenu += (_, _) => OpenFilesContextMenu();
         ButtonReleaseEvent += (_, args) =>
         {
