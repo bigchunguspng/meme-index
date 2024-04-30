@@ -47,11 +47,11 @@ public class FileView : TreeView
 
         Visible = true;
         EnableSearch = false;
-        ActivateOnSingleClick = true;
-        RowActivated += (_, args) =>
+        CursorChanged += (_, _) =>
         {
-            var index = args.Path.Indices[0];
-            if (_files is not null && _files.Count > index)
+            var rows = Selection.GetSelectedRows();
+            var index = rows.Length > 0 ? rows[0].Indices[0] : -1;
+            if (index >= 0 && _files is not null && _files.Count > index)
             {
                 _selectedFile = _files[index];
                 var path = _selectedFile.GetFullPath();
@@ -59,13 +59,12 @@ public class FileView : TreeView
                 var date = _selectedFile.Modified.ToLocalTime().ToString("dd.MM.yyyy' 'HH:mm");
                 App.SetStatus($"Size: {size}, Modified: {date}, Path: {path}");
             }
+            else
+            {
+                _selectedFile = null;
+            }
         };
-        SelectCursorRow += (sender, _) => OpenFile(sender, EventArgs.Empty);
-        ButtonPressEvent += (o, args) =>
-        {
-            if (args.Event.Type == EventType.DoubleButtonPress) OpenFile(o, EventArgs.Empty);
-        };
-
+        RowActivated += (sender, _) => OpenFile(sender, EventArgs.Empty);
         PopupMenu += (_, _) => OpenFilesContextMenu();
         ButtonReleaseEvent += (_, args) =>
         {
