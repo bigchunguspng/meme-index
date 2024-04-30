@@ -2,7 +2,7 @@ using Gdk;
 using Gtk;
 using Humanizer;
 using MemeIndex_Core.Utils;
-using MemeIndex_Gtk.Utils;
+using MemeIndex_Gtk.Utils.FileOpener;
 using Pango;
 using TextCopy;
 
@@ -13,11 +13,15 @@ public class FileView : TreeView
     private List<MemeIndex_Core.Entities.File>? _files;
     private MemeIndex_Core.Entities.File? _selectedFile;
 
+    private readonly FileOpener _fileOpener;
+
     private App App { get; }
 
     public FileView(App app)
     {
         App = app;
+
+        _fileOpener = FileOpenerFactory.GetFileOpener();
 
         var col1 = new TreeViewColumn { Title = "Name" };
         var col2 = new TreeViewColumn { Title = "Path" };
@@ -104,14 +108,14 @@ public class FileView : TreeView
     {
         if (_selectedFile is null) return;
 
-        FileOpener.OpenFileWithDefaultApp(_selectedFile.GetFullPath());
+        _fileOpener.OpenFileWithDefaultApp(_selectedFile.GetFullPath());
     }
 
     private void ShowFileInExplorer(object? sender, EventArgs e)
     {
         if (_selectedFile is null) return;
 
-        FileOpener.ShowFileInExplorer(_selectedFile.GetFullPath());
+        _fileOpener.ShowFileInExplorer(_selectedFile.GetFullPath());
     }
 
     private async void CopyFilePath(object? sender, EventArgs args)
