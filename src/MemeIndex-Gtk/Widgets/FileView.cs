@@ -56,7 +56,7 @@ public class FileView : TreeView
                 _selectedFile = _files[index];
                 var path = _selectedFile.GetFullPath();
                 var size = _selectedFile.Size.Bytes().ToString("#.#");
-                var date = _selectedFile.Modified.Humanize();
+                var date = _selectedFile.Modified.ToLocalTime().ToString("dd.MM.yyyy' 'HH:mm");
                 App.SetStatus($"Size: {size}, Modified: {date}, Path: {path}");
             }
         };
