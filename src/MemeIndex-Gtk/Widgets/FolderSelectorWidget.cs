@@ -1,4 +1,6 @@
 using Gtk;
+using MemeIndex_Core.Data;
+using MemeIndex_Core.Model;
 
 namespace MemeIndex_Gtk.Widgets;
 
@@ -8,6 +10,10 @@ public class FolderSelectorWidget : Box
 
     private FileChooserButton Chooser { get; }
     private            Button Remover { get; }
+
+    public CheckButton Recursive { get; }
+    public CheckButton Eng { get; }
+    public CheckButton RGB { get; }
 
     public string? PreviousChoice { get; set; }
     public string?         Choice => Chooser.Filename;
@@ -21,20 +27,40 @@ public class FolderSelectorWidget : Box
         return box.Choice;
     });
 
-    public FolderSelectorWidget(Container container, string? path = null) : base(Orientation.Horizontal, 5)
+    public FolderSelectorWidget(Container container, MonitoringOptions? directory = null) : base(Orientation.Horizontal, 5)
     {
         _container = container;
 
         Chooser = new FileChooserButton(string.Empty, FileChooserAction.SelectFolder) { Expand = true };
         Remover = new Button { Label = "-" };
 
-        if (path != null) SelectDirectory(path);
+        Recursive = new CheckButton
+        {
+            Label = "Recursive",
+            Active = directory?.Recursive ?? false
+        };
+        Eng = new CheckButton
+        {
+            Label = "Text",
+            Active = directory?.Means.Contains(DatabaseInitializer.ENG_CODE) ?? false
+        };
+        RGB = new CheckButton
+        {
+            Label = "Color",
+            Active = directory?.Means.Contains(DatabaseInitializer.RGB_CODE) ?? false
+        };
+
+        if (directory is not null) SelectDirectory(directory.Path);
 
         Chooser.SelectionChanged += ChooserOnFileSet;
         Remover.Clicked += RemoverOnClicked;
-        Remover.Sensitive = DirectorySelected;
+
+        UpdateSensitives();
 
         Add(Chooser);
+        Add(Recursive);
+        Add(Eng);
+        Add(RGB);
         Add(Remover);
     }
 
@@ -63,7 +89,19 @@ public class FolderSelectorWidget : Box
         }
 
         PreviousChoice = Choice;
+        UpdateSensitives();
+        
+        Recursive.Active = true;
+        Eng.Active = true;
+        RGB.Active = true;
+    }
+
+    private void UpdateSensitives()
+    {
         Remover.Sensitive = DirectorySelected;
+        Recursive.Sensitive = DirectorySelected;
+        Eng.Sensitive = DirectorySelected;
+        RGB.Sensitive = DirectorySelected;
     }
 
     private void RemoverOnClicked(object? sender, EventArgs e)

@@ -37,7 +37,7 @@ public class ManageFoldersDialog : Dialog
         {
             if (System.IO.Path.Exists(directory.Path))
             {
-                _folders.Add(new FolderSelectorWidget(_folders, directory.Path));
+                _folders.Add(new FolderSelectorWidget(_folders, directory));
             }
         }
 
@@ -58,37 +58,50 @@ public class ManageFoldersDialog : Dialog
     private async void SaveChangesAsync()
     {
         App.SetStatus("Updating watching list...");
-        var monitored = await App.IndexController.GetMonitoringOptions();
-        var directoriesDb = monitored.Select(x => x.Path).ToList();
-        var directoriesMf = _folders.Children
+        var optionsDb = (await App.IndexController.GetMonitoringOptions()).ToList();
+        var optionsMf = _folders.Children
             .Select(x => (FolderSelectorWidget)((ListBoxRow)x).Child)
             .Where(x => x.DirectorySelected)
-            .Select(x => x.Choice!)
-            /*.Select(x => new MonitoredDirectory
-            {
-                Recursive = true,
-                Directory = new MemeIndex_Core.Entities.Directory { Path = x.Choice! },
-                IndexingOptions = new List<IndexingOption> { new() { MeanId = 1 }, new() { MeanId = 2 } }
-            })*/
+            .Select(x => new MonitoringOptions
+            (
+                Path: x.Choice!,
+                Recursive: x.Recursive.Active,
+                Means: new MonitoringOptions.MeansBuilder()
+                    .WithEng(x.Eng.Active)
+                    .WithRgb(x.RGB.Active).Build()
+            ))
             .ToList();
 
-        var removeList = directoriesDb.Except(directoriesMf).OrderByDescending(x => x.Length).ToList();
-        var updateList = directoriesMf.Except(directoriesDb).OrderBy          (x => x.Length).ToList();
+        var directoriesDb = optionsDb.Select(x => x.Path).ToList();
+        var directoriesMf = optionsMf.Select(x => x.Path).ToList();
 
-        foreach (var directory in removeList)
+        var add = directoriesMf.Except(directoriesDb).OrderBy          (x => x.Length).ToList();
+        var rem = directoriesDb.Except(directoriesMf).OrderByDescending(x => x.Length).ToList();
+        var upd = directoriesDb.Intersect(directoriesMf).Where(path =>
+        {
+            var db = optionsDb.First(op => op.Path == path);
+            var mf = optionsMf.First(op => op.Path == path);
+            return !db.IsTheSameAs(mf);
+        }).ToList();
+
+        foreach (var directory in rem)
         {
             await App.IndexController.RemoveDirectory(directory);
         }
 
-        foreach (var directory in updateList)
+        foreach (var directory in add)
         {
-            var options = new MonitoringOptions(directory, true, MonitoringOptions.DefaultMeans);
+            var options = optionsMf.First(x => x.Path == directory);
             await App.IndexController.AddDirectory(options);
+        }
+
+        foreach (var directory in upd)
+        {
+            var options = optionsMf.First(x => x.Path == directory);
+            await App.IndexController.UpdateDirectory(options);
         }
 
         App.SetStatus("Watching list updated.");
         App.ClearStatusLater();
-
-        // todo trigger color / ocr indexing process start
     }
 }
