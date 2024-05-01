@@ -88,12 +88,15 @@ public class FolderSelectorWidget : Box
             _container.ShowAll();
         }
 
+        if (PreviousChoice is null && Choice is not null)
+        {
+            Recursive.Active = true;
+            Eng.Active = true;
+            RGB.Active = true;
+        }
+
         PreviousChoice = Choice;
         UpdateSensitives();
-        
-        Recursive.Active = true;
-        Eng.Active = true;
-        RGB.Active = true;
     }
 
     private void UpdateSensitives()

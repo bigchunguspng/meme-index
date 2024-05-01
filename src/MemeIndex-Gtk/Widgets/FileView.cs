@@ -143,7 +143,7 @@ public class FileView : TreeView
         var store = new ListStore(typeof(Pixbuf), typeof(string), typeof(string));
 
         //store.DefaultSortFunc = SortFunc;
-        store.SetSortColumnId(2, SortType.Ascending);
+        //store.SetSortColumnId(2, SortType.Ascending);
 
         return store;
     }
@@ -157,9 +157,21 @@ public class FileView : TreeView
 
         foreach (var file in files)
         {
-            using var stream = File.OpenRead(file.GetFullPath());
-            var icon = new Pixbuf(stream, 16, 16);
+            var icon = GetImageIcon(file.GetFullPath());
             store.AppendValues(icon, file.Name, file.Directory.Path);
+        }
+    }
+
+    private static Pixbuf? GetImageIcon(string path)
+    {
+        try
+        {
+            using var stream = File.OpenRead(path);
+            return new Pixbuf(stream, 16, 16);
+        }
+        catch
+        {
+            return null;
         }
     }
 
