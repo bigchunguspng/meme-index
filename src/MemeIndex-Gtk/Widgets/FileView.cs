@@ -2,6 +2,7 @@ using Gdk;
 using Gtk;
 using Humanizer;
 using MemeIndex_Core.Utils;
+using MemeIndex_Gtk.Utils;
 using MemeIndex_Gtk.Utils.FileOpener;
 using Pango;
 using TextCopy;
@@ -13,6 +14,7 @@ public class FileView : TreeView
     private List<MemeIndex_Core.Entities.File>? _files;
     private MemeIndex_Core.Entities.File? _selectedFile;
 
+    private readonly LimitedCache<Pixbuf> _iconCache;
     private readonly FileOpener _fileOpener;
 
     private App App { get; }
@@ -21,6 +23,7 @@ public class FileView : TreeView
     {
         App = app;
 
+        _iconCache = new LimitedCache<Pixbuf>(1024);
         _fileOpener = FileOpenerFactory.GetFileOpener();
 
         var col1 = new TreeViewColumn { Title = "Name" };
@@ -178,12 +181,18 @@ public class FileView : TreeView
         });
     }
 
-    private static Pixbuf? GetImageIcon(string path)
+    private Pixbuf? GetImageIcon(string path)
     {
         try
         {
+            var value = _iconCache.TryGetValue(path);
+            if (value is not null) return value;
+
             using var stream = File.OpenRead(path);
-            return new Pixbuf(stream, 16, 16);
+            var icon = new Pixbuf(stream, 16, 16);
+
+            _iconCache.Add(path, icon);
+            return icon;
         }
         catch
         {
