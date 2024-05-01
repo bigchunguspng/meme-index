@@ -1,5 +1,6 @@
 using Gtk;
 using MemeIndex_Core.Model;
+using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils;
 using MemeIndex_Gtk.Widgets;
 using UI = Gtk.Builder.ObjectAttribute;
@@ -33,12 +34,10 @@ public class ManageFoldersDialog : Dialog
     private void LoadData()
     {
         var directories = App.IndexController.GetMonitoringOptions().Result;
-        foreach (var directory in directories)
+        var existing = directories.Where(x => x.Path.DirectoryExists());
+        foreach (var directory in existing)
         {
-            if (System.IO.Path.Exists(directory.Path))
-            {
-                _folders.Add(new FolderSelectorWidget(_folders, directory));
-            }
+            _folders.Add(new FolderSelectorWidget(_folders, directory));
         }
 
         _folders.Add(new FolderSelectorWidget(_folders));
@@ -58,8 +57,8 @@ public class ManageFoldersDialog : Dialog
     private async void SaveChangesAsync()
     {
         App.SetStatus("Updating watching list...");
-        var optionsDb = (await App.IndexController.GetMonitoringOptions()).ToList();
-        var optionsMf = _folders.Children
+
+        var options = _folders.Children
             .Select(x => (FolderSelectorWidget)((ListBoxRow)x).Child)
             .Where(x => x.DirectorySelected)
             .Select(x => new MonitoringOptions
@@ -69,39 +68,12 @@ public class ManageFoldersDialog : Dialog
                 Means: new MonitoringOptions.MeansBuilder()
                     .WithEng(x.Eng.Active)
                     .WithRgb(x.RGB.Active).Build()
-            ))
-            .ToList();
+            ));
 
-        var directoriesDb = optionsDb.Select(x => x.Path).ToList();
-        var directoriesMf = optionsMf.Select(x => x.Path).ToList();
-
-        var add = directoriesMf.Except(directoriesDb).OrderBy          (x => x.Length).ToList();
-        var rem = directoriesDb.Except(directoriesMf).OrderByDescending(x => x.Length).ToList();
-        var upd = directoriesDb.Intersect(directoriesMf).Where(path =>
-        {
-            var db = optionsDb.First(op => op.Path == path);
-            var mf = optionsMf.First(op => op.Path == path);
-            return !db.IsTheSameAs(mf);
-        }).ToList();
-
-        foreach (var directory in rem)
-        {
-            await App.IndexController.RemoveDirectory(directory);
-        }
-
-        foreach (var directory in add)
-        {
-            var options = optionsMf.First(x => x.Path == directory);
-            await App.IndexController.AddDirectory(options);
-        }
-
-        foreach (var directory in upd)
-        {
-            var options = optionsMf.First(x => x.Path == directory);
-            await App.IndexController.UpdateDirectory(options);
-        }
+        await App.IndexController.UpdateMonitoringDirectories(options);
 
         App.SetStatus("Watching list updated.");
-        App.ClearStatusLater();
+
+        await App.IndexController.UpdateFileSystemKnowledge();
     }
 }

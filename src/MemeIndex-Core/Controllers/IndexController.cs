@@ -31,19 +31,47 @@ public class IndexController
         _fileWatchService.UpdateFileSystemKnowledge += UpdateFileSystemKnowledge;
     }
 
-    public async Task<IEnumerable<MonitoringOptions>> GetMonitoringOptions()
+    public async Task<List<MonitoringOptions>> GetMonitoringOptions()
     {
         var directories = await _monitoringService.GetDirectories();
         return directories.Select(x =>
         {
             var means = x.IndexingOptions.Select(o => o.MeanId).Distinct().ToHashSet();
             return new MonitoringOptions(x.Directory.Path, x.Recursive, means);
-        });
+        }).ToList();
     }
 
-    public Task UpdateMonitoringDirectories(IEnumerable<MonitoringOptions> options)
+    public async Task UpdateMonitoringDirectories(IEnumerable<MonitoringOptions> options)
     {
-        throw new NotImplementedException();
+        var optionsDb = await GetMonitoringOptions();
+        var optionsMf = options.ToList();
+
+        var directoriesDb = optionsDb.Select(x => x.Path).ToList();
+        var directoriesMf = optionsMf.Select(x => x.Path).ToList();
+
+        var add = directoriesMf.Except(directoriesDb).OrderBy          (x => x.Length).ToList();
+        var rem = directoriesDb.Except(directoriesMf).OrderByDescending(x => x.Length).ToList();
+        var upd = directoriesDb.Intersect(directoriesMf).Where(path =>
+        {
+            var db = optionsDb.First(op => op.Path == path);
+            var mf = optionsMf.First(op => op.Path == path);
+            return !db.IsTheSameAs(mf);
+        }).ToList();
+
+        foreach (var path in rem)
+        {
+            await RemoveDirectory(path);
+        }
+
+        foreach (var option in add.Select(path => optionsMf.First(x => x.Path == path)))
+        {
+            await AddDirectory(option);
+        }
+
+        foreach (var option in upd.Select(path => optionsMf.First(x => x.Path == path)))
+        {
+            await UpdateDirectory(option);
+        }
     }
 
     public async Task AddDirectory(MonitoringOptions options)
@@ -51,9 +79,8 @@ public class IndexController
         var directory = await _monitoringService.AddDirectory(options);
         await _fileService.AddFiles(directory);
         _fileWatchService.StartWatching(options.Path, options.Recursive);
-        await _indexingService.ProcessPendingFiles();
 
-        Logger.Status($"Added {options.Path}");
+        Logger.Status($"Added {options.Path.Quote()}");
     }
 
     public async Task UpdateDirectory(MonitoringOptions options)
@@ -62,9 +89,8 @@ public class IndexController
         if (changed)
         {
             _fileWatchService.ChangeRecursion(options.Path, options.Recursive);
-            await UpdateFileSystemKnowledge();
 
-            Logger.Status($"Updated {options.Path}");
+            Logger.Status($"Updated {options.Path.Quote()}");
         }
     }
 
@@ -73,13 +99,13 @@ public class IndexController
         _fileWatchService.StopWatching(path);
         await _monitoringService.RemoveDirectory(path);
 
-        Logger.Status($"Removed {path}");
+        Logger.Status($"Removed {path.Quote()}");
     }
 
     public async Task UpdateFileSystemKnowledge()
     {
-        var files = await _overtakingService.UpdateFileSystemKnowledge();
-        if (files > 0) await _indexingService.ProcessPendingFiles();
+        await _overtakingService.UpdateFileSystemKnowledge();
+        await _indexingService.ProcessPendingFiles();
     }
 
     public async void StartIndexing()
@@ -95,9 +121,3 @@ public class IndexController
         _fileWatchService.Stop();
     }
 }
-
-/*
-ms  monitoringService
-fws fileWatchService
-is  indexingService
-*/
