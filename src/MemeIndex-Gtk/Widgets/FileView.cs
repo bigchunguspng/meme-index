@@ -136,14 +136,13 @@ public class FileView : TreeView
         var store = CreateStore();
         await Task.Run(() => FillStore(store, files));
         Model = store;
+
+        await Task.Run(UpdateFileIcons);
     }
 
     private static ListStore CreateStore()
     {
         var store = new ListStore(typeof(Pixbuf), typeof(string), typeof(string));
-
-        //store.DefaultSortFunc = SortFunc;
-        //store.SetSortColumnId(2, SortType.Ascending);
 
         return store;
     }
@@ -157,9 +156,26 @@ public class FileView : TreeView
 
         foreach (var file in files)
         {
-            var icon = GetImageIcon(file.GetFullPath());
-            store.AppendValues(icon, file.Name, file.Directory.Path);
+            store.AppendValues(null, file.Name, file.Directory.Path);
         }
+    }
+
+    private void UpdateFileIcons()
+    {
+        Model.Foreach((_, path, iter) =>
+        {
+            // (TRUE to stop iterating, FALSE to continue)
+
+            if (_files is null || _files.Count == 0) return true;
+
+            var index = path.Indices[0];
+            if (index >= _files.Count) return false;
+
+            var icon = GetImageIcon(_files[index].GetFullPath());
+            if (icon is not null) Model.SetValue(iter, 0, icon);
+
+            return false;
+        });
     }
 
     private static Pixbuf? GetImageIcon(string path)
@@ -174,15 +190,4 @@ public class FileView : TreeView
             return null;
         }
     }
-
-    /*private static int SortFunc(ITreeModel model, TreeIter a, TreeIter b)
-    {
-        var aPath = (string)model.GetValue(a, 1);
-        var bPath = (string)model.GetValue(b, 1);
-        var aName = (string)model.GetValue(a, 0);
-        var bName = (string)model.GetValue(b, 0);
-
-        var dirs = string.CompareOrdinal(aPath, bPath);
-        return dirs == 0 ? string.CompareOrdinal(aName, bName) : dirs;
-    }*/
 }
