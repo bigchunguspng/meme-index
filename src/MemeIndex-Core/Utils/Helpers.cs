@@ -41,6 +41,18 @@ public static partial class Helpers
         return GetImageExtensions().SelectMany(x => directory.GetFiles($"*{x}", searchOption)).ToList();
     }
 
+    public static FileInfo? GetFileInfo(string path)
+    {
+        try
+        {
+            return new FileInfo(path);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     /// <summary>
     /// Executes an action based on a condition value.
     /// </summary>

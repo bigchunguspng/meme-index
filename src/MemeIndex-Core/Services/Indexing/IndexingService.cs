@@ -35,9 +35,13 @@ public class IndexingService
 
         var means = await _context.Means.ToListAsync();
 
-        var tasks = means.Select(mean => ProcessPendingFiles(mean.Id));
-        var ocrResults = (await Task.WhenAll(tasks)).SelectMany(x => x);
-        await UpdateDatabase(ocrResults);
+        // mean -> files -> file:tags -> tags added to db
+
+        foreach (var mean in means)
+        {
+            var results = await ProcessPendingFiles(mean.Id);
+            await UpdateDatabase(results);
+        }
 
         Logger.Log(ConsoleColor.Magenta, "Processing files: done!");
     }
@@ -45,7 +49,11 @@ public class IndexingService
     private async Task<IEnumerable<OcrResult?>> ProcessPendingFiles(int meanId)
     {
         var files = await GetPendingFiles(meanId);
+        var filesByPath = files.ToDictionary(x => x.GetFullPath(), x => x);
         var ocrService = _ocrServiceResolver(meanId);
+        var tags = await ocrService.ProcessFiles(filesByPath.Keys);
+        return tags.Select(x => x.Value is null ? null : new OcrResult(filesByPath[x.Key], x.Value, meanId));
+        /*
         var tasks = files.Select(async file =>
         {
             var words = await ocrService.GetTextRepresentation(file.GetFullPath());
@@ -53,8 +61,14 @@ public class IndexingService
             return words is null ? null : new OcrResult(file, words, meanId);
         });
         return await Task.WhenAll(tasks);
+    */
     }
 
+    /// <summary>
+    /// Returns a list of <b>files</b>, located in directories,
+    /// monitored by a <see cref="Mean"/> with the specified id,
+    /// that have no related search tags.
+    /// </summary>
     private Task<List<Entities.File>> GetPendingFiles(int meanId)
     {
         var monitored = _monitoringService.GetDirectories(meanId);
@@ -62,7 +76,7 @@ public class IndexingService
             .Where(x => x.Recursive == false)
             .Select(x => x.Directory.Id);
         var dirs2 = _context.Directories
-            .Where(x => monitored.Any(m => x.Path.StartsWith(m.Directory.Path)))
+            .Where(x => monitored.Any(m => m.Recursive && x.Path.StartsWith(m.Directory.Path)))
             .Select(x => x.Id);
         return _context.Files
             .Where(x => dirs1.Contains(x.DirectoryId) || dirs2.Contains(x.DirectoryId))

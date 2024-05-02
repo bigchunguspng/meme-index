@@ -6,13 +6,25 @@ namespace MemeIndex_Core.Services.OCR;
 
 public class OnlineOcrService : IOcrService
 {
+    private readonly ImageCollageService _collageService;
+
     public OnlineOcrService()
     {
+        _collageService = new ImageCollageService();
+        _collageService.CollageIsReady += OnCollageIsReady;
+
         ApiKey = ConfigRepository.GetConfig().OrcApiKey ?? string.Empty;
         Client = new HttpClient
         {
             Timeout = TimeSpan.FromMinutes(5)
         };
+    }
+
+    private void OnCollageIsReady(CollageInfo collageInfo)
+    {
+        // make api call
+        // group words by image
+        // update db
     }
 
     private string ApiKey { get; }
@@ -23,7 +35,6 @@ public class OnlineOcrService : IOcrService
     private AvailabilityTimer Availability { get; } = new();
 
     private List<RankedWord> EmptyResponse { get; } = new() { new("[null]", 1) };
-
     /*
 
     Ideas for cheating over API rate limit:
@@ -33,6 +44,38 @@ public class OnlineOcrService : IOcrService
 
     */
 
+    public async Task<Dictionary<string, IList<RankedWord>?>> ProcessFiles(IEnumerable<string> paths)
+    {
+        // files
+        var files = paths.Select(Helpers.GetFileInfo).OfType<FileInfo>();
+        _collageService.ProcessFiles(files);
+
+        // get all files dimensions     -> files:size
+        //var infos = files.Select(GetImageInfo).ToList();
+
+        // group by width +- 64px       -> widthRange:files:size
+        //var groups = infos.GroupBy(x => (x.Image.Width / 64 + 1) * 64).ToDictionary(g => g.Key, g => g.ToList());
+
+        // foreach width group, while files left:
+        // make collage         N files -> 1 image
+            // ocr                  image -> word,l,t,h,w
+            // split results        word,l,t,h,w -> file:words -> file:rankedWords
+
+        // collage should be < 1mb
+
+        var tasks = paths.Select(async path =>
+        {
+            var words = await GetTextRepresentation(path);
+            Logger.Log(ConsoleColor.Blue, $"SPACE-OCR: {words?.Count ?? 0} words");
+
+            return new KeyValuePair<string, IList<RankedWord>?>(path, words);
+        });
+
+        var results = await Task.WhenAll(tasks);
+
+        return results.ToDictionary(x => x.Key, x => x.Value);
+    }
+
     public async Task<IList<RankedWord>?> GetTextRepresentation(string path)
     {
         try
@@ -41,37 +84,18 @@ public class OnlineOcrService : IOcrService
 
             // CHECK FILE
             var file = new FileInfo(path);
-            if (file.Exists == false)
-            {
-                return null;
-            }
+            if (file.Exists == false) return null;
 
-            // SEND REQUEST
-            var form = new MultipartFormDataContent
-            {
-                { new StringContent(ApiKey), "apikey" },
-                { new StringContent("eng"), "language" },
-                { new StringContent("2"), "OCREngine" },
-                { new StringContent("true"), "scale" },
-                { new StringContent("true"), "isOverlayRequired" },
-            };
-
-            var bytes = await GetFileBytes(file);
-
-            form.Add(new ByteArrayContent(bytes, 0, bytes.Length), "image", "image.jpg");
-
-            var response = await Client.PostAsync(ApiURL, form);
-
-            // PROCESS RESPONSE
-            var json = await response.Content.ReadAsStringAsync();
-            if (json.StartsWith('{') == false)
+            // SEND REQUEST, PROCESS RESPONSE
+            var response = await ProcessFileWithApi(file);
+            if (response.StartsWith('{') == false)
             {
                 Logger.Status("API is unavailable x_x");
                 Availability.MakeUnavailableFor(seconds: 60 * 5);
                 return null;
             }
 
-            var obj = JObject.Parse(json);
+            var obj = JObject.Parse(response);
 
             var exitCode = (int)obj.SelectToken("OCRExitCode")!;
             if (exitCode > 2)
@@ -127,6 +151,26 @@ public class OnlineOcrService : IOcrService
             Console.WriteLine(e);
             return null;
         }
+    }
+
+    private async Task<string> ProcessFileWithApi(FileInfo file)
+    {
+        var form = new MultipartFormDataContent
+        {
+            { new StringContent(ApiKey), "apikey" },
+            { new StringContent("eng"), "language" },
+            { new StringContent("2"), "OCREngine" },
+            { new StringContent("true"), "scale" },
+            { new StringContent("true"), "isOverlayRequired" },
+        };
+
+        var bytes = await GetFileBytes(file);
+
+        form.Add(new ByteArrayContent(bytes, 0, bytes.Length), "image", "image.jpg");
+
+        var response = await Client.PostAsync(ApiURL, form);
+
+        return await response.Content.ReadAsStringAsync();
     }
 
     private static async Task<byte[]> GetFileBytes(FileInfo file)

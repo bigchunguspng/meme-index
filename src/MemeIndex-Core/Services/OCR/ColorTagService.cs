@@ -15,6 +15,21 @@ public class ColorTagService : IOcrService
         Init();
     }
 
+    public async Task<Dictionary<string, IList<RankedWord>?>> ProcessFiles(IEnumerable<string> paths)
+    {
+        var tasks = paths.Select(async path =>
+        {
+            var words = await GetTextRepresentation(path);
+            Logger.Log(ConsoleColor.Blue, $"COLOR-TAG: {words?.Count ?? 0} words");
+
+            return new KeyValuePair<string, IList<RankedWord>?>(path, words);
+        });
+
+        var results = await Task.WhenAll(tasks);
+
+        return results.ToDictionary(x => x.Key, x => x.Value);
+    }
+
     public Task<IList<RankedWord>?> GetTextRepresentation(string path)
     {
         return Task.Run(() => GetImageColorInfo(path));
