@@ -121,9 +121,7 @@ public class ConsoleLoopUI : IHostedService
             catch (Exception e)
             {
                 Trace.TraceError(e.ToString());
-                Logger.Log("Unexpected Error: " + e.Message);
-                Logger.Log("Details: ");
-                Logger.Log(e.ToString());
+                Logger.LogError(nameof(ConsoleLoopUI), e);
             }
         }
     }

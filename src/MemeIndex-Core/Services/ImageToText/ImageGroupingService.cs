@@ -174,9 +174,9 @@ public class ImageGroupingService
         {
             return await Image.IdentifyAsync(path);
         }
-        catch
+        catch (Exception e)
         {
-            Logger.LogError($"[{nameof(ImageGroupingService)}][{path}]: Can't get image identity");
+            Logger.LogError($"[{nameof(ImageGroupingService)}][{path}]", e);
             return new ImageInfo(new PixelTypeInfo(24), new Size(720, 720), null);
         }
     }

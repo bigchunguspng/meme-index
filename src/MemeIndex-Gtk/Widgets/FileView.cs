@@ -194,8 +194,9 @@ public class FileView : TreeView
             _iconCache.Add(path, icon);
             return icon;
         }
-        catch
+        catch (Exception e)
         {
+            Logger.LogError($"[{nameof(GetImageIcon)}][{path}]", e);
             return null;
         }
     }

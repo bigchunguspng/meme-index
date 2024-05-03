@@ -28,7 +28,12 @@ public static class Logger
         Console.ResetColor();
     }
 
-    public static void LogError(string message) => Log(message, ConsoleColor.Red);
+    public static void LogError(string location, Exception e)
+    {
+        Log($"{location}: {e.Message}", ConsoleColor.Red);
+        Log("Details: ");
+        Log(e.ToString());
+    }
 
     public static bool StatusIsAvailable => StatusChange != null;
 

@@ -81,7 +81,7 @@ public class OnlineOcrService : IImageToTextService
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            Logger.LogError(nameof(OnlineOcrService), e);
             return null;
         }
     }
@@ -102,7 +102,7 @@ public class OnlineOcrService : IImageToTextService
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            Logger.LogError(nameof(OnlineOcrService), e);
             return null;
         }
     }

@@ -47,8 +47,9 @@ public static partial class Helpers
         {
             return new FileInfo(path);
         }
-        catch
+        catch (Exception e)
         {
+            Logger.LogError(nameof(GetFileInfo), e);
             return null;
         }
     }
