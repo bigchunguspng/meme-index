@@ -52,7 +52,7 @@ public class ImageGroupingService
 
         var unused = new List<FileImageInfo>();
         var skip = 0;
-        while (unused.Count > 0 && skip < sorted.Count)
+        while (skip < sorted.Count || unused.Count > 0)
         {
             var maxWidth = sorted[skip].Image.Width;
             var columns = Math.Clamp((int)Math.Round(3000 / (double)maxWidth), 3, 8);
@@ -103,7 +103,11 @@ public class ImageGroupingService
 
         foreach (var info in infos)
         {
-            var highEnoughColumns = offsetsByColumn.Where(x => collageH - x >= info.Image.Height).ToArray();
+            var tooWide = info.Image.Width > 1000;
+            var imageW = tooWide ? 1000 : info.Image.Width;
+            var imageH = tooWide ? 1000 * info.Image.Height / info.Image.Width : info.Image.Height;
+
+            var highEnoughColumns = offsetsByColumn.Where(x => collageH - x >= imageH).ToArray();
             if (highEnoughColumns.Length == 0)
             {
                 unused.Add(info);
@@ -113,11 +117,12 @@ public class ImageGroupingService
             var minOffset = highEnoughColumns.Min();
             var column = Array.IndexOf(offsetsByColumn, minOffset);
 
+            var size = new Size(imageW, imageH);
             var offset = new Point(columnW * column, minOffset);
 
             var isRgba32 = info.Image.PixelType.BitsPerPixel == 32;
             var placeImage = isRgba32.Switch<PlaceImage>(PlaceImage32, PlaceImage24);
-            var placement = placeImage(info.File, collage, offset);
+            var placement = placeImage(info.File, collage, offset, size);
 
             placements.Add(placement);
             offsetsByColumn[column] += placement.Rectangle.Height;
@@ -139,6 +144,8 @@ public class ImageGroupingService
         EnsureImageTakesLessThan1MB(stream);
 
         Console.WriteLine(timer.Elapsed.TotalSeconds + "\tcollage.jpg");
+
+        collage.SaveAsJpeg($"collage-{DateTime.UtcNow.Ticks}.jpg", _defaultJpegEncoder);
 
         return (new CollageInfo(stream.ToArray(), placements), unused);
     }
@@ -184,19 +191,19 @@ public class ImageGroupingService
 
     private delegate void CopyPixelAction<T>(Image<T> image, int x, int y) where T : unmanaged, IPixel<T>; 
 
-    private delegate ImagePlacement PlaceImage(FileInfo file, Image<Rgb24> collage, Point offset);
+    private delegate ImagePlacement PlaceImage(FileInfo file, Image<Rgb24> collage, Point offset, Size size);
 
-    private static ImagePlacement PlaceImage24(FileInfo file, Image<Rgb24> collage, Point offset)
+    private static ImagePlacement PlaceImage24(FileInfo file, Image<Rgb24> collage, Point offset, Size size)
     {
         void CopyPixel(Image<Rgb24> image, int x, int y)
         {
             collage[offset.X + x, offset.Y + y] = image[x, y];
         }
 
-        return PlaceImageGeneric<Rgb24>(file, offset, CopyPixel);
+        return PlaceImageGeneric<Rgb24>(file, size, offset, CopyPixel);
     }
 
-    private static ImagePlacement PlaceImage32(FileInfo file, Image<Rgb24> collage, Point offset)
+    private static ImagePlacement PlaceImage32(FileInfo file, Image<Rgb24> collage, Point offset, Size size)
     {
         void CopyPixel(Image<Rgba32> image, int x, int y)
         {
@@ -207,18 +214,22 @@ public class ImageGroupingService
             }
         }
 
-        return PlaceImageGeneric<Rgba32>(file, offset, CopyPixel);
+        return PlaceImageGeneric<Rgba32>(file, size, offset, CopyPixel);
     }
 
     private static ImagePlacement PlaceImageGeneric<T>
     (
         FileInfo file,
+        Size size,
         Point offset,
         CopyPixelAction<T> copyPixel
     )
         where T : unmanaged, IPixel<T>
     {
         using var image = Image.Load<T>(file.FullName);
+
+        if (image.Size.Width > size.Width)
+            image.Mutate(x => x.Resize(size));
 
         for (var x = 0; x < image.Width; x++)
         for (var y = 0; y < image.Height; y++)
