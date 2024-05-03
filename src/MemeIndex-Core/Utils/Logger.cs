@@ -4,7 +4,7 @@ namespace MemeIndex_Core.Utils;
 
 public static class Logger
 {
-    public static event Action<string?>? StatusChange;
+    public static event Action<string?>? StatusChanged;
 
     public static void Log(string message) => Console.WriteLine(message);
 
@@ -35,10 +35,10 @@ public static class Logger
         Log(e.ToString());
     }
 
-    public static bool StatusIsAvailable => StatusChange != null;
+    public static bool StatusIsAvailable => StatusChanged != null;
 
     public static void Status(string? message)
     {
-        StatusChange?.Invoke(message);
+        StatusChanged?.Invoke(message);
     }
 }

@@ -37,7 +37,7 @@ public class App : IDisposable
         ColorSearchProfile = colorSearchProfile;
         Context = context;
 
-        Logger.StatusChange += SetStatus;
+        Logger.StatusChanged += SetStatus;
     }
 
     public void Start()
@@ -73,7 +73,7 @@ public class App : IDisposable
 
     public void SetStatusBar(Statusbar bar) => _status = bar;
 
-    public void SetStatus(string? message = null) => Application.Invoke((_, _) =>
+    private void SetStatus(string? message) => Application.Invoke((_, _) =>
     {
         _status?.Pop(0);
         if (message != null)
@@ -81,10 +81,4 @@ public class App : IDisposable
             _status?.Push(0, message);
         }
     });
-
-    public async void ClearStatusLater()
-    {
-        await Task.Delay(4000);
-        SetStatus();
-    }
 }

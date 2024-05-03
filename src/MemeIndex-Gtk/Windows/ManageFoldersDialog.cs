@@ -56,7 +56,7 @@ public class ManageFoldersDialog : Dialog
 
     private async void SaveChangesAsync()
     {
-        App.SetStatus("Updating watching list...");
+        Logger.Status("Updating watching list...");
 
         var options = _folders.Children
             .Select(x => (FolderSelectorWidget)((ListBoxRow)x).Child)
@@ -72,7 +72,7 @@ public class ManageFoldersDialog : Dialog
 
         await App.IndexController.UpdateMonitoringDirectories(options);
 
-        App.SetStatus("Watching list updated.");
+        Logger.Status("Watching list updated.");
 
         await App.IndexController.UpdateFileSystemKnowledge();
     }

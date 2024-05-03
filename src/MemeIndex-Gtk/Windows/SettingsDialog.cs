@@ -1,5 +1,6 @@
 using Gtk;
 using MemeIndex_Core;
+using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils;
 using UI = Gtk.Builder.ObjectAttribute;
 
@@ -44,7 +45,6 @@ public class SettingsDialog : Dialog
     {
         ConfigRepository.GetConfig().OrcApiKey = _entryApiKey.Text;
         ConfigRepository.SaveChanges();
-        App.SetStatus("Changes saved!");
-        App.ClearStatusLater();
+        Logger.Status("Changes saved!");
     }
 }

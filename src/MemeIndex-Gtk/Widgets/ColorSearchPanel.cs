@@ -62,7 +62,7 @@ public class ColorSearchPanel : Frame
         {
             checkButton.Active.Switch(SelectedColors.Add, SelectedColors.Remove)(checkButton.Key);
 
-            App.SetStatus($"Selected colors: {string.Join(' ', SelectedColors)}");
+            Logger.Status($"Selected colors: {string.Join(' ', SelectedColors)}");
 
             SelectionChanged?.Invoke(this, e);
         }
@@ -81,7 +81,7 @@ public class ColorSearchPanel : Frame
         var active = grid.Children.OfType<ColorSearchCheckButton>().Where(x => x.Active);
         foreach (var checkButton in active) checkButton.Active = false;
 
-        App.SetStatus($"Selected colors: {string.Join(' ', SelectedColors)}");
+        Logger.Status($"Selected colors: {string.Join(' ', SelectedColors)}");
     }
 
     public event EventHandler? SelectionChanged;

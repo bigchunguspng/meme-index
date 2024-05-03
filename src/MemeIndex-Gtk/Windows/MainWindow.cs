@@ -84,7 +84,7 @@ public class MainWindow : Window
         App.Context.Access.Release();
 
         var txt = _queries.Select(x => $"Mean #{x.MeanId}: [{string.Join(' ', x.Words)}]");
-        App.SetStatus($"Files: {files.Count}, search: {string.Join(' ', txt)}");
+        Logger.Status($"Files: {files.Count}, search: {string.Join(' ', txt)}");
 
         await _files.ShowFiles(files);
     }
