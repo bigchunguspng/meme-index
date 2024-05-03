@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.Processing;
 namespace MemeIndex_Core.Services.OCR;
 
 /// <summary>
-/// Can be used to bypass OCR API rate limit
+/// Is used to bypass OCR API rate limit
 /// by grouping images into collages before sending them to the service.
 /// </summary>
 public class ImageCollageService
@@ -134,9 +134,30 @@ public class ImageCollageService
         using var stream = new MemoryStream();
         collage.SaveAsJpeg(stream, _defaultJpegEncoder);
 
+        EnsureImageTakesLessThan1MB(stream);
+
         Console.WriteLine(timer.Elapsed.TotalSeconds + "\tcollage.jpg");
 
         return (new CollageInfo(stream.ToArray(), placements), unused);
+    }
+
+    public void EnsureImageTakesLessThan1MB(Stream stream)
+    {
+        while (stream.Length >= 1024 * 1024)
+        {
+            var divider = Math.Sqrt(stream.Length / 500_000F);
+
+            Console.WriteLine($"Dividing image by {divider}");
+
+            using var image = Image.Load(stream);
+
+            var w = (int)(image.Width  / divider);
+            var h = (int)(image.Height / divider);
+
+            image.Mutate(x => x.Resize(w, h));
+
+            image.SaveAsJpeg(stream, _defaultJpegEncoder);
+        }
     }
 
 
@@ -211,4 +232,7 @@ public record FileImageInfo(FileInfo File, ImageInfo Image);
 
 public record ImagePlacement(FileInfo File, Rectangle Rectangle);
 
-public record CollageInfo(byte[] Collage, List<ImagePlacement> Placements);
+public record CollageInfo(byte[] Collage, List<ImagePlacement> Placements)
+{
+    public IEnumerable<string> ImagePaths => Placements.Select(x => x.File.FullName);
+}

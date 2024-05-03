@@ -109,7 +109,7 @@ public class IndexingService
         }
     }
 
-    private async Task<Word> GetOrAddWord(string word)
+    private async Task<Entities.Word> GetOrAddWord(string word)
     {
         var existing = _context.Words.FirstOrDefault(x => x.Text == word);
         if (existing != null)
@@ -117,7 +117,7 @@ public class IndexingService
             return existing;
         }
 
-        var entity = new Word { Text = word };
+        var entity = new Entities.Word { Text = word };
 
         await _context.Words.AddAsync(entity);
         await _context.SaveChangesAsync();

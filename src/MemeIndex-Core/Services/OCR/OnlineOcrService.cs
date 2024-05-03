@@ -1,11 +1,13 @@
-using IronSoftware.Drawing;
 using MemeIndex_Core.Utils;
 using Newtonsoft.Json.Linq;
+using Point = SixLabors.ImageSharp.Point;
 
 namespace MemeIndex_Core.Services.OCR;
 
 public class OnlineOcrService : IOcrService
 {
+    private const string EMPTY_WORD = "`";
+
     private readonly ImageCollageService _collageService;
 
     public OnlineOcrService()
@@ -16,15 +18,8 @@ public class OnlineOcrService : IOcrService
         ApiKey = ConfigRepository.GetConfig().OrcApiKey ?? string.Empty;
         Client = new HttpClient
         {
-            Timeout = TimeSpan.FromMinutes(5)
+            Timeout = TimeSpan.FromSeconds(30)
         };
-    }
-
-    private void OnCollageIsReady(CollageInfo collageInfo)
-    {
-        // make api call
-        // group words by image
-        // update db
     }
 
     private string ApiKey { get; }
@@ -34,12 +29,13 @@ public class OnlineOcrService : IOcrService
 
     private AvailabilityTimer Availability { get; } = new();
 
-    private List<RankedWord> EmptyResponse { get; } = new() { new("[null]", 1) };
+    private List<RankedWord> EmptyResponse { get; } = new() { new(EMPTY_WORD, 1) };
+
     /*
 
     Ideas for cheating over API rate limit:
 
-    1. Send images of similar size and ratio combined in 2x2, 3x3, 4x4 grids.
+    1. Send images of similar size and ratio combined in 2x2, 3x3, 4x4 grids. (done)
     2. Filter out images with potentially no text using edge detection algorithm.
 
     */
@@ -48,21 +44,10 @@ public class OnlineOcrService : IOcrService
     {
         // files
         var files = paths.Select(Helpers.GetFileInfo).OfType<FileInfo>();
+
         _collageService.ProcessFiles(files);
 
-        // get all files dimensions     -> files:size
-        //var infos = files.Select(GetImageInfo).ToList();
-
-        // group by width +- 64px       -> widthRange:files:size
-        //var groups = infos.GroupBy(x => (x.Image.Width / 64 + 1) * 64).ToDictionary(g => g.Key, g => g.ToList());
-
-        // foreach width group, while files left:
-        // make collage         N files -> 1 image
-            // ocr                  image -> word,l,t,h,w
-            // split results        word,l,t,h,w -> file:words -> file:rankedWords
-
-        // collage should be < 1mb
-
+        // todo remove code below, change class contract
         var tasks = paths.Select(async path =>
         {
             var words = await GetTextRepresentation(path);
@@ -76,75 +61,26 @@ public class OnlineOcrService : IOcrService
         return results.ToDictionary(x => x.Key, x => x.Value);
     }
 
-    public async Task<IList<RankedWord>?> GetTextRepresentation(string path)
+    private async void OnCollageIsReady(CollageInfo collageInfo)
+    {
+        var rankedWordsByPath = await GetTextRepresentation(collageInfo);
+
+        // update db
+    }
+
+    public async Task<Dictionary<string, List<RankedWord>>?> GetTextRepresentation(CollageInfo collageInfo)
     {
         try
         {
             if (Availability.Unavailable) return null;
 
-            // CHECK FILE
-            var file = new FileInfo(path);
-            if (file.Exists == false) return null;
+            var words = await ProcessImageWithApi(collageInfo.Collage);
 
-            // SEND REQUEST, PROCESS RESPONSE
-            var response = await ProcessFileWithApi(file);
-            if (response.StartsWith('{') == false)
-            {
-                Logger.Status("API is unavailable x_x");
-                Availability.MakeUnavailableFor(seconds: 60 * 5);
-                return null;
-            }
-
-            var obj = JObject.Parse(response);
-
-            var exitCode = (int)obj.SelectToken("OCRExitCode")!;
-            if (exitCode > 2)
-            {
-                return null;
-            }
-
-            var hasText = (bool)obj.SelectToken("ParsedResults[0].TextOverlay.HasOverlay")!;
-            if (hasText)
-            {
-                List<TextLine> lines = obj.SelectToken("ParsedResults[0].TextOverlay.Lines")!
-                    .Select(token => token.ToObject<TextLine>())
-                    .OrderByDescending(line => line?.MaxHeight)
-                    .ToList()!;
-
-                if (lines.Count == 0) return EmptyResponse;
-
-                var maxHeight = lines[0].MaxHeight;
-                var countPenalty = (int)Math.Sqrt(lines.Count - 1);
-
-                var ranked = new List<RankedWord>();
-                foreach (var line in lines)
-                {
-                    var sizePenalty = (int)Math.Round(maxHeight / line.MaxHeight);
-
-                    var words = line.LineText.RemoveLineBreaks().ToLower().Split();
-                    var range = words.Select(word => new RankedWord(word, countPenalty + sizePenalty));
-                    ranked.AddRange(range);
-                }
-
-                var result = ranked
-                    .GroupBy(x => x.Word)
-                    .Select(g =>
-                    {
-                        var count = g.Count();
-                        return count == 1
-                            ? g.First()
-                            : new RankedWord
-                            (
-                                g.Key,
-                                Math.Max(g.Min(x => x.Rank) - (int)Math.Round(Math.Sqrt(count)), 1)
-                            );
-                    })
-                    .ToList();
-
-                return result;
-            }
-
-            return EmptyResponse;
+            return words is null
+                ? null
+                : words.Count == 0
+                    ? collageInfo.ImagePaths.ToDictionary(x => x, _ => EmptyResponse)
+                    : GroupWordsByImage(words, collageInfo).ToDictionary(x => x.Key, x => RankWords(x.Value));
         }
         catch (Exception e)
         {
@@ -153,7 +89,30 @@ public class OnlineOcrService : IOcrService
         }
     }
 
-    private async Task<string> ProcessFileWithApi(FileInfo file)
+    public async Task<IList<RankedWord>?> GetTextRepresentation(string path)
+    {
+        try
+        {
+            if (Availability.Unavailable) return null;
+
+            var file = new FileInfo(path);
+            if (file.Exists == false) return null;
+
+            var bytes = await GetFileBytes(file);
+            var words = await ProcessImageWithApi(bytes);
+
+            return words is null ? null : words.Count == 0 ? EmptyResponse : RankWords(words);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            return null;
+        }
+    }
+
+    // MAKING API REQUEST
+
+    private MultipartFormDataContent CreateRequestForm(byte[] image)
     {
         var form = new MultipartFormDataContent
         {
@@ -164,33 +123,125 @@ public class OnlineOcrService : IOcrService
             { new StringContent("true"), "isOverlayRequired" },
         };
 
-        var bytes = await GetFileBytes(file);
+        form.Add(new ByteArrayContent(image, 0, image.Length), "image", "image.jpg");
 
-        form.Add(new ByteArrayContent(bytes, 0, bytes.Length), "image", "image.jpg");
+        return form;
+    }
 
+    private async Task<string> SendRequest(HttpContent form)
+    {
         var response = await Client.PostAsync(ApiURL, form);
 
         return await response.Content.ReadAsStringAsync();
     }
 
-    private static async Task<byte[]> GetFileBytes(FileInfo file)
+    private async Task<byte[]> GetFileBytes(FileInfo file)
     {
-        if (file.Length < 1024 * 1024)
-        {
-            return await File.ReadAllBytesAsync(file.FullName);
-        }
+        await using var stream = file.OpenRead();
+        _collageService.EnsureImageTakesLessThan1MB(stream);
 
-        var divider = Math.Sqrt(file.Length / 500_000F);
+        using var memory = new MemoryStream();
+        await stream.CopyToAsync(memory);
 
-        using var image = AnyBitmap.FromFile(file.FullName);
-
-        var w = (int)(image.Width  / divider);
-        var h = (int)(image.Height / divider);
-
-        using var bitmap = new AnyBitmap(image, w, h);
-
-        return bitmap.ExportBytes(AnyBitmap.ImageFormat.Jpeg, 25);
+        return memory.ToArray();
     }
 
-    public record TextLine(string LineText, double MaxHeight);
+    // API RESPONSE PROCESSING
+
+    private async Task<List<Word>?> ProcessImageWithApi(byte[] bytes)
+    {
+        var request = CreateRequestForm(bytes);
+            
+        var response = await SendRequest(request);
+        if (response.StartsWith('{') == false)
+        {
+            Logger.Status("API is unavailable x_x");
+            Availability.MakeUnavailableFor(seconds: 60 * 5);
+            return null;
+        }
+
+        var jo = JObject.Parse(response);
+
+        var exitCode = (int)jo.SelectToken("OCRExitCode")!;
+        if (exitCode > 2)
+        {
+            return null;
+        }
+
+        var hasText = (bool)jo.SelectToken("ParsedResults[0].TextOverlay.HasOverlay")!;
+        if (hasText == false)
+        {
+            return new List<Word>();
+        }
+
+        var words = jo.SelectToken("ParsedResults[0].TextOverlay.Lines")!
+            .Select(token => token.ToObject<TextLine>())
+            .OfType<TextLine>()
+            .SelectMany(x => x.Words)
+            .ToList();
+
+        return words;
+    }
+
+    private static Dictionary<string, List<Word>> GroupWordsByImage(IEnumerable<Word> words, CollageInfo collageInfo)
+    {
+        var wordsByImage = words
+            .GroupBy(word =>
+            {
+                var x = word.Left + 0.5 * word.Width;
+                var y = word.Top + 0.5 * word.Height;
+                var wordMidPoint = new Point((int)x, (int)y);
+                var placement =
+                    collageInfo.Placements.FirstOrDefault(p => wordMidPoint.IsInside(p.Rectangle)) ??
+                    collageInfo.Placements.MinBy(p => wordMidPoint.GetDistanceToRectangleCenter(p.Rectangle));
+                return placement?.File.FullName;
+            })
+            .OfType<IGrouping<string, Word>>()
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        foreach (var path in collageInfo.ImagePaths.Where(x => !wordsByImage.ContainsKey(x)))
+        {
+            wordsByImage.Add(path, new List<Word>());
+        }
+
+        return wordsByImage;
+    }
+
+    private List<RankedWord> RankWords(IReadOnlyCollection<Word> words)
+    {
+        if (words.Count == 0) return EmptyResponse;
+
+        var maxHeight = words.Max(x => x.Height);
+        var countPenalty = (int)Math.Sqrt(words.Count) - 1; // [0..]
+
+        var rankedWords = words
+            .Select(word =>
+            {
+                var sizePenalty = (int)Math.Round(maxHeight / word.Height); // [1..]
+                var text = word.WordText.ToLower();
+                return new RankedWord(text, countPenalty + sizePenalty);
+            })
+            .ToList();
+
+        var uniqueRankedWords = rankedWords
+            .GroupBy(x => x.Word)
+            .Select(g =>
+            {
+                var count = g.Count();
+                return count == 1
+                    ? g.First()
+                    : new RankedWord
+                    (
+                        g.Key,
+                        Math.Max(g.Min(x => x.Rank) - (int)Math.Round(Math.Sqrt(2 * count)), 1)
+                    );
+            })
+            .ToList();
+
+        return uniqueRankedWords;
+    }
 }
+
+public record TextLine(Word[] Words);
+
+public record Word(string WordText, double Left, double Top, double Height, double Width);
