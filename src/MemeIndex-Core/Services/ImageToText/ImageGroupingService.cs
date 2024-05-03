@@ -70,7 +70,7 @@ public class ImageGroupingService
             CollageCreated?.Invoke(result.CollageInfo);
 
             unused = result.UnusedImages;
-            skip = take;
+            skip += take;
         }
     }
 
