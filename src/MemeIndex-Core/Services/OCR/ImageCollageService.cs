@@ -25,9 +25,9 @@ public class ImageCollageService
         };
     }
 
-    public event Action<CollageInfo>? CollageIsReady;
+    public event Action<CollageInfo>? CollageCreated;
 
-    public void ProcessFiles(IEnumerable<FileInfo> files)
+    public async Task ProcessFiles(IEnumerable<FileInfo> files)
     {
         /*
         var infos = files
@@ -45,7 +45,10 @@ public class ImageCollageService
         }
         */
 
-        var sorted = files.Select(GetImageInfo).OrderByDescending(x => x.Image.Width).ToList();
+        var tasks = files.Select(GetImageInfo);
+        var infos = await Task.WhenAll(tasks);
+
+        var sorted = infos.OrderByDescending(x => x.Image.Width).ToList();
 
         var unused = new List<FileImageInfo>();
         var skip = 0;
@@ -64,7 +67,7 @@ public class ImageCollageService
 
             var result = MakeCollage(images, columns);
 
-            CollageIsReady?.Invoke(result.CollageInfo);
+            CollageCreated?.Invoke(result.CollageInfo);
 
             unused = result.UnusedImages;
             skip = take;
@@ -86,7 +89,6 @@ public class ImageCollageService
         // 1000 - max width of image in collage
         //    3 - min column count
 
-        //var columns = Math.Clamp((int)Math.Round(3000 / (double)maxGroupWidth), 3, 8);
         var columnW = Math.Min(maxW, 1000);
 
         var offsetsByColumn = new int[columns];
@@ -161,16 +163,16 @@ public class ImageCollageService
     }
 
 
-    private static FileImageInfo GetImageInfo(FileInfo file)
+    private static async Task<FileImageInfo> GetImageInfo(FileInfo file)
     {
-        return new(File: file, Image: GetImageInfo(file.FullName));
+        return new(File: file, Image: await GetImageInfo(file.FullName));
     }
 
-    private static ImageInfo GetImageInfo(string path)
+    private static async Task<ImageInfo> GetImageInfo(string path)
     {
         try
         {
-            return Image.Identify(path);
+            return await Image.IdentifyAsync(path);
         }
         catch
         {

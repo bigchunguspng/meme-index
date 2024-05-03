@@ -13,7 +13,7 @@ public class OnlineOcrService : IOcrService
     public OnlineOcrService()
     {
         _collageService = new ImageCollageService();
-        _collageService.CollageIsReady += OnCollageIsReady;
+        _collageService.CollageCreated += OnCollageCreated;
 
         ApiKey = ConfigRepository.GetConfig().OrcApiKey ?? string.Empty;
         Client = new HttpClient
@@ -40,32 +40,29 @@ public class OnlineOcrService : IOcrService
 
     */
 
-    public async Task<Dictionary<string, IList<RankedWord>?>> ProcessFiles(IEnumerable<string> paths)
+    public event Action<Dictionary<string, List<RankedWord>>>? ImageProcessed;
+
+    public async Task ProcessFiles(IEnumerable<string> paths)
     {
-        // files
-        var files = paths.Select(Helpers.GetFileInfo).OfType<FileInfo>();
+        var fileInfos = paths.Select(Helpers.GetFileInfo).OfType<FileInfo>();
 
-        _collageService.ProcessFiles(files);
-
-        // todo remove code below, change class contract
-        var tasks = paths.Select(async path =>
-        {
-            var words = await GetTextRepresentation(path);
-            Logger.Log(ConsoleColor.Blue, $"SPACE-OCR: {words?.Count ?? 0} words");
-
-            return new KeyValuePair<string, IList<RankedWord>?>(path, words);
-        });
-
-        var results = await Task.WhenAll(tasks);
-
-        return results.ToDictionary(x => x.Key, x => x.Value);
+        await _collageService.ProcessFiles(fileInfos);
     }
 
-    private async void OnCollageIsReady(CollageInfo collageInfo)
+    private async void OnCollageCreated(CollageInfo collageInfo)
     {
         var rankedWordsByPath = await GetTextRepresentation(collageInfo);
+        if (rankedWordsByPath is null) return;
 
-        // update db
+        var imagesPlaced = collageInfo.Placements.Count;
+        var wordsSum = rankedWordsByPath.Sum    (x => x.Value.Count);
+        var wordsMin = rankedWordsByPath.Min    (x => x.Value.Count);
+        var wordsMax = rankedWordsByPath.Max    (x => x.Value.Count);
+        var wordsAvg = rankedWordsByPath.Average(x => x.Value.Count);
+        var message = $"SPACE-OCR: images: {imagesPlaced}\twords: {wordsMin}\t{wordsMax}\t{wordsAvg}\t{wordsSum}";
+        Logger.Log(ConsoleColor.Blue, message);
+
+        ImageProcessed?.Invoke(rankedWordsByPath);
     }
 
     public async Task<Dictionary<string, List<RankedWord>>?> GetTextRepresentation(CollageInfo collageInfo)
@@ -89,7 +86,7 @@ public class OnlineOcrService : IOcrService
         }
     }
 
-    public async Task<IList<RankedWord>?> GetTextRepresentation(string path)
+    public async Task<List<RankedWord>?> GetTextRepresentation(string path)
     {
         try
         {

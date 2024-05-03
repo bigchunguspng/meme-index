@@ -77,12 +77,10 @@ public class MainWindow : Window
 
     private async void Search()
     {
-        while (!App.Context.IsReadyToUse)
-        {
-            await Task.Delay(50);
-        }
+        await App.Context.WaitForAccess();
 
         var files = App.SearchController.Search(_queries, LogicalOperator.AND).Result.ToList();
+        App.Context.Release();
 
         var txt = _queries.Select(x => $"Mean #{x.MeanId}: [{string.Join(' ', x.Words)}]");
         App.SetStatus($"Files: {files.Count}, search: {string.Join(' ', txt)}");

@@ -35,33 +35,25 @@ public class IndexingService
 
         var means = await _context.Means.ToListAsync();
 
-        // mean -> files -> file:tags -> tags added to db
-
-        foreach (var mean in means)
-        {
-            var results = await ProcessPendingFiles(mean.Id);
-            await UpdateDatabase(results);
-        }
+        await Task.WhenAll(means.Select(async mean => await ProcessPendingFiles(mean.Id)));
 
         Logger.Log(ConsoleColor.Magenta, "Processing files: done!");
     }
 
-    private async Task<IEnumerable<OcrResult?>> ProcessPendingFiles(int meanId)
+    private async Task ProcessPendingFiles(int meanId)
     {
         var files = await GetPendingFiles(meanId);
         var filesByPath = files.ToDictionary(x => x.GetFullPath(), x => x);
         var ocrService = _ocrServiceResolver(meanId);
-        var tags = await ocrService.ProcessFiles(filesByPath.Keys);
-        return tags.Select(x => x.Value is null ? null : new OcrResult(filesByPath[x.Key], x.Value, meanId));
-        /*
-        var tasks = files.Select(async file =>
+
+        ocrService.ImageProcessed += async dictionary =>
         {
-            var words = await ocrService.GetTextRepresentation(file.GetFullPath());
-            Logger.Log(ConsoleColor.Blue, $"Mean-{meanId}: {words?.Count ?? 0} words");
-            return words is null ? null : new OcrResult(file, words, meanId);
-        });
-        return await Task.WhenAll(tasks);
-    */
+            var results = dictionary.Select(x => new OcrResult(filesByPath[x.Key], x.Value, meanId));
+            await UpdateDatabase(results);
+        };
+        await ocrService.ProcessFiles(filesByPath.Keys);
+
+        // todo [unsub / MAKE OCR SERVICES TRANSIENT]
     }
 
     /// <summary>
@@ -84,12 +76,12 @@ public class IndexingService
             .ToListAsync();
     }
 
-    private async Task UpdateDatabase(IEnumerable<OcrResult?> ocrResults)
+    private async Task UpdateDatabase(IEnumerable<OcrResult> ocrResults)
     {
+        await _context.WaitForAccess();
+
         foreach (var ocr in ocrResults)
         {
-            if (ocr is null) continue;
-
             var wordIds = new Queue<int>();
             foreach (var word in ocr.Words)
             {
@@ -107,6 +99,8 @@ public class IndexingService
             await _context.Tags.AddRangeAsync(tags);
             await _context.SaveChangesAsync();
         }
+
+        _context.Release();
     }
 
     private async Task<Entities.Word> GetOrAddWord(string word)
@@ -224,4 +218,4 @@ public class IndexingService
 */
 }
 
-public record OcrResult(Entities.File File, IList<RankedWord> Words, int Mean);
+public record OcrResult(Entities.File File, List<RankedWord> Words, int Mean);

@@ -5,37 +5,39 @@ namespace MemeIndex_Core.Services.OCR;
 
 public class ColorTagService : IOcrService
 {
-    public Dictionary<char, Dictionary<string, Color>> ColorsFunny     { get; } = new();
-    public                  Dictionary<string, Color>  ColorsGrayscale { get; } = new();
-
-    public List<char> Hues { get; } = Enumerable.Range(65, 24).Select(x => (char)x).ToList();
-
     public ColorTagService()
     {
         Init();
     }
 
-    public async Task<Dictionary<string, IList<RankedWord>?>> ProcessFiles(IEnumerable<string> paths)
+    public Dictionary<char, Dictionary<string, Color>> ColorsFunny     { get; } = new();
+    public                  Dictionary<string, Color>  ColorsGrayscale { get; } = new();
+
+    public List<char> Hues { get; } = Enumerable.Range(65, 24).Select(x => (char)x).ToList();
+
+    public event Action<Dictionary<string, List<RankedWord>>>? ImageProcessed;
+
+    public async Task ProcessFiles(IEnumerable<string> paths)
     {
         var tasks = paths.Select(async path =>
         {
-            var words = await GetTextRepresentation(path);
-            Logger.Log(ConsoleColor.Blue, $"COLOR-TAG: {words?.Count ?? 0} words");
+            var rankedWords = await GetTextRepresentation(path);
+            if (rankedWords is null) return;
 
-            return new KeyValuePair<string, IList<RankedWord>?>(path, words);
+            Logger.Log(ConsoleColor.Blue, $"COLOR-TAG: words: {rankedWords.Count}");
+
+            ImageProcessed?.Invoke(new Dictionary<string, List<RankedWord>> { { path, rankedWords }});
         });
 
-        var results = await Task.WhenAll(tasks);
-
-        return results.ToDictionary(x => x.Key, x => x.Value);
+        await Task.WhenAll(tasks);
     }
 
-    public Task<IList<RankedWord>?> GetTextRepresentation(string path)
+    public Task<List<RankedWord>?> GetTextRepresentation(string path)
     {
         return Task.Run(() => GetImageColorInfo(path));
     }
 
-    private IList<RankedWord>? GetImageColorInfo(string path)
+    private List<RankedWord>? GetImageColorInfo(string path)
     {
         // CHECK FILE
         var file = new FileInfo(path);
