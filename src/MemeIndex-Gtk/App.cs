@@ -57,10 +57,10 @@ public class App : IDisposable
         Task.Run(() =>
         {
             SetStatus("Loading database...");
-            Context.WaitForAccess().Wait();
+            Context.Access.Take().Wait();
             Context.EnsureCreated();
             IndexController.StartIndexing();
-            Context.Release();
+            Context.Access.Release();
         });
 
         Application.Run();

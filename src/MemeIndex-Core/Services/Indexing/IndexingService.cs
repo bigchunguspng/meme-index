@@ -78,7 +78,7 @@ public class IndexingService
 
     private async Task UpdateDatabase(IEnumerable<OcrResult> ocrResults)
     {
-        await _context.WaitForAccess();
+        await _context.Access.Take();
 
         foreach (var ocr in ocrResults)
         {
@@ -100,7 +100,7 @@ public class IndexingService
             await _context.SaveChangesAsync();
         }
 
-        _context.Release();
+        _context.Access.Release();
     }
 
     private async Task<Entities.Word> GetOrAddWord(string word)
