@@ -1,10 +1,10 @@
-namespace MemeIndex_Core.Services.OCR;
+namespace MemeIndex_Core.Services.ImageToText;
 
-public interface IOcrService
+public interface IImageToTextService
 {
     /// <summary>
     /// Processes image files.
-    /// Subscribe to <see cref="ImageProcessed"/> event to get the results.
+    /// Subscribe to <see cref="ImageProcessed"/> event to obtain the results.
     /// </summary>
     /// <param name="paths"> Paths to the image files. </param>
     Task ProcessFiles(IEnumerable<string> paths);
@@ -18,7 +18,7 @@ public interface IOcrService
     public event Action<Dictionary<string, List<RankedWord>>>? ImageProcessed;
 }
 
-public delegate IOcrService OcrServiceResolver(int key);
+public delegate IImageToTextService ImageToTextServiceResolver(int key);
 
 public record RankedWord(string Word, int Rank)
 {

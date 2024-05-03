@@ -1,7 +1,7 @@
 using MemeIndex_Core.Data;
 using MemeIndex_Core.Entities;
 using MemeIndex_Core.Services.Data;
-using MemeIndex_Core.Services.OCR;
+using MemeIndex_Core.Services.ImageToText;
 using MemeIndex_Core.Utils;
 using Microsoft.EntityFrameworkCore;
 using Directory = System.IO.Directory;
@@ -13,20 +13,20 @@ public class IndexingService
     private readonly IDirectoryService _directoryService;
     private readonly IMonitoringService _monitoringService;
     private readonly MemeDbContext _context;
-    private readonly OcrServiceResolver _ocrServiceResolver;
+    private readonly ImageToTextServiceResolver _imageToTextServiceResolver;
 
     public IndexingService
     (
         IDirectoryService directoryService,
         IMonitoringService monitoringService,
         MemeDbContext context,
-        OcrServiceResolver ocrServiceResolver
+        ImageToTextServiceResolver imageToTextServiceResolver
     )
     {
         _directoryService = directoryService;
         _monitoringService = monitoringService;
         _context = context;
-        _ocrServiceResolver = ocrServiceResolver;
+        _imageToTextServiceResolver = imageToTextServiceResolver;
     }
 
     public async Task ProcessPendingFiles()
@@ -44,16 +44,14 @@ public class IndexingService
     {
         var files = await GetPendingFiles(meanId);
         var filesByPath = files.ToDictionary(x => x.GetFullPath(), x => x);
-        var ocrService = _ocrServiceResolver(meanId);
+        var imageToTextService = _imageToTextServiceResolver(meanId);
 
-        ocrService.ImageProcessed += async dictionary =>
+        imageToTextService.ImageProcessed += async dictionary =>
         {
-            var results = dictionary.Select(x => new OcrResult(filesByPath[x.Key], x.Value, meanId));
+            var results = dictionary.Select(x => new ImageTextRepresentation(filesByPath[x.Key], x.Value, meanId));
             await UpdateDatabase(results);
         };
-        await ocrService.ProcessFiles(filesByPath.Keys);
-
-        // todo [unsub / MAKE OCR SERVICES TRANSIENT]
+        await imageToTextService.ProcessFiles(filesByPath.Keys);
     }
 
     /// <summary>
@@ -76,24 +74,24 @@ public class IndexingService
             .ToListAsync();
     }
 
-    private async Task UpdateDatabase(IEnumerable<OcrResult> ocrResults)
+    private async Task UpdateDatabase(IEnumerable<ImageTextRepresentation> results)
     {
         await _context.Access.Take();
 
-        foreach (var ocr in ocrResults)
+        foreach (var result in results)
         {
             var wordIds = new Queue<int>();
-            foreach (var word in ocr.Words)
+            foreach (var word in result.Words)
             {
                 var record = await GetOrAddWord(word.Word);
                 wordIds.Enqueue(record.Id);
             }
 
-            var tags = ocr.Words.Select(x => new Tag
+            var tags = result.Words.Select(x => new Tag
             {
-                FileId = ocr.File.Id,
+                FileId = result.File.Id,
                 WordId = wordIds.Dequeue(),
-                MeanId = ocr.Mean,
+                MeanId = result.Mean,
                 Rank = x.Rank,
             });
             await _context.Tags.AddRangeAsync(tags);
@@ -218,4 +216,4 @@ public class IndexingService
 */
 }
 
-public record OcrResult(Entities.File File, List<RankedWord> Words, int Mean);
+public record ImageTextRepresentation(Entities.File File, List<RankedWord> Words, int Mean);

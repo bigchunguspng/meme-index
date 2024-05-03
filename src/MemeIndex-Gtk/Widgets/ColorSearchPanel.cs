@@ -31,7 +31,7 @@ public class ColorSearchPanel : Frame
     {
         int top;
         var left = 0;
-        foreach (var hue in App.ColorTagService.ColorsFunny)
+        foreach (var hue in App.ColorSearchProfile.ColorsFunny)
         {
             top = 0;
             foreach (var color in hue.Value.Take(6))
@@ -43,7 +43,7 @@ public class ColorSearchPanel : Frame
         }
 
         top = 0;
-        foreach (var color in App.ColorTagService.ColorsGrayscale.Reverse())
+        foreach (var color in App.ColorSearchProfile.ColorsGrayscale.Reverse())
         {
             AddColorCheckButton(top++, 0, color.Key, _gridColorsGray);
         }

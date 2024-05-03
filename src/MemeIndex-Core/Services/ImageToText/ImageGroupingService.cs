@@ -6,17 +6,17 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
-namespace MemeIndex_Core.Services.OCR;
+namespace MemeIndex_Core.Services.ImageToText;
 
 /// <summary>
 /// Is used to bypass OCR API rate limit
 /// by grouping images into collages before sending them to the service.
 /// </summary>
-public class ImageCollageService
+public class ImageGroupingService
 {
     private readonly JpegEncoder _defaultJpegEncoder;
 
-    public ImageCollageService()
+    public ImageGroupingService()
     {
         _defaultJpegEncoder = new JpegEncoder
         {
@@ -176,7 +176,7 @@ public class ImageCollageService
         }
         catch
         {
-            Logger.LogError($"[{nameof(ImageCollageService)}][{path}]: Can't get image identity");
+            Logger.LogError($"[{nameof(ImageGroupingService)}][{path}]: Can't get image identity");
             return new ImageInfo(new PixelTypeInfo(24), new Size(720, 720), null);
         }
     }

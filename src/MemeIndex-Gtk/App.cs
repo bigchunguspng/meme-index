@@ -2,7 +2,7 @@ using GLib;
 using Gtk;
 using MemeIndex_Core.Controllers;
 using MemeIndex_Core.Data;
-using MemeIndex_Core.Services.OCR;
+using MemeIndex_Core.Services.ImageToText;
 using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils;
 using MemeIndex_Gtk.Windows;
@@ -18,14 +18,14 @@ public class App : IDisposable
 
     public IndexController IndexController { get; }
     public SearchController SearchController { get; }
-    public ColorTagService ColorTagService { get; }
+    public ColorSearchProfile ColorSearchProfile { get; }
     public MemeDbContext Context { get; }
 
     public App
     (
         IndexController indexController,
         SearchController searchController,
-        ColorTagService colorTagService,
+        ColorSearchProfile colorSearchProfile,
         MemeDbContext context,
         CustomCss css
     )
@@ -34,7 +34,7 @@ public class App : IDisposable
 
         IndexController = indexController;
         SearchController = searchController;
-        ColorTagService = colorTagService;
+        ColorSearchProfile = colorSearchProfile;
         Context = context;
 
         Logger.StatusChange += SetStatus;

@@ -1,4 +1,4 @@
-using MemeIndex_Core.Data;
+using MemeIndex_Core.Entities;
 
 namespace MemeIndex_Core.Model;
 
@@ -21,13 +21,13 @@ public record MonitoringOptions(string Path, bool Recursive, HashSet<int> Means)
 
         public MeansBuilder WithRgb(bool condition = true)
         {
-            if (condition) _means.Add(DatabaseInitializer.RGB_CODE);
+            if (condition) _means.Add(Mean.RGB_CODE);
             return this;
         }
 
         public MeansBuilder WithEng(bool condition = true)
         {
-            if (condition) _means.Add(DatabaseInitializer.ENG_CODE);
+            if (condition) _means.Add(Mean.ENG_CODE);
             return this;
         }
 

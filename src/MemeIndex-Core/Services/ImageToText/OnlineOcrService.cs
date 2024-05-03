@@ -2,18 +2,18 @@ using MemeIndex_Core.Utils;
 using Newtonsoft.Json.Linq;
 using Point = SixLabors.ImageSharp.Point;
 
-namespace MemeIndex_Core.Services.OCR;
+namespace MemeIndex_Core.Services.ImageToText;
 
-public class OnlineOcrService : IOcrService
+public class OnlineOcrService : IImageToTextService
 {
     private const string EMPTY_WORD = "`";
 
-    private readonly ImageCollageService _collageService;
+    private readonly ImageGroupingService _groupingService;
 
-    public OnlineOcrService()
+    public OnlineOcrService(ImageGroupingService imageGroupingService)
     {
-        _collageService = new ImageCollageService();
-        _collageService.CollageCreated += OnCollageCreated;
+        _groupingService = imageGroupingService;
+        _groupingService.CollageCreated += OnCollageCreated;
 
         ApiKey = ConfigRepository.GetConfig().OrcApiKey ?? string.Empty;
         Client = new HttpClient
@@ -46,7 +46,7 @@ public class OnlineOcrService : IOcrService
     {
         var fileInfos = paths.Select(Helpers.GetFileInfo).OfType<FileInfo>();
 
-        await _collageService.ProcessFiles(fileInfos);
+        await _groupingService.ProcessFiles(fileInfos);
     }
 
     private async void OnCollageCreated(CollageInfo collageInfo)
@@ -135,7 +135,7 @@ public class OnlineOcrService : IOcrService
     private async Task<byte[]> GetFileBytes(FileInfo file)
     {
         await using var stream = file.OpenRead();
-        _collageService.EnsureImageTakesLessThan1MB(stream);
+        _groupingService.EnsureImageTakesLessThan1MB(stream);
 
         using var memory = new MemoryStream();
         await stream.CopyToAsync(memory);
@@ -237,8 +237,8 @@ public class OnlineOcrService : IOcrService
 
         return uniqueRankedWords;
     }
+
+    public record TextLine(Word[] Words);
+
+    public record Word(string WordText, double Left, double Top, double Height, double Width);
 }
-
-public record TextLine(Word[] Words);
-
-public record Word(string WordText, double Left, double Top, double Height, double Width);

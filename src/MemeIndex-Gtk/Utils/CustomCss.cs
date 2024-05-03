@@ -1,19 +1,18 @@
 using System.Text;
 using Gdk;
 using Gtk;
-using MemeIndex_Core.Services.Indexing;
-using MemeIndex_Core.Services.OCR;
+using MemeIndex_Core.Services.ImageToText;
 using MemeIndex_Core.Utils;
 
 namespace MemeIndex_Gtk.Utils;
 
 public class CustomCss
 {
-    private readonly ColorTagService _colorTagService;
+    private readonly ColorSearchProfile _colorSearchProfile;
 
-    public CustomCss(ColorTagService colorTagService)
+    public CustomCss(ColorSearchProfile colorSearchProfile)
     {
-        _colorTagService = colorTagService;
+        _colorSearchProfile = colorSearchProfile;
     }
 
     public void AddProviders()
@@ -29,12 +28,12 @@ public class CustomCss
     private string GetColorSelectionCss()
     {
         var sb = new StringBuilder();
-        foreach (var color in _colorTagService.ColorsFunny.SelectMany(hue => hue.Value))
+        foreach (var color in _colorSearchProfile.ColorsFunny.SelectMany(hue => hue.Value))
         {
             AppendStyle(sb, color.Key, color.Value);
         }
 
-        foreach (var color in _colorTagService.ColorsGrayscale.Where(x => x.Value.A > 0))
+        foreach (var color in _colorSearchProfile.ColorsGrayscale.Where(x => x.Value.A > 0))
         {
             AppendStyle(sb, color.Key, color.Value);
         }

@@ -5,8 +5,6 @@ namespace MemeIndex_Core.Data;
 
 public static class DatabaseInitializer
 {
-    public const int RGB_CODE = 1, ENG_CODE = 2;
-
     public static void EnsureCreated(this MemeDbContext context)
     {
         if (context.Database.GetPendingMigrations().Any())
@@ -18,8 +16,8 @@ public static class DatabaseInitializer
         {
             context.Means.AddRange
             (
-                new Mean { Id = RGB_CODE, Code = "rgb" },
-                new Mean { Id = ENG_CODE, Code = "eng" }
+                new Mean { Id = Mean.RGB_CODE, Code = "rgb" },
+                new Mean { Id = Mean.ENG_CODE, Code = "eng" }
             );
 
             context.SaveChanges();

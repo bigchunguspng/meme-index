@@ -1,5 +1,5 @@
 using Gtk;
-using MemeIndex_Core.Data;
+using MemeIndex_Core.Entities;
 using MemeIndex_Core.Model;
 
 namespace MemeIndex_Gtk.Widgets;
@@ -42,12 +42,12 @@ public class FolderSelectorWidget : Box
         Eng = new CheckButton
         {
             Label = "Text",
-            Active = directory?.Means.Contains(DatabaseInitializer.ENG_CODE) ?? false
+            Active = directory?.Means.Contains(Mean.ENG_CODE) ?? false
         };
         RGB = new CheckButton
         {
             Label = "Color",
-            Active = directory?.Means.Contains(DatabaseInitializer.RGB_CODE) ?? false
+            Active = directory?.Means.Contains(Mean.RGB_CODE) ?? false
         };
 
         if (directory is not null) SelectDirectory(directory.Path);

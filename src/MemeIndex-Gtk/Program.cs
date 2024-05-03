@@ -2,9 +2,10 @@ using System.Globalization;
 using System.Text;
 using MemeIndex_Core.Controllers;
 using MemeIndex_Core.Data;
+using MemeIndex_Core.Entities;
 using MemeIndex_Core.Services.Data;
+using MemeIndex_Core.Services.ImageToText;
 using MemeIndex_Core.Services.Indexing;
-using MemeIndex_Core.Services.OCR;
 using MemeIndex_Core.Services.Search;
 using MemeIndex_Gtk.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,29 +27,39 @@ namespace MemeIndex_Gtk
 
             var builder = Host.CreateApplicationBuilder(args);
 
+            // DATABASE
             builder.Services.AddDbContext<MemeDbContext>(ServiceLifetime.Singleton, ServiceLifetime.Singleton);
 
+            // LVL 1 SERVICES
             builder.Services.AddSingleton<IMonitoringService, MonitoringService>();
             builder.Services.AddSingleton<IDirectoryService, DirectoryService>();
             builder.Services.AddSingleton<IFileService, FileService>();
 
+            // LVL 2 SERVICES
             builder.Services.AddSingleton<FileWatchService>();
             builder.Services.AddSingleton<OvertakingService>();
             builder.Services.AddSingleton<IndexingService>();
             builder.Services.AddSingleton<SearchService>();
 
+            // CONTROLLERS
             builder.Services.AddSingleton<IndexController>();
             builder.Services.AddSingleton<SearchController>();
 
-            builder.Services.AddSingleton<ColorTagService>();
-            builder.Services.AddSingleton<OnlineOcrService>();
-            builder.Services.AddTransient<OcrServiceResolver>(provider => key => key switch
+            // TAG HELPERS
+            builder.Services.AddSingleton<ColorSearchProfile>();
+            builder.Services.AddTransient<ImageGroupingService>();
+
+            // TAG METHODS
+            builder.Services.AddTransient<ColorTagService>();
+            builder.Services.AddTransient<OnlineOcrService>();
+            builder.Services.AddTransient<ImageToTextServiceResolver>(provider => key => key switch
             {
-                DatabaseInitializer.RGB_CODE => provider.GetRequiredService<ColorTagService>(),
-                DatabaseInitializer.ENG_CODE => provider.GetRequiredService<OnlineOcrService>(),
+                Mean.RGB_CODE => provider.GetRequiredService<ColorTagService>(),
+                Mean.ENG_CODE => provider.GetRequiredService<OnlineOcrService>(),
                 _ => throw new ArgumentOutOfRangeException(nameof(key))
             });
 
+            // APP SPECIFIC
             builder.Services.AddSingleton<App>();
             builder.Services.AddTransient<CustomCss>();
 
