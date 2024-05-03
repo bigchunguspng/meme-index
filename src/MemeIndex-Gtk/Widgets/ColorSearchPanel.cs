@@ -43,7 +43,7 @@ public class ColorSearchPanel : Frame
         }
 
         top = 0;
-        foreach (var color in App.ColorSearchProfile.ColorsGrayscale.Reverse())
+        foreach (var color in App.ColorSearchProfile.ColorsGrayscale)
         {
             AddColorCheckButton(top++, 0, color.Key, _gridColorsGray);
         }

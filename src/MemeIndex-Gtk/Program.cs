@@ -10,6 +10,7 @@ using MemeIndex_Core.Services.Search;
 using MemeIndex_Gtk.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace MemeIndex_Gtk
 {
@@ -26,6 +27,8 @@ namespace MemeIndex_Gtk
             }
 
             var builder = Host.CreateApplicationBuilder(args);
+
+            builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
             // DATABASE
             builder.Services.AddDbContext<MemeDbContext>(ServiceLifetime.Singleton, ServiceLifetime.Singleton);
