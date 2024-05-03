@@ -55,11 +55,11 @@ public class OnlineOcrService : IImageToTextService
         if (rankedWordsByPath is null) return;
 
         var imagesPlaced = collageInfo.Placements.Count;
-        var wordsSum = rankedWordsByPath.Sum    (x => x.Value.Count);
-        var wordsMin = rankedWordsByPath.Min    (x => x.Value.Count);
-        var wordsMax = rankedWordsByPath.Max    (x => x.Value.Count);
-        var wordsAvg = rankedWordsByPath.Average(x => x.Value.Count);
-        var message = $"SPACE-OCR: images: {imagesPlaced}\twords: {wordsMin}\t{wordsMax}\t{wordsAvg}\t{wordsSum}";
+        var wordsSum = rankedWordsByPath.Sum(x => x.Value.Count);
+        var wordsMin = rankedWordsByPath.Min(x => x.Value.Count);
+        var wordsMax = rankedWordsByPath.Max(x => x.Value.Count);
+        var wordsAvg = Math.Round(rankedWordsByPath.Average(x => x.Value.Count), 2);
+        var message = $"SPACE-OCR: images: {imagesPlaced,4}, words: {wordsSum,4}{wordsMin,4}{wordsMax,4}{wordsAvg,8}";
         Logger.Log(ConsoleColor.Blue, message);
 
         ImageProcessed?.Invoke(rankedWordsByPath);

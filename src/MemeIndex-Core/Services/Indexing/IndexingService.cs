@@ -35,21 +35,53 @@ public class IndexingService
 
         var means = await _context.Means.ToListAsync();
 
-        await Task.WhenAll(means.Select(async mean => await ProcessPendingFiles(mean.Id)));
+        var processing = new ProcessingResults();
+
+        await Task.WhenAll(means.Select(async mean => await ProcessPendingFiles(mean.Id, processing)));
 
         Logger.Log(ConsoleColor.Magenta, "Processing files: done!");
     }
 
-    private async Task ProcessPendingFiles(int meanId)
+    private class ProcessingResults : Dictionary<int, ProcessingResult>
+    {
+        private bool Done => Values.All(x => x.Done);
+
+        public override string ToString()
+        {
+            var what = Done ? "done" : "files";
+            return $"Processing {what}: {string.Join(' ', this.Select(x => $"Mean #{x.Key}: {x.Value}"))}";
+        }
+    }
+
+    private class ProcessingResult
+    {
+        public int Processed, Total;
+
+        public bool Done => Processed == Total;
+
+        public override string ToString() => $"{Processed} / {Total}";
+    }
+
+    private async Task ProcessPendingFiles(int meanId, ProcessingResults processing)
     {
         var files = await GetPendingFiles(meanId);
+        if (files.Count == 0) return;
+
+        processing.Add(meanId, new ProcessingResult { Total = files.Count });
+        Logger.Status(processing.ToString());
+
         var filesByPath = files.ToDictionary(x => x.GetFullPath(), x => x);
         var imageToTextService = _imageToTextServiceResolver(meanId);
 
         imageToTextService.ImageProcessed += async dictionary =>
         {
-            var results = dictionary.Select(x => new ImageTextRepresentation(filesByPath[x.Key], x.Value, meanId));
+            var results = dictionary
+                .Select(x => new ImageTextRepresentation(filesByPath[x.Key], x.Value, meanId))
+                .ToList();
             await UpdateDatabase(results);
+
+            processing[meanId].Processed += results.Count;
+            Logger.Status(processing.ToString());
         };
         await imageToTextService.ProcessFiles(filesByPath.Keys);
     }

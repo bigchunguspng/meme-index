@@ -21,7 +21,7 @@ public class ColorTagService : IImageToTextService
             var rankedWords = await GetTextRepresentation(path);
             if (rankedWords is null) return;
 
-            Logger.Log(ConsoleColor.Blue, $"COLOR-TAG: words: {rankedWords.Count}");
+            Logger.Log(ConsoleColor.Blue, $"COLOR-TAG: words: {rankedWords.Count,4}");
 
             ImageProcessed?.Invoke(new Dictionary<string, List<RankedWord>> { { path, rankedWords }});
         });
