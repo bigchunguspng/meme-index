@@ -33,7 +33,8 @@ public class MainWindow : Window
     {
         builder.Builder.Autoconnect(this);
 
-        // Decorated = false; // todo make custom decoration for windows 
+        // todo make custom decoration (optional, default for Windows 10™)
+        // Decorated = false;
 
         App = app;
         app.SetStatusBar(_status);

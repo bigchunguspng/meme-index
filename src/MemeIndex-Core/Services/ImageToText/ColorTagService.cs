@@ -34,6 +34,10 @@ public class ColorTagService : IImageToTextService
         return Task.Run(() => GetImageColorInfo(path));
     }
 
+    // todo:
+    // - replace with ImageSharp library
+    // - (maybe) replace dot grid with line grid algorithm
+
     private List<RankedWord>? GetImageColorInfo(string path)
     {
         // CHECK FILE

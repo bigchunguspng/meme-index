@@ -29,22 +29,6 @@ public class ImageGroupingService
 
     public async Task ProcessFiles(IEnumerable<FileInfo> files)
     {
-        /*
-        var infos = files
-            .Select(GetImageInfo)
-            .ToList();
-
-        var groups = infos
-            .GroupBy(x => Math.Min(1000, (x.Image.Width / 64 + 1) * 64))
-            .OrderByDescending(g => g.Key)
-            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.Image.Width).ToList());
-
-        foreach (var group in groups)
-        {
-            Console.WriteLine($"{group.Key}\t{group.Value.Count}");
-        }
-        */
-
         var tasks = files.Select(GetImageInfo);
         var infos = await Task.WhenAll(tasks);
 
@@ -73,6 +57,10 @@ public class ImageGroupingService
             skip += take;
         }
     }
+
+    // todo:
+    // 1. ImageInfos(file, image)[] -=-> CollageSchematic(collage size, image placements)[].
+    // 2. Make actual collages.
 
     private (CollageInfo CollageInfo, List<FileImageInfo> UnusedImages) MakeCollage(List<FileImageInfo> infos, int columns)
     {
