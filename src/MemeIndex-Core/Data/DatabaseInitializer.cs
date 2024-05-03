@@ -16,8 +16,20 @@ public static class DatabaseInitializer
         {
             context.Means.AddRange
             (
-                new Mean { Id = Mean.RGB_CODE, Code = "rgb" },
-                new Mean { Id = Mean.ENG_CODE, Code = "eng" }
+                new Mean
+                {
+                    Id = Mean.RGB_CODE,
+                    Code = "rgb",
+                    Title = "Color",
+                    Subtitle = "Color"
+                },
+                new Mean
+                {
+                    Id = Mean.ENG_CODE,
+                    Code = "eng",
+                    Title = "Text",
+                    Subtitle = "OCR (English)"
+                }
             );
 
             context.SaveChanges();

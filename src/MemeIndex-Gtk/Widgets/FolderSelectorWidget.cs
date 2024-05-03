@@ -1,11 +1,13 @@
 using Gtk;
 using MemeIndex_Core.Entities;
 using MemeIndex_Core.Model;
+using MemeIndex_Gtk.Windows;
 
 namespace MemeIndex_Gtk.Widgets;
 
 public class FolderSelectorWidget : Box
 {
+    private readonly ManageFoldersDialog _dialog;
     private readonly Container _container;
 
     private FileChooserButton Chooser { get; }
@@ -27,8 +29,13 @@ public class FolderSelectorWidget : Box
         return box.Choice;
     });
 
-    public FolderSelectorWidget(Container container, MonitoringOptions? directory = null) : base(Orientation.Horizontal, 5)
+    public FolderSelectorWidget
+    (
+        ManageFoldersDialog dialog, Container container, MonitoringOptions? directory = null
+    )
+        : base(Orientation.Horizontal, 5)
     {
+        _dialog = dialog;
         _container = container;
 
         Chooser = new FileChooserButton(string.Empty, FileChooserAction.SelectFolder) { Expand = true };
@@ -41,12 +48,12 @@ public class FolderSelectorWidget : Box
         };
         Eng = new CheckButton
         {
-            Label = "Text",
+            Label = dialog.Means[Mean.ENG_CODE].Title,
             Active = directory?.Means.Contains(Mean.ENG_CODE) ?? false
         };
         RGB = new CheckButton
         {
-            Label = "Color",
+            Label = dialog.Means[Mean.RGB_CODE].Title,
             Active = directory?.Means.Contains(Mean.RGB_CODE) ?? false
         };
 
@@ -84,7 +91,7 @@ public class FolderSelectorWidget : Box
         var noEmptySelector = !Directories.Any(string.IsNullOrEmpty);
         if (noEmptySelector)
         {
-            _container.Add(new FolderSelectorWidget(_container));
+            _container.Add(new FolderSelectorWidget(_dialog, _container));
             _container.ShowAll();
         }
 

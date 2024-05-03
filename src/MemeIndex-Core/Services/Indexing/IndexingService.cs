@@ -37,19 +37,19 @@ public class IndexingService
 
         var processing = new ProcessingResults();
 
-        await Task.WhenAll(means.Select(async mean => await ProcessPendingFiles(mean.Id, processing)));
+        await Task.WhenAll(means.Select(async mean => await ProcessPendingFiles(mean, processing)));
 
         Logger.Log(ConsoleColor.Magenta, "Processing files: done!");
     }
 
-    private class ProcessingResults : Dictionary<int, ProcessingResult>
+    private class ProcessingResults : Dictionary<Mean, ProcessingResult>
     {
         private bool Done => Values.All(x => x.Done);
 
         public override string ToString()
         {
             var what = Done ? "done" : "files";
-            return $"Processing {what}: {string.Join(' ', this.Select(x => $"Mean #{x.Key}: {x.Value}"))}";
+            return $"Processing {what}: {string.Join(' ', this.Select(x => $"{x.Key.Subtitle}: {x.Value}"))}";
         }
     }
 
@@ -62,25 +62,25 @@ public class IndexingService
         public override string ToString() => $"{Processed} / {Total}";
     }
 
-    private async Task ProcessPendingFiles(int meanId, ProcessingResults processing)
+    private async Task ProcessPendingFiles(Mean mean, ProcessingResults processing)
     {
-        var files = await GetPendingFiles(meanId);
+        var files = await GetPendingFiles(mean.Id);
         if (files.Count == 0) return;
 
-        processing.Add(meanId, new ProcessingResult { Total = files.Count });
+        processing.Add(mean, new ProcessingResult { Total = files.Count });
         Logger.Status(processing.ToString());
 
         var filesByPath = files.ToDictionary(x => x.GetFullPath(), x => x);
-        var imageToTextService = _imageToTextServiceResolver(meanId);
+        var imageToTextService = _imageToTextServiceResolver(mean.Id);
 
         imageToTextService.ImageProcessed += async dictionary =>
         {
             var results = dictionary
-                .Select(x => new ImageTextRepresentation(filesByPath[x.Key], x.Value, meanId))
+                .Select(x => new ImageTextRepresentation(filesByPath[x.Key], x.Value, mean.Id))
                 .ToList();
             await UpdateDatabase(results);
 
-            processing[meanId].Processed += results.Count;
+            processing[mean].Processed += results.Count;
             Logger.Status(processing.ToString());
         };
         await imageToTextService.ProcessFiles(filesByPath.Keys);

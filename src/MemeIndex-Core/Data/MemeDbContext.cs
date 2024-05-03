@@ -20,8 +20,9 @@ public class MemeDbContext : DbContext
     public DbSet<Entities.MonitoredDirectory> MonitoredDirectories { get; set; } = default!;
     public DbSet<Entities.         Directory>          Directories { get; set; } = default!;
 
-    // dotnet ef --startup-project ..\MemeIndex-Console\ migrations add Initial
-    // dotnet ef --startup-project ..\MemeIndex-Console\ database update
+    // 1. open MemeIndex-Core in Terminal
+    // 2. dotnet ef --startup-project ..\MemeIndex-Console\ migrations add Initial
+    // 3. dotnet ef --startup-project ..\MemeIndex-Console\ database update
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

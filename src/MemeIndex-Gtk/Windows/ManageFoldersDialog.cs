@@ -1,4 +1,5 @@
 using Gtk;
+using MemeIndex_Core.Entities;
 using MemeIndex_Core.Model;
 using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils;
@@ -16,12 +17,16 @@ public class ManageFoldersDialog : Dialog
 
     private App App { get; }
 
+    public readonly Dictionary<int,Mean> Means;
+
     public ManageFoldersDialog(App app, WindowBuilder builder) : base(builder.Raw)
     {
         builder.Builder.Autoconnect(this);
 
         App = app;
         Modal = true;
+
+        Means = App.Context.Means.ToDictionary(x => x.Id);
 
         LoadData();
 
@@ -37,10 +42,10 @@ public class ManageFoldersDialog : Dialog
         var existing = directories.Where(x => x.Path.DirectoryExists());
         foreach (var directory in existing)
         {
-            _folders.Add(new FolderSelectorWidget(_folders, directory));
+            _folders.Add(new FolderSelectorWidget(this, _folders, directory));
         }
 
-        _folders.Add(new FolderSelectorWidget(_folders));
+        _folders.Add(new FolderSelectorWidget(this, _folders));
     }
 
     private async void Ok(object? sender, EventArgs e)

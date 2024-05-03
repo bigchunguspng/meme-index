@@ -49,6 +49,9 @@ internal static class Program
         builder.Services.AddSingleton<IndexController>();
         builder.Services.AddSingleton<SearchController>();
 
+        builder.Services.AddSingleton<ColorSearchProfile>();
+        builder.Services.AddTransient<ImageGroupingService>();
+
         builder.Services.AddTransient<ColorTagService>();
         builder.Services.AddTransient<OnlineOcrService>();
         builder.Services.AddTransient<ImageToTextServiceResolver>(provider => key => key switch
