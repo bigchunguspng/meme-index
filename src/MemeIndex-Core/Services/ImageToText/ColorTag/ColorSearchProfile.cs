@@ -1,7 +1,7 @@
 using IronSoftware.Drawing;
 using MemeIndex_Core.Utils;
 
-namespace MemeIndex_Core.Services.ImageToText;
+namespace MemeIndex_Core.Services.ImageToText.ColorTag;
 
 public class ColorSearchProfile
 {

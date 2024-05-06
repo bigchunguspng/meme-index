@@ -6,6 +6,8 @@ using MemeIndex_Core.Entities;
 using MemeIndex_Core.Services.Data;
 using MemeIndex_Core.Services.Data.Contracts;
 using MemeIndex_Core.Services.ImageToText;
+using MemeIndex_Core.Services.ImageToText.ColorTag;
+using MemeIndex_Core.Services.ImageToText.OCR;
 using MemeIndex_Core.Services.Indexing;
 using MemeIndex_Gtk.Utils;
 using Microsoft.Extensions.DependencyInjection;

@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
-namespace MemeIndex_Core.Services.ImageToText;
+namespace MemeIndex_Core.Services.ImageToText.OCR;
 
 /// <summary>
 /// Is used to bypass OCR API rate limit

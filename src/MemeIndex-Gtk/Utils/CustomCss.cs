@@ -1,7 +1,7 @@
 using System.Text;
 using Gdk;
 using Gtk;
-using MemeIndex_Core.Services.ImageToText;
+using MemeIndex_Core.Services.ImageToText.ColorTag;
 using MemeIndex_Core.Utils;
 
 namespace MemeIndex_Gtk.Utils;

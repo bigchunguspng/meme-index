@@ -2,7 +2,7 @@ using MemeIndex_Core.Utils;
 using Newtonsoft.Json.Linq;
 using Point = SixLabors.ImageSharp.Point;
 
-namespace MemeIndex_Core.Services.ImageToText;
+namespace MemeIndex_Core.Services.ImageToText.OCR;
 
 public class OnlineOcrService : IImageToTextService
 {
