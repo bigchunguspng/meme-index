@@ -1,6 +1,6 @@
 using Directory = MemeIndex_Core.Entities.Directory;
 
-namespace MemeIndex_Core.Services.Data;
+namespace MemeIndex_Core.Services.Data.Contracts;
 
 public interface IDirectoryService
 {

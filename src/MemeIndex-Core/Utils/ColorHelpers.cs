@@ -4,6 +4,9 @@ namespace MemeIndex_Core.Utils;
 
 public static class ColorHelpers
 {
+    /// <param name="hue">0 - 360</param>
+    /// <param name="saturation">0 - 1</param>
+    /// <param name="lightness">0 - 1</param>
     public static Color ColorFromHSL(double hue, double saturation, double lightness)
     {
         if (saturation == 0)

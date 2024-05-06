@@ -1,6 +1,6 @@
 using MemeIndex_Core.Data;
 using MemeIndex_Core.Entities;
-using MemeIndex_Core.Services.Data;
+using MemeIndex_Core.Services.Data.Contracts;
 using MemeIndex_Core.Services.ImageToText;
 using MemeIndex_Core.Utils;
 using Microsoft.EntityFrameworkCore;
@@ -115,8 +115,8 @@ public class IndexingService
             var wordIds = new Queue<int>();
             foreach (var word in result.Words)
             {
-                var record = await GetOrAddWord(word.Word);
-                wordIds.Enqueue(record.Id);
+                var entity = await GetOrCreateWordEntity(word.Word);
+                wordIds.Enqueue(entity.Id);
             }
 
             var tags = result.Words.Select(x => new Tag
@@ -133,7 +133,7 @@ public class IndexingService
         _context.Access.Release();
     }
 
-    private async Task<Entities.Word> GetOrAddWord(string word)
+    private async Task<Entities.Word> GetOrCreateWordEntity(string word)
     {
         var existing = _context.Words.FirstOrDefault(x => x.Text == word);
         if (existing != null)
@@ -149,61 +149,6 @@ public class IndexingService
         return entity;
     }
 
-    /*
-    public Task<List<MonitoredDirectory>> GetTrackedDirectories()
-    {
-        return _monitoringService.GetDirectories();
-    }
-    */
-
-    /*
-    public async Task AddDirectory(MonitoringOptions options)
-    {
-        var path = options.Path;
-        if (path.DirectoryExists())
-        {
-            Logger.Status($"Adding \"{path}\"...");
-
-            // add to db, start watching
-            await _monitoringService.AddDirectory(options);
-            _watch.StartWatching(path, options.Recursive);
-
-            Logger.Log(ConsoleColor.Magenta, "Directory [{0}] added", path);
-
-            // add to db all files
-            var files = Helpers.GetImageFiles(path, options.Recursive);
-
-            Logger.Log(ConsoleColor.Magenta, "Files: {0}", files.Count);
-
-            var tasks = files.Select(file => _fileService.AddFile(file));
-            await Task.WhenAll(tasks);
-
-            Logger.Log("Done", ConsoleColor.Magenta);
-        }
-    }
-    */
-
-    /*
-    /// <summary>
-    /// This method should be called intentionally by user,
-    /// because it removes all files from that directory from index.
-    /// </summary>
-    public async Task RemoveDirectory(string path)
-    {
-        // remove from db
-        // stop watching
-
-        if (path.DirectoryExists())
-        {
-            Logger.Status($"Removing \"{path}\"...");
-
-            await _monitoringService.RemoveDirectory(path);
-            _watch.StopWatching(path);
-
-            Logger.Log(ConsoleColor.Magenta, "Directory [{0}] removed", path);
-        }
-    }
-    */
 
     public async Task<IEnumerable<MonitoredDirectory>> GetMissingDirectories()
     {
@@ -218,34 +163,6 @@ public class IndexingService
             _directoryService.Update(oldPath, newPath);
         }
     }
-
-    private bool FileWasUpdated(FileInfo fileInfo, Entities.File entity)
-    {
-        // (so it needs reindexing by visual means)
-        return fileInfo.Length != entity.Size ||
-               fileInfo.LastWriteTimeUtc > entity.Tracked ||
-               fileInfo.CreationTimeUtc  > entity.Tracked;
-    }
-
-    /*
-    public async void StartIndexingAsync()
-    {
-        // todo ask to locate missing dirs
-
-        await _overtakingService.OvertakeMissingFiles();
-
-        // todo check all files for changes with FileWasUpdated()
-
-        await _watch.Start();
-    }
-    */
-
-    /*
-    public void StopIndexing()
-    {
-        _watch.Stop();
-    }
-*/
 }
 
 public record ImageTextRepresentation(Entities.File File, List<RankedWord> Words, int Mean);

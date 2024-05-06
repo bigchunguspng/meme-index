@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using MemeIndex_Core.Data;
-using MemeIndex_Core.Services.Data;
+using MemeIndex_Core.Services.Data.Contracts;
 using MemeIndex_Core.Utils;
 using Directory = MemeIndex_Core.Entities.Directory;
 

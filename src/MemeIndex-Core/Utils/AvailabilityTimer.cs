@@ -1,5 +1,9 @@
 namespace MemeIndex_Core.Utils;
 
+/// <summary>
+/// Can be used to make a specific recourse unavailable
+/// for a specific amount of time.
+/// </summary>
 public class AvailabilityTimer
 {
     public bool IsAvailable { get; private set; } = true;

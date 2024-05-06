@@ -1,5 +1,5 @@
 using MemeIndex_Core.Data;
-using MemeIndex_Core.Services.Data;
+using MemeIndex_Core.Services.Data.Contracts;
 using MemeIndex_Core.Utils;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,7 +14,13 @@ public class FileWatchService
     private readonly List<DirectoryMonitor> _watchers;
     private readonly DebounceTimer _debounce;
 
-    public FileWatchService(IDirectoryService directoryService, IFileService fileService, IMonitoringService monitoringService, MemeDbContext context)
+    public FileWatchService
+    (
+        IDirectoryService directoryService,
+        IFileService fileService,
+        IMonitoringService monitoringService,
+        MemeDbContext context
+    )
     {
         _directoryService = directoryService;
         _fileService = fileService;

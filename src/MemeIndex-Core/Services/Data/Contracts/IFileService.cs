@@ -1,6 +1,6 @@
 using MemeIndex_Core.Entities;
 
-namespace MemeIndex_Core.Services.Data;
+namespace MemeIndex_Core.Services.Data.Contracts;
 
 public interface IFileService
 {
@@ -14,7 +14,4 @@ public interface IFileService
 
     /// <returns>Number of files removed.</returns>
     Task<int> RemoveRange(IEnumerable<Entities.File> files);
-
-    //Task UpdateFile(int id);
-    //Task RemoveFile(int id);
 }

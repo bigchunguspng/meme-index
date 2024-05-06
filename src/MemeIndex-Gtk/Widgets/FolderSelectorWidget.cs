@@ -31,7 +31,7 @@ public class FolderSelectorWidget : Box
 
     public FolderSelectorWidget
     (
-        ManageFoldersDialog dialog, Container container, MonitoringOptions? directory = null
+        ManageFoldersDialog dialog, Container container, MonitoringOption? option = null
     )
         : base(Orientation.Horizontal, 5)
     {
@@ -44,20 +44,18 @@ public class FolderSelectorWidget : Box
         Recursive = new CheckButton
         {
             Label = "Recursive",
-            Active = directory?.Recursive ?? false
+            Active = option?.Recursive ?? false
         };
-        Eng = new CheckButton
+        Eng = GetCheckButton(Mean.ENG_CODE);
+        RGB = GetCheckButton(Mean.RGB_CODE);
+
+        CheckButton GetCheckButton(int meanId) => new()
         {
-            Label = dialog.Means[Mean.ENG_CODE].Title,
-            Active = directory?.Means.Contains(Mean.ENG_CODE) ?? false
-        };
-        RGB = new CheckButton
-        {
-            Label = dialog.Means[Mean.RGB_CODE].Title,
-            Active = directory?.Means.Contains(Mean.RGB_CODE) ?? false
+            Label = dialog.Means[meanId].Title,
+            Active = option?.Means.Contains(meanId) ?? false
         };
 
-        if (directory is not null) SelectDirectory(directory.Path);
+        if (option is not null) SelectDirectory(option.Path);
 
         Chooser.SelectionChanged += ChooserOnFileSet;
         Remover.Clicked += RemoverOnClicked;

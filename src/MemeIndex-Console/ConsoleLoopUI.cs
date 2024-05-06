@@ -47,9 +47,9 @@ public class ConsoleLoopUI : IHostedService
                     var eng = split.Length > 2 && split[2].Contains("eng");
                     var rgb = split.Length > 2 && split[2].Contains("rgb");
                     var means = eng || rgb
-                        ? new MonitoringOptions.MeansBuilder().WithRgb(rgb).WithEng(eng).Build()
-                        : MonitoringOptions.DefaultMeans;
-                    var op = new MonitoringOptions(path, recursive, means);
+                        ? new MonitoringOption.MeansBuilder().WithRgb(rgb).WithEng(eng).Build()
+                        : MonitoringOption.DefaultMeans;
+                    var op = new MonitoringOption(path, recursive, means);
                     _indexController.AddDirectory(op).Wait();
                     continue;
                 }
@@ -66,9 +66,9 @@ public class ConsoleLoopUI : IHostedService
                     var eng = split.Length > 2 && split[2].Contains("eng");
                     var rgb = split.Length > 2 && split[2].Contains("rgb");
                     var means = eng || rgb
-                        ? new MonitoringOptions.MeansBuilder().WithRgb(rgb).WithEng(eng).Build()
-                        : MonitoringOptions.DefaultMeans;
-                    var op = new MonitoringOptions(path, recursive, means);
+                        ? new MonitoringOption.MeansBuilder().WithRgb(rgb).WithEng(eng).Build()
+                        : MonitoringOption.DefaultMeans;
+                    var op = new MonitoringOption(path, recursive, means);
                     _indexController.UpdateDirectory(op).Wait();
                     continue;
                 }

@@ -66,11 +66,11 @@ public class ManageFoldersDialog : Dialog
         var options = _folders.Children
             .Select(x => (FolderSelectorWidget)((ListBoxRow)x).Child)
             .Where(x => x.DirectorySelected)
-            .Select(x => new MonitoringOptions
+            .Select(x => new MonitoringOption
             (
                 Path: x.Choice!,
                 Recursive: x.Recursive.Active,
-                Means: new MonitoringOptions.MeansBuilder()
+                Means: new MonitoringOption.MeansBuilder()
                     .WithEng(x.Eng.Active)
                     .WithRgb(x.RGB.Active).Build()
             ));

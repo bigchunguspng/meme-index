@@ -1,7 +1,7 @@
 using MemeIndex_Core.Entities;
 using MemeIndex_Core.Model;
 
-namespace MemeIndex_Core.Services.Data;
+namespace MemeIndex_Core.Services.Data.Contracts;
 
 public interface IMonitoringService
 {
@@ -13,39 +13,17 @@ public interface IMonitoringService
     Task<List<MonitoredDirectory>> GetDirectories();
 
     /// <summary>
-    /// Returns a list of monitored directories, including
+    /// Returns a list of monitored directories, [including
     /// <see cref="MonitoredDirectory.Directory"/> and
-    /// <see cref="MonitoredDirectory.IndexingOptions"/> properties,
+    /// <see cref="MonitoredDirectory.IndexingOptions"/> properties],
     /// which should be indexed by a <see cref="Mean"/> with given id.
     /// </summary>
     IQueryable<MonitoredDirectory> GetDirectories(int meanId);
 
-    // user updates watching list
-    /// <summary>
-    /// Updates 
-    /// </summary>
-    /// <param name="directories"></param>
-    Task UpdateMonitoredDirectories(IList<MonitoredDirectory> directories);
-
-    /*
-
-    update changes:
-        - dir added to wl
-                    +dir if ness, +md, +io, add all files
-        - dir removed from wl
-                    -md, -io, rem all files with md = md
-        - dir recursive flag changed
-                    to true ? add all files from subs : rem all files from subs, update fsw
-        - dir mean list modified
-                    for new options > trigger indexing (for this dir)
-                    for removed > del tags where mean = x and file is in that dir
-
-     */
-
     /// <summary>
     /// Adds a directory to monitoring list according to provided options.
     /// </summary>
-    Task<MonitoredDirectory> AddDirectory(MonitoringOptions options);
+    Task<MonitoredDirectory> AddDirectory(MonitoringOption option);
 
     /// <summary>
     /// Removes directory from monitoring list.
@@ -57,5 +35,6 @@ public interface IMonitoringService
     /// <summary>
     /// Updates monitoring options of the directory.
     /// </summary>
-    Task<bool> UpdateDirectory(MonitoringOptions options);
+    /// <returns> The value indicating whether the recursion option was altered. </returns>
+    Task<bool> UpdateDirectory(MonitoringOption option);
 }

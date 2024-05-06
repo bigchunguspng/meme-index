@@ -23,7 +23,8 @@ public class ColorTagService : IImageToTextService
 
             Logger.Log(ConsoleColor.Blue, $"COLOR-TAG: words: {rankedWords.Count,4}");
 
-            ImageProcessed?.Invoke(new Dictionary<string, List<RankedWord>> { { path, rankedWords }});
+            var result = new Dictionary<string, List<RankedWord>> { { path, rankedWords } };
+            ImageProcessed?.Invoke(result);
         });
 
         await Task.WhenAll(tasks);

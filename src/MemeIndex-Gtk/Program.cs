@@ -4,9 +4,9 @@ using MemeIndex_Core.Controllers;
 using MemeIndex_Core.Data;
 using MemeIndex_Core.Entities;
 using MemeIndex_Core.Services.Data;
+using MemeIndex_Core.Services.Data.Contracts;
 using MemeIndex_Core.Services.ImageToText;
 using MemeIndex_Core.Services.Indexing;
-using MemeIndex_Core.Services.Search;
 using MemeIndex_Gtk.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -42,7 +42,6 @@ namespace MemeIndex_Gtk
             builder.Services.AddSingleton<FileWatchService>();
             builder.Services.AddSingleton<OvertakingService>();
             builder.Services.AddSingleton<IndexingService>();
-            builder.Services.AddSingleton<SearchService>();
 
             // CONTROLLERS
             builder.Services.AddSingleton<IndexController>();

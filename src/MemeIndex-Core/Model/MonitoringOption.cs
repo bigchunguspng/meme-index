@@ -2,11 +2,11 @@ using MemeIndex_Core.Entities;
 
 namespace MemeIndex_Core.Model;
 
-public record MonitoringOptions(string Path, bool Recursive, HashSet<int> Means)
+public record MonitoringOption(string Path, bool Recursive, HashSet<int> Means)
 {
     public static HashSet<int> DefaultMeans => new() { 1, 2 };
 
-    public bool IsTheSameAs(MonitoringOptions other)
+    public bool IsTheSameAs(MonitoringOption other)
     {
         return Path == other.Path
             && Recursive == other.Recursive

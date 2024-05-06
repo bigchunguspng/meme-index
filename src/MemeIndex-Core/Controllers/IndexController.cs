@@ -1,5 +1,5 @@
 using MemeIndex_Core.Model;
-using MemeIndex_Core.Services.Data;
+using MemeIndex_Core.Services.Data.Contracts;
 using MemeIndex_Core.Services.Indexing;
 using MemeIndex_Core.Utils;
 
@@ -31,17 +31,17 @@ public class IndexController
         _fileWatchService.UpdateFileSystemKnowledge += UpdateFileSystemKnowledge;
     }
 
-    public async Task<List<MonitoringOptions>> GetMonitoringOptions()
+    public async Task<List<MonitoringOption>> GetMonitoringOptions()
     {
         var directories = await _monitoringService.GetDirectories();
         return directories.Select(x =>
         {
             var means = x.IndexingOptions.Select(o => o.MeanId).Distinct().ToHashSet();
-            return new MonitoringOptions(x.Directory.Path, x.Recursive, means);
+            return new MonitoringOption(x.Directory.Path, x.Recursive, means);
         }).ToList();
     }
 
-    public async Task UpdateMonitoringDirectories(IEnumerable<MonitoringOptions> options)
+    public async Task UpdateMonitoringDirectories(IEnumerable<MonitoringOption> options)
     {
         var optionsDb = await GetMonitoringOptions();
         var optionsMf = options.ToList();
@@ -53,9 +53,9 @@ public class IndexController
         var rem = directoriesDb.Except(directoriesMf).OrderByDescending(x => x.Length).ToList();
         var upd = directoriesDb.Intersect(directoriesMf).Where(path =>
         {
-            var db = optionsDb.First(op => op.Path == path);
-            var mf = optionsMf.First(op => op.Path == path);
-            return !db.IsTheSameAs(mf);
+            var dbOption = optionsDb.First(op => op.Path == path);
+            var mfOption = optionsMf.First(op => op.Path == path);
+            return !dbOption.IsTheSameAs(mfOption);
         }).ToList();
 
         foreach (var path in rem)
@@ -74,23 +74,23 @@ public class IndexController
         }
     }
 
-    public async Task AddDirectory(MonitoringOptions options)
+    public async Task AddDirectory(MonitoringOption option)
     {
-        var directory = await _monitoringService.AddDirectory(options);
+        var directory = await _monitoringService.AddDirectory(option);
         await _fileService.AddFiles(directory);
-        _fileWatchService.StartWatching(options.Path, options.Recursive);
+        _fileWatchService.StartWatching(option.Path, option.Recursive);
 
-        Logger.Status($"Added {options.Path.Quote()}");
+        Logger.Status($"Added {option.Path.Quote()}");
     }
 
-    public async Task UpdateDirectory(MonitoringOptions options)
+    public async Task UpdateDirectory(MonitoringOption option)
     {
-        var changed = await _monitoringService.UpdateDirectory(options);
+        var changed = await _monitoringService.UpdateDirectory(option);
         if (changed)
         {
-            _fileWatchService.ChangeRecursion(options.Path, options.Recursive);
+            _fileWatchService.ChangeRecursion(option.Path, option.Recursive);
 
-            Logger.Status($"Updated {options.Path.Quote()}");
+            Logger.Status($"Updated {option.Path.Quote()}");
         }
     }
 
