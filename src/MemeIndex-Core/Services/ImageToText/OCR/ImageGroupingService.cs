@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using MemeIndex_Core.Utils;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;
@@ -30,131 +29,184 @@ public class ImageGroupingService
     public async Task ProcessFiles(IEnumerable<FileInfo> files)
     {
         var tasks = files.Select(GetImageInfo);
-        var infos = await Task.WhenAll(tasks);
+        var images = await Task.WhenAll(tasks);
 
-        var sorted = infos.OrderByDescending(x => x.Image.Width).ToList();
+        var collages = DistributeImages(images);
 
-        var unused = new List<FileImageInfo>();
-        var skip = 0;
-        while (skip < sorted.Count || unused.Count > 0)
+        foreach (var collage in collages)
         {
-            var maxWidth = sorted[skip].Image.Width;
-            var columns = Math.Clamp((int)Math.Round(3000 / (double)maxWidth), 3, 8);
-            var take = columns * columns - unused.Count;
-
-            var images = sorted
-                .Skip(skip)
-                .Take(take)
-                .Union(unused)
-                .OrderByDescending(x => x.Image.Height)
-                .ToList();
-
-            var result = MakeCollage(images, columns);
-
-            CollageCreated?.Invoke(result.CollageInfo);
-
-            unused = result.UnusedImages;
-            skip += take;
+            var collageInfo = await RenderCollage(collage);
+            CollageCreated?.Invoke(collageInfo);
         }
     }
 
-    // todo:
-    // 1. ImageInfos(file, image)[] -=-> CollageSchematic(collage size, image placements)[].
-    // 2. Make actual collages.
 
-    private (CollageInfo CollageInfo, List<FileImageInfo> UnusedImages) MakeCollage(List<FileImageInfo> infos, int columns)
+    private static List<CollageRequest> DistributeImages(IEnumerable<FileImageInfo> infos)
     {
-        var placements = new List<ImagePlacement>(infos.Count);
-        var unused = new List<FileImageInfo>();
+        var imagesByWidthDesc = infos
+            .Select(x => x.CapImageByWidth(1000).CapImageByHeight(3000))
+            .OrderByDescending(x => x.Image.Width).ToList();
 
-        var maxW = infos.Max(x => x.Image.Width);
-        var maxH = infos.Max(x => x.Image.Height);
-        var sumH = infos.Sum(x => x.Image.Height);
+        var totalArea = imagesByWidthDesc.Sum(x => x.Image.Width * x.Image.Height);
 
-        Console.WriteLine(infos.Sum(x => x.File.Length));
+        var count = Math.Ceiling(totalArea / 9_000_000D);
+        var limit = count > 1 ? 3000 : (int)Math.Ceiling(Math.Sqrt(2 * totalArea / count));
+        var collageMax = new Size(limit, limit);
 
-        // 3000 - max collage width (for better results)
-        // 1000 - max width of image in collage
-        //    3 - min column count
+        // PHASE 1
 
-        var columnW = Math.Min(maxW, 1000);
+        var columns = new List<ColumnRequest>();
 
-        var offsetsByColumn = new int[columns];
-
-        var collageW = columnW * columns;
-        var collageH = 2 * Math.Max(maxH, sumH / columns);
-
-        var timer = new Stopwatch();
-        timer.Start();
-
-        using var collage = new Image<Rgb24>(collageW, collageH, Color.White);
-
-        foreach (var info in infos)
+        foreach (var image in imagesByWidthDesc)
         {
-            var tooWide = info.Image.Width > 1000;
-            var imageW = tooWide ? 1000 : info.Image.Width;
-            var imageH = tooWide ? 1000 * info.Image.Height / info.Image.Width : info.Image.Height;
-
-            var highEnoughColumns = offsetsByColumn.Where(x => collageH - x >= imageH).ToArray();
-            if (highEnoughColumns.Length == 0)
+            var index = columns.FindIndex(x => collageMax.Height - x.Size.Height >= image.Image.Height);
+            if (index < 0)
             {
-                unused.Add(info);
-                continue;
+                var list = new List<FileImageInfo> { image };
+                columns.Add(new(image.Image.Size, list));
+            }
+            else
+            {
+                var column = columns[index];
+                column.AddHeight(image.Image.Height);
+                column.Images.Add(image);
+            }
+        }
+
+        // PHASE 2
+
+        var columnsByHeightDesc = columns.OrderByDescending(x => x.Size.Height).ToList();
+
+        var collages = new List<CollageRequest>();
+
+        foreach (var column in columnsByHeightDesc)
+        {
+            var index = collages.FindIndex(x => collageMax.Width - x.Size.Width >= column.Size.Width);
+            if (index < 0)
+            {
+                var list = new List<ColumnRequest> { column };
+                collages.Add(new(column.Size, list));
+            }
+            else
+            {
+                var collage = collages[index];
+                collage.AddWidth(column.Size.Width);
+                collage.Columns.Add(column);
+            }
+        }
+
+        return collages;
+    }
+
+    private class ColumnRequest
+    {
+        public ColumnRequest(Size size, List<FileImageInfo> images)
+        {
+            Size = size;
+            Images = images;
+        }
+
+        public Size Size { get; private set; }
+        public List<FileImageInfo> Images { get; }
+
+        public void AddHeight(int height)
+        {
+            Size = Size with { Height = Size.Height + height };
+        }
+    }
+
+    private class CollageRequest
+    {
+        public CollageRequest(Size size, List<ColumnRequest> columns)
+        {
+            Size = size;
+            Columns = columns;
+        }
+
+        public Size Size { get; private set; }
+        public List<ColumnRequest> Columns { get; }
+
+        public void AddWidth(int width)
+        {
+            Size = Size with { Width = Size.Width + width };
+        }
+    }
+
+
+    private async Task<CollageInfo> RenderCollage(CollageRequest collageInfo)
+    {
+        var sw = Helpers.GetStartedStopwatch();
+
+        var placements = new List<ImagePlacement>(collageInfo.Columns.Sum(x => x.Images.Count));
+
+        using var collage = new Image<Rgb24>(collageInfo.Size.Width, collageInfo.Size.Height, Color.White);
+
+        var offset = new Point(0, 0);
+
+        foreach (var column in collageInfo.Columns)
+        {
+            offset.Y = 0;
+
+            foreach (var image in column.Images)
+            {
+                var isRgba32 = image.Image.PixelType.BitsPerPixel == 32;
+                var placeImage = isRgba32.Switch<PlaceImage>(PlaceImage32, PlaceImage24);
+                var placement = placeImage(image.File, collage, offset, image.Image.Size);
+
+                placements.Add(placement);
+                offset.Y += image.Image.Height;
+#if DEBUG
+                Console.WriteLine(image.File.FullName);
+#endif
             }
 
-            var minOffset = highEnoughColumns.Min();
-            var column = Array.IndexOf(offsetsByColumn, minOffset);
-
-            var size = new Size(imageW, imageH);
-            var offset = new Point(columnW * column, minOffset);
-
-            var isRgba32 = info.Image.PixelType.BitsPerPixel == 32;
-            var placeImage = isRgba32.Switch<PlaceImage>(PlaceImage32, PlaceImage24);
-            var placement = placeImage(info.File, collage, offset, size);
-
-            placements.Add(placement);
-            offsetsByColumn[column] += placement.Rectangle.Height;
-            Console.WriteLine(info.File.FullName);
+            offset.X += column.Images.Max(x => x.Image.Width);
         }
 
-        Console.WriteLine(timer.Elapsed.TotalSeconds + "\tcollage");
-        timer.Restart();
+        Console.WriteLine(sw.Elapsed.TotalSeconds + "\tcollage filled");
+        sw.Restart();
 
-        var maxOffset = offsetsByColumn.Max();
-        collage.Mutate(x => x.Crop(new Rectangle(0, 0, collageW, maxOffset)));
+        var stream = new MemoryStream();
+        await collage.SaveAsJpegAsync(stream, _defaultJpegEncoder);
 
-        Console.WriteLine(timer.Elapsed.TotalSeconds + "\tcrop");
-        timer.Restart();
+        stream = await CapImageTo1MB(stream);
 
-        using var stream = new MemoryStream();
-        collage.SaveAsJpeg(stream, _defaultJpegEncoder);
+        Console.WriteLine(sw.Elapsed.TotalSeconds + "\tcollage.jpg");
 
-        EnsureImageTakesLessThan1MB(stream);
+#if DEBUG
+        Directory.CreateDirectory("img-c");
+        var path = Path.Combine("img-c", $"collage-{DateTime.UtcNow.Ticks}.jpg");
+        await collage.SaveAsJpegAsync(path, _defaultJpegEncoder);
+#endif
 
-        Console.WriteLine(timer.Elapsed.TotalSeconds + "\tcollage.jpg");
-
-        collage.SaveAsJpeg($"collage-{DateTime.UtcNow.Ticks}.jpg", _defaultJpegEncoder);
-
-        return (new CollageInfo(stream.ToArray(), placements), unused);
+        return new CollageInfo(stream.ToArray(), placements);
     }
 
-    public void EnsureImageTakesLessThan1MB(Stream stream)
+    public async Task<MemoryStream> CapImageTo1MB(Stream stream)
     {
-        while (stream.Length >= 1024 * 1024)
+        if (stream.Length >= 1024 * 1024)
         {
             var divider = Math.Sqrt(stream.Length / 500_000F);
-
             Console.WriteLine($"Dividing image by {divider}");
 
-            using var image = Image.Load(stream);
+            stream.Position = 0; // <- for proper image loading;
+
+            using var image = await Image.LoadAsync(stream);
+
+            await stream.DisposeAsync();
 
             var w = (int)(image.Width  / divider);
             var h = (int)(image.Height / divider);
 
             image.Mutate(x => x.Resize(w, h));
 
-            image.SaveAsJpeg(stream, _defaultJpegEncoder);
+            var memory = new MemoryStream();
+            await image.SaveAsJpegAsync(memory, _defaultJpegEncoder);
+
+            return await CapImageTo1MB(memory);
         }
+
+        return stream as MemoryStream ?? await stream.ToMemoryStreamAsync();
     }
 
 
@@ -216,7 +268,7 @@ public class ImageGroupingService
     {
         using var image = Image.Load<T>(file.FullName);
 
-        if (image.Size.Width > size.Width)
+        if (image.Size.Width > size.Width || image.Size.Height > size.Height)
             image.Mutate(x => x.Resize(size));
 
         for (var x = 0; x < image.Width; x++)
@@ -229,7 +281,24 @@ public class ImageGroupingService
     }
 }
 
-public record FileImageInfo(FileInfo File, ImageInfo Image);
+public record FileImageInfo(FileInfo File, ImageInfo Image)
+{
+    public FileImageInfo CapImageByWidth(int widthLimit)
+    {
+        if (Image.Width <= widthLimit) return this;
+
+        var size = new Size(widthLimit, widthLimit * Image.Height / Image.Width);
+        return this with { Image = new ImageInfo(Image.PixelType, size, null) };
+    }
+
+    public FileImageInfo CapImageByHeight(int heightLimit)
+    {
+        if (Image.Height <= heightLimit) return this;
+
+        var size = new Size(heightLimit * Image.Width / Image.Height, heightLimit);
+        return this with { Image = new ImageInfo(Image.PixelType, size, null) };
+    }
+}
 
 public record ImagePlacement(FileInfo File, Rectangle Rectangle);
 

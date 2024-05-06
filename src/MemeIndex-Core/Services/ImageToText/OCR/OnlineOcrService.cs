@@ -135,10 +135,7 @@ public class OnlineOcrService : IImageToTextService
     private async Task<byte[]> GetFileBytes(FileInfo file)
     {
         await using var stream = file.OpenRead();
-        _groupingService.EnsureImageTakesLessThan1MB(stream);
-
-        using var memory = new MemoryStream();
-        await stream.CopyToAsync(memory);
+        await using var memory = await _groupingService.CapImageTo1MB(stream);
 
         return memory.ToArray();
     }

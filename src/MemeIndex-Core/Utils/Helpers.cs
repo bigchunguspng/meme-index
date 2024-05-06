@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace MemeIndex_Core.Utils;
@@ -68,5 +69,20 @@ public static partial class Helpers
     public static T Switch<T>(this bool condition, T onTrue, T onFalse)
     {
         return condition ? onTrue : onFalse;
+    }
+
+    public static async Task<MemoryStream> ToMemoryStreamAsync(this Stream stream)
+    {
+        var memoryStream = new MemoryStream();
+        await stream.CopyToAsync(memoryStream);
+        await stream.DisposeAsync();
+        return memoryStream;
+    }
+
+    public static Stopwatch GetStartedStopwatch()
+    {
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+        return stopwatch;
     }
 }
