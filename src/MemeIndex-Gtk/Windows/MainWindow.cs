@@ -3,6 +3,7 @@ using MemeIndex_Core.Controllers;
 using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils;
 using MemeIndex_Gtk.Widgets;
+using MemeIndex_Gtk.Widgets.FileView;
 using Application = Gtk.Application;
 using MenuItem = Gtk.MenuItem;
 using UI = Gtk.Builder.ObjectAttribute;
@@ -25,7 +26,7 @@ public class MainWindow : Window
     [UI] private readonly ToggleButton _buttonColorSearch = default!;
 
     private readonly ColorSearchPanel _colorSearchPanel;
-    private readonly FileView _files;
+    private readonly IFileView _files;
 
     public App App { get; }
 
@@ -50,8 +51,9 @@ public class MainWindow : Window
         _colorSearchPanel = new ColorSearchPanel(app, new WindowBuilder(nameof(ColorSearchPanel)));
         _colorSearch.PackStart(_colorSearchPanel, true, true, 0);
 
-        _files = new FileView(App);
-        _scroll.Add(_files);
+        //_files = new FileView(App);
+        _files = new FileFlowView(App);
+        _scroll.Add(_files.AsWidget());
 
         DeleteEvent             += Window_DeleteEvent;
         _menuFileQuit.Activated += Window_DeleteEvent;
