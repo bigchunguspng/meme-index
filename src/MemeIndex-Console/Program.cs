@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Text;
+using MemeIndex_Core;
 using MemeIndex_Core.Controllers;
 using MemeIndex_Core.Data;
 using MemeIndex_Core.Entities;
@@ -61,6 +62,8 @@ internal static class Program
             Mean.ENG_CODE => provider.GetRequiredService<OnlineOcrService>(),
             _ => throw new ArgumentOutOfRangeException(nameof(key))
         });
+
+        builder.Services.AddSingleton<IConfigProvider<Config>, ConfigProvider<Config>>();
 
         using var host = builder.Build();
 

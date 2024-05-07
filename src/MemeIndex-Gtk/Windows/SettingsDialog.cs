@@ -22,7 +22,7 @@ public class SettingsDialog : Dialog
         App = app;
         Modal = true;
 
-        _entryApiKey.Text = ConfigRepository.GetConfig().OrcApiKey;
+        _entryApiKey.Text = App.ConfigProvider.GetConfig().OrcApiKey;
 
         ShowAll();
 
@@ -43,8 +43,8 @@ public class SettingsDialog : Dialog
 
     private void SaveChanges()
     {
-        ConfigRepository.GetConfig().OrcApiKey = _entryApiKey.Text;
-        ConfigRepository.SaveChanges();
+        App.ConfigProvider.GetConfig().OrcApiKey = _entryApiKey.Text;
+        App.ConfigProvider.SaveChanges();
         Logger.Status("Changes saved!");
     }
 }

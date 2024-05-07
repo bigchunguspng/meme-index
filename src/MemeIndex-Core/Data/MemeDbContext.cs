@@ -5,8 +5,11 @@ namespace MemeIndex_Core.Data;
 
 public class MemeDbContext : DbContext
 {
-    public MemeDbContext(DbContextOptions<MemeDbContext> options) : base(options)
+    private readonly IConfigProvider<Config> _configProvider;
+
+    public MemeDbContext(DbContextOptions<MemeDbContext> options, IConfigProvider<Config> configProvider) : base(options)
     {
+        _configProvider = configProvider;
     }
 
     public AccessGate Access { get; } = new();
@@ -26,8 +29,7 @@ public class MemeDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        var config = ConfigRepository.GetConfig();
-        var connectionString = config.GetDbConnectionString()!;
+        var connectionString = _configProvider.GetConfig().GetDbConnectionString()!;
         optionsBuilder.UseSqlite(connectionString);
     }
 }

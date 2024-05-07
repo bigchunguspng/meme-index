@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using MemeIndex_Core;
 using MemeIndex_Core.Controllers;
 using MemeIndex_Core.Data;
 using MemeIndex_Core.Entities;
@@ -62,6 +63,10 @@ namespace MemeIndex_Gtk
                 Mean.ENG_CODE => provider.GetRequiredService<OnlineOcrService>(),
                 _ => throw new ArgumentOutOfRangeException(nameof(key))
             });
+
+            // CONFIG
+            builder.Services.AddSingleton<IConfigProvider<Config>, ConfigProvider<ConfigGtk>>();
+            builder.Services.AddSingleton<IConfigProvider<ConfigGtk>, ConfigProvider<ConfigGtk>>();
 
             // APP SPECIFIC
             builder.Services.AddSingleton<App>();

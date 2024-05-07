@@ -1,5 +1,6 @@
 using GLib;
 using Gtk;
+using MemeIndex_Core;
 using MemeIndex_Core.Controllers;
 using MemeIndex_Core.Data;
 using MemeIndex_Core.Services.ImageToText.ColorTag;
@@ -16,6 +17,7 @@ public class App : IDisposable
     private Statusbar? _status;
     private readonly CustomCss _css;
 
+    public IConfigProvider<ConfigGtk> ConfigProvider { get; }
     public IndexController IndexController { get; }
     public SearchController SearchController { get; }
     public ColorSearchProfile ColorSearchProfile { get; }
@@ -23,6 +25,7 @@ public class App : IDisposable
 
     public App
     (
+        IConfigProvider<ConfigGtk> configProvider,
         IndexController indexController,
         SearchController searchController,
         ColorSearchProfile colorSearchProfile,
@@ -32,6 +35,7 @@ public class App : IDisposable
     {
         _css = css;
 
+        ConfigProvider = configProvider;
         IndexController = indexController;
         SearchController = searchController;
         ColorSearchProfile = colorSearchProfile;

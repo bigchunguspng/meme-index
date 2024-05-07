@@ -39,6 +39,14 @@ public class MainWindow : Window
         App = app;
         app.SetStatusBar(_status);
 
+        var position = App.ConfigProvider.GetConfig().WindowPosition;
+        if (position.HasValue)
+        {
+            var p = position.Value;
+            Move(p.X, p.Y);
+            Resize(p.Width, p.Height);
+        }
+
         _colorSearchPanel = new ColorSearchPanel(app, new WindowBuilder(nameof(ColorSearchPanel)));
         _colorSearch.PackStart(_colorSearchPanel, true, true, 0);
 
@@ -53,8 +61,10 @@ public class MainWindow : Window
         _search.SearchChanged += OnSearchChanged;
         _colorSearchPanel.SelectionChanged += OnColorSelectionChanged;
 
+        var showPanel = App.ConfigProvider.GetConfig().ShowColorSearchPanel;
+        _colorSearch.Visible = showPanel ?? false;
+        _buttonColorSearch.Active = _colorSearch.Visible;
         _buttonColorSearch.Toggled += ButtonColorSearchOnToggled;
-        _colorSearch.Visible = _buttonColorSearch.Active;
     }
 
 
@@ -122,11 +132,18 @@ public class MainWindow : Window
 
     private void ButtonColorSearchOnToggled(object? sender, EventArgs e)
     {
-        _buttonColorSearch.Active.Execute(_colorSearch.Show, _colorSearch.Hide);
+        var active = _buttonColorSearch.Active;
+        active.Execute(_colorSearch.Show, _colorSearch.Hide);
+        App.ConfigProvider.GetConfig().ShowColorSearchPanel = active;
+        App.ConfigProvider.SaveChanges();
     }
 
-    private static void Window_DeleteEvent(object? sender, EventArgs a)
+    private void Window_DeleteEvent(object? sender, EventArgs a)
     {
+        GetPosition(out var x, out var y);
+        var position = new Rectangle(x, y, Allocation.Width, Allocation.Height);
+        App.ConfigProvider.GetConfig().WindowPosition = position;
+        App.ConfigProvider.SaveChanges();
         Application.Quit();
     }
 

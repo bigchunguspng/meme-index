@@ -10,12 +10,12 @@ public class OnlineOcrService : IImageToTextService
 
     private readonly ImageGroupingService _groupingService;
 
-    public OnlineOcrService(ImageGroupingService imageGroupingService)
+    public OnlineOcrService(ImageGroupingService imageGroupingService, IConfigProvider<Config> configProvider)
     {
         _groupingService = imageGroupingService;
         _groupingService.CollageCreated += OnCollageCreated;
 
-        ApiKey = ConfigRepository.GetConfig().OrcApiKey ?? string.Empty;
+        ApiKey = configProvider.GetConfig().OrcApiKey ?? string.Empty;
         Client = new HttpClient
         {
             Timeout = TimeSpan.FromSeconds(30)
