@@ -1,5 +1,4 @@
 using Gtk;
-using MemeIndex_Core;
 using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils;
 using UI = Gtk.Builder.ObjectAttribute;
@@ -34,11 +33,12 @@ public class SettingsDialog : Dialog
     {
         Hide();
         await Task.Run(SaveChanges);
+        Destroy();
     }
 
     private void Cancel(object? sender, EventArgs e)
     {
-        Hide();
+        Destroy();
     }
 
     private void SaveChanges()
