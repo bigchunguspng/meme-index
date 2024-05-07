@@ -11,6 +11,7 @@ public class ConfigGtk : Config
      */
 
     public bool? ShowColorSearchPanel { get; set; }
+    public bool? FileViewLargeIcons { get; set; }
     public Rectangle? WindowPosition { get; set; }
 }
 

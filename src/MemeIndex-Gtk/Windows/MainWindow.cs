@@ -5,6 +5,7 @@ using MemeIndex_Gtk.Utils;
 using MemeIndex_Gtk.Widgets;
 using MemeIndex_Gtk.Widgets.FileView;
 using Application = Gtk.Application;
+using File = MemeIndex_Core.Entities.File;
 using MenuItem = Gtk.MenuItem;
 using UI = Gtk.Builder.ObjectAttribute;
 using Window = Gtk.Window;
@@ -24,9 +25,13 @@ public class MainWindow : Window
     [UI] private readonly ScrolledWindow _scroll = default!;
 
     [UI] private readonly ToggleButton _buttonColorSearch = default!;
+    [UI] private readonly Button _buttonSwitchFileView = default!;
 
     private readonly ColorSearchPanel _colorSearchPanel;
-    private readonly IFileView _files;
+
+    private readonly Dictionary<bool, IFileView> _fileViewPool = new();
+    private IFileView? _fileView;
+    private bool _largeIcons;
 
     public App App { get; }
 
@@ -51,9 +56,18 @@ public class MainWindow : Window
         _colorSearchPanel = new ColorSearchPanel(app, new WindowBuilder(nameof(ColorSearchPanel)));
         _colorSearch.PackStart(_colorSearchPanel, true, true, 0);
 
-        //_files = new FileView(App);
-        _files = new FileFlowView(App);
-        _scroll.Add(_files.AsWidget());
+        _largeIcons = App.ConfigProvider.GetConfig().FileViewLargeIcons ?? true;
+        _buttonSwitchFileView.Clicked += (_, _) =>
+        {
+            _largeIcons = !_largeIcons;
+
+            App.ConfigProvider.GetConfig().FileViewLargeIcons = _largeIcons;
+            app.ConfigProvider.SaveChanges();
+
+            ChangeFileView();
+        };
+
+        ChangeFileView();
 
         DeleteEvent             += Window_DeleteEvent;
         _menuFileQuit.Activated += Window_DeleteEvent;
@@ -69,10 +83,30 @@ public class MainWindow : Window
         _buttonColorSearch.Toggled += ButtonColorSearchOnToggled;
     }
 
+    private void ChangeFileView()
+    {
+        _buttonSwitchFileView.Label = _largeIcons ? "Large Icons" : "Table";
+
+        if (_scroll.Children.Length > 0)
+            _scroll.Remove(_scroll.Children[0]);
+
+        if (_fileViewPool.TryGetValue(_largeIcons, out var value)) _fileView = value;
+        else
+        {
+            _fileView = _largeIcons ? new FileFlowView(App) : new FileTreeView(App);
+            _fileViewPool[_largeIcons] = _fileView;
+        }
+
+        _scroll.Add(_fileView.AsWidget());
+
+        if (_files is not null)
+            _fileView.ShowFiles(_files);
+    }
 
     #region SEARCH
 
     private readonly List<SearchQuery> _queries = new(2);
+    private List<File>? _files;
 
     private void UpdateQuery(int meanId, IEnumerable<string> words)
     {
@@ -92,14 +126,14 @@ public class MainWindow : Window
     {
         await App.Context.Access.Take();
 
-        var files = App.SearchController.Search(_queries, LogicalOperator.AND).Result.ToList();
+        _files = App.SearchController.Search(_queries, LogicalOperator.AND).Result.ToList();
 
         App.Context.Access.Release();
 
         var txt = _queries.Select(x => $"Mean #{x.MeanId}: [{string.Join(' ', x.Words)}]");
-        Logger.Status($"Files: {files.Count}, search: {string.Join(' ', txt)}");
+        Logger.Status($"Files: {_files.Count}, search: {string.Join(' ', txt)}");
 
-        await _files.ShowFiles(files);
+        await _fileView!.ShowFiles(_files);
     }
 
     #endregion
