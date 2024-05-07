@@ -69,6 +69,13 @@ public class FolderSelectorWidget : Box
         Add(Remover);
     }
 
+    public MonitoringOption ExportMonitoringOption()
+    {
+        var builder = new MonitoringOption.MeansBuilder();
+        var means = builder.WithEng(Eng.Active).WithRgb(RGB.Active).Build();
+        return new MonitoringOption(Path: Choice!, Recursive.Active, means);
+    }
+
     private void SelectDirectory(string? path)
     {
         PreviousChoice = path;
@@ -118,5 +125,7 @@ public class FolderSelectorWidget : Box
 
         _container.Remove(Parent);
         _container.ShowAll();
+
+        Destroy();
     }
 }

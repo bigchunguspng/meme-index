@@ -52,33 +52,36 @@ public class ManageFoldersDialog : Dialog
     {
         Hide();
         await Task.Run(SaveChangesAsync);
+        Destroy();
     }
 
     private void Cancel(object? sender, EventArgs e)
     {
-        Hide();
+        Destroy();
     }
 
     private async void SaveChangesAsync()
     {
         Logger.Status("Updating watching list...");
 
-        var options = _folders.Children
-            .Select(x => (FolderSelectorWidget)((ListBoxRow)x).Child)
-            .Where(x => x.DirectorySelected)
-            .Select(x => new MonitoringOption
-            (
-                Path: x.Choice!,
-                Recursive: x.Recursive.Active,
-                Means: new MonitoringOption.MeansBuilder()
-                    .WithEng(x.Eng.Active)
-                    .WithRgb(x.RGB.Active).Build()
-            ));
+        var options = GetSelectedOptions();
 
         await App.IndexController.UpdateMonitoringDirectories(options);
 
         Logger.Status("Watching list updated.");
 
         await App.IndexController.UpdateFileSystemKnowledge();
+    }
+
+    private IEnumerable<MonitoringOption> GetSelectedOptions()
+    {
+        return GetSelectors()
+            .Where(x => x.DirectorySelected)
+            .Select(x => x.ExportMonitoringOption());
+    }
+
+    private IEnumerable<FolderSelectorWidget> GetSelectors()
+    {
+        return _folders.Children.Select(x => (FolderSelectorWidget)((ListBoxRow)x).Child);
     }
 }
