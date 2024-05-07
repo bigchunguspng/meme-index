@@ -1,3 +1,4 @@
+using Gdk;
 using Gtk;
 using MemeIndex_Core.Utils;
 using File = MemeIndex_Core.Entities.File;
@@ -11,7 +12,6 @@ public class FileFlowView : FlowBox, IFileView
 
     private File? SelectedFile
     {
-        get => _menu.SelectedFile;
         set => _menu.SelectedFile = value;
     }
 
@@ -34,25 +34,20 @@ public class FileFlowView : FlowBox, IFileView
 
         SelectedChildrenChanged += (_, _) =>
         {
-            if (SelectedChildren.Length > 0 && SelectedChildren[0].Children[0] is FileFlowBoxItem item)
-            {
-                SelectedFile = item.File;
-                _menu.ShowFileDetailsInStatus();
-            }
-            else
-            {
-                SelectedFile = null;
-            }
+            SelectedFile = GetSelectedItem() is FileFlowBoxItem item ? item.File : null;
         };
         ChildActivated += (sender, _) => _menu.OpenFile(sender, EventArgs.Empty);
-        ButtonPressEvent += (_, args) =>
-        {
-            if (args.Event.Button == 3)
-            {
-                var child = GetChildAtPos((int)args.Event.X, (int)args.Event.Y);
-                if (child is not null) SelectChild(child);
-            }
-        };
+        ButtonPressEvent += (_, args) => SelectItem_WithRightMouseButton(args.Event);
+    }
+
+    private Widget? GetSelectedItem() => SelectedChildren.Length > 0 ? SelectedChildren[0].Children[0] : null;
+
+    private void SelectItem_WithRightMouseButton(EventButton press)
+    {
+        if (press.Button != 3) return;
+
+        var child = GetChildAtPos((int)press.X, (int)press.Y);
+        if (child is not null) SelectChild(child);
     }
 
     public async Task ShowFiles(List<File> files)
@@ -63,19 +58,14 @@ public class FileFlowView : FlowBox, IFileView
 
         _items.Clear();
 
-        foreach (var file in files)
-        {
-            var item = new FileFlowBoxItem(file);
-            Add(item);
-
-            _items.Add(item);
-        }
+        foreach (var file in files) _items.Add(new FileFlowBoxItem(file));
+        foreach (var item in _items) Add(item);
 
         ShowAll();
 
         await Task.Run(UpdateFileIcons);
     }
-    
+
     private void UpdateFileIcons()
     {
         try

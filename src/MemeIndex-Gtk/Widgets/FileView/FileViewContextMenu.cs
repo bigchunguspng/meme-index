@@ -4,14 +4,24 @@ using Humanizer;
 using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils.FileOpener;
 using TextCopy;
+using File = MemeIndex_Core.Entities.File;
 
 namespace MemeIndex_Gtk.Widgets.FileView;
 
 public class FileViewContextMenu
 {
-    public MemeIndex_Core.Entities.File? SelectedFile;
-
     private readonly FileOpener FileOpener = FileOpenerFactory.GetFileOpener();
+    private File? _selectedFile;
+
+    public File? SelectedFile
+    {
+        get => _selectedFile;
+        set
+        {
+            _selectedFile = value;
+            ShowFileDetailsInStatus();
+        }
+    }
 
     public FileViewContextMenu(IFileView fileView)
     {

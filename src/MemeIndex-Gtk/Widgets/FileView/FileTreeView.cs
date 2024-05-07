@@ -11,9 +11,9 @@ public class FileTreeView : TreeView, IFileView
     private readonly FileViewContextMenu _menu;
 
     private List<File>? _files;
+
     private File? SelectedFile
     {
-        get => _menu.SelectedFile;
         set => _menu.SelectedFile = value;
     }
 
@@ -53,21 +53,20 @@ public class FileTreeView : TreeView, IFileView
 
         Visible = true;
         EnableSearch = false;
-        CursorChanged += (_, _) =>
-        {
-            var rows = Selection.GetSelectedRows();
-            var index = rows.Length > 0 ? rows[0].Indices[0] : -1;
-            if (index >= 0 && _files is not null && _files.Count > index)
-            {
-                SelectedFile = _files[index];
-                _menu.ShowFileDetailsInStatus();
-            }
-            else
-            {
-                SelectedFile = null;
-            }
-        };
+
+        CursorChanged += (_, _) => SelectedFile = GetSelectedFile();
         RowActivated += (sender, _) => _menu.OpenFile(sender, EventArgs.Empty);
+    }
+
+    private File? GetSelectedFile()
+    {
+        if (_files is null) return null;
+
+        var rows = Selection.GetSelectedRows();
+        if (rows.Length == 0) return null;
+
+        var index = rows[0].Indices[0];
+        return _files.ElementAtOrDefault(index);
     }
 
 
