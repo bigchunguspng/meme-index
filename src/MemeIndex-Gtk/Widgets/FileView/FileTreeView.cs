@@ -110,7 +110,7 @@ public class FileTreeView : TreeView, IFileView
             var index = path.Indices[0];
             if (index >= _files.Count) return false;
 
-            var icon = _utils.GetImageIcon(_files[index].GetFullPath(), 16, 16);
+            var icon = _utils.GetImageIcon(_files[index].GetFullPath(), 16).Result;
             if (icon is not null) Model.SetValue(iter, 0, icon);
 
             return false;

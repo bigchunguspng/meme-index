@@ -12,6 +12,8 @@ public class ColorSearchPanel : Frame
 
     [UI] private readonly Button _buttonClearColorSelection = default!;
 
+    private bool _buttonsBeingManaged;
+
     private App App { get; }
 
     public HashSet<string> SelectedColors { get; } = new();
@@ -62,7 +64,9 @@ public class ColorSearchPanel : Frame
         {
             checkButton.Active.Switch(SelectedColors.Add, SelectedColors.Remove)(checkButton.Key);
 
-            Logger.Status($"Selected colors: {string.Join(' ', SelectedColors)}");
+            if (_buttonsBeingManaged) return;
+
+            LogSelectedColors();
 
             SelectionChanged?.Invoke(this, e);
         }
@@ -78,11 +82,17 @@ public class ColorSearchPanel : Frame
 
     private void DeactivateCheckboxes(Container grid)
     {
+        _buttonsBeingManaged = true;
+
         var active = grid.Children.OfType<ColorSearchCheckButton>().Where(x => x.Active);
         foreach (var checkButton in active) checkButton.Active = false;
 
-        Logger.Status($"Selected colors: {string.Join(' ', SelectedColors)}");
+        _buttonsBeingManaged = false;
+
+        LogSelectedColors();
     }
+
+    private void LogSelectedColors() => Logger.Status($"Selected colors: {string.Join(' ', SelectedColors)}");
 
     public event EventHandler? SelectionChanged;
 }

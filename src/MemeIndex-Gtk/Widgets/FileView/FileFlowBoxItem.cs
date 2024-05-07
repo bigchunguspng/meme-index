@@ -15,7 +15,7 @@ public class FileFlowBoxItem : Box
     {
         File = file;
 
-        _icon = new Image();
+        _icon = new Image { HeightRequest = 96 };
 
         Add(_icon);
         Add(new Label(file.Name)

@@ -50,9 +50,15 @@ public class FileFlowView : FlowBox, IFileView
         if (child is not null) SelectChild(child);
     }
 
+
+    private bool _updatingIcons, _iconsUpdateStopRequested;
+
     public async Task ShowFiles(List<File> files)
     {
         SelectedFile = null;
+
+        _iconsUpdateStopRequested = true;
+        while (_updatingIcons) await Task.Delay(50);
 
         foreach (var item in _items) item.Parent.Destroy();
 
@@ -63,22 +69,31 @@ public class FileFlowView : FlowBox, IFileView
 
         ShowAll();
 
-        await Task.Run(UpdateFileIcons);
+        _iconsUpdateStopRequested = false;
+        UpdateFileIcons();
     }
 
-    private void UpdateFileIcons()
+    private async void UpdateFileIcons()
     {
         try
         {
+            _updatingIcons = true;
+
             foreach (var item in _items)
             {
-                var pixbuf = _utils.GetImageIcon(item.File.GetFullPath(), 96, 96);
+                if (_iconsUpdateStopRequested) return;
+
+                var pixbuf = await _utils.GetImageIcon(item.File.GetFullPath(), 96);
                 if (pixbuf is not null) item.SetIcon(pixbuf);
             }
         }
         catch (Exception e)
         {
             Logger.LogError(nameof(UpdateFileIcons), e);
+        }
+        finally
+        {
+            _updatingIcons = false;
         }
     }
 
