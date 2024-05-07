@@ -1,6 +1,5 @@
 using MemeIndex_Core.Utils;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -40,6 +39,11 @@ public class ImageGroupingService
         }
     }
 
+
+    private static async Task<FileImageInfo> GetImageInfo(FileInfo file)
+    {
+        return new(file, await ImageHelpers.GetImageInfo(file.FullName));
+    }
 
     private static List<CollageRequest> DistributeImages(IEnumerable<FileImageInfo> infos)
     {
@@ -207,25 +211,6 @@ public class ImageGroupingService
         }
 
         return stream as MemoryStream ?? await stream.ToMemoryStreamAsync();
-    }
-
-
-    private static async Task<FileImageInfo> GetImageInfo(FileInfo file)
-    {
-        return new(File: file, Image: await GetImageInfo(file.FullName));
-    }
-
-    private static async Task<ImageInfo> GetImageInfo(string path)
-    {
-        try
-        {
-            return await Image.IdentifyAsync(path);
-        }
-        catch (Exception e)
-        {
-            Logger.LogError($"[{nameof(ImageGroupingService)}][{path}]", e);
-            return new ImageInfo(new PixelTypeInfo(24), new Size(720, 720), null);
-        }
     }
 
 

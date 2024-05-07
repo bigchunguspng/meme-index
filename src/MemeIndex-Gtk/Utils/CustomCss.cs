@@ -3,6 +3,7 @@ using Gdk;
 using Gtk;
 using MemeIndex_Core.Services.ImageToText.ColorTag;
 using MemeIndex_Core.Utils;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace MemeIndex_Gtk.Utils;
 
@@ -41,10 +42,10 @@ public class CustomCss
         return sb.ToString();
     }
 
-    private static void AppendStyle(StringBuilder sb, string key, IronSoftware.Drawing.Color color)
+    private static void AppendStyle(StringBuilder sb, string key, Rgba32 color)
     {
-        var colorA = color                 .ToHtmlCssColorCode();
-        var colorB = color.GetDarkerColor().ToHtmlCssColorCode();
+        var colorA = color                 .ToCss();
+        var colorB = color.GetDarkerColor().ToCss();
 
         sb.Append("checkbutton.").Append(key).Append(" check ");
         sb.Append("{ ");

@@ -1,5 +1,7 @@
-using IronSoftware.Drawing;
 using MemeIndex_Core.Utils;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace MemeIndex_Core.Services.ImageToText.ColorTag;
 
@@ -7,9 +9,16 @@ public class ColorTagService : IImageToTextService
 {
     private readonly ColorSearchProfile _colorSearchProfile;
 
+#if DEBUG
+    private readonly JpegEncoder _defaultJpegEncoder;
+#endif
+
     public ColorTagService(ColorSearchProfile colorSearchProfile)
     {
         _colorSearchProfile = colorSearchProfile;
+#if DEBUG
+        _defaultJpegEncoder = new JpegEncoder { Quality = 50 };
+#endif
     }
 
     public event Action<Dictionary<string, List<RankedWord>>>? ImageProcessed;
@@ -36,10 +45,9 @@ public class ColorTagService : IImageToTextService
     }
 
     // todo:
-    // - replace with ImageSharp library
     // - (maybe) replace dot grid with line grid algorithm
 
-    private List<RankedWord>? GetImageColorInfo(string path)
+    private async Task<List<RankedWord>?> GetImageColorInfo(string path)
     {
         // CHECK FILE
         var file = new FileInfo(path);
@@ -49,7 +57,11 @@ public class ColorTagService : IImageToTextService
         }
 
         // GET DATA / MEASUREMENTS
-        using var image = AnyBitmap.FromFile(path);
+        /*var info = await ImageHelpers.GetImageInfo(file.FullName);
+        var isRgba = info.PixelType.BitsPerPixel == 32;*/
+
+        //using var image = isRgba ? Image.Load<Rgba32>(file.FullName) : Image.Load<Rgb24>(file.FullName);
+        using var image = await Image.LoadAsync<Rgba32>(file.FullName);
 
         var w = image.Width;
         var h = image.Height;
@@ -72,23 +84,20 @@ public class ColorTagService : IImageToTextService
         var chunksX = w2 / stepX;
         var chunksY = h2 / stepY;
 
-        var dots = new List<KeyValuePair<string, Color>>();
-
-        var pixels = image.GetRGBBuffer();
-        var alphas = image.GetAlphaBuffer();
+        var dots = new List<KeyValuePair<string, Rgba32>>();
 
         // SCAN IMAGE
         for (var x = (w - stepX * (chunksX - 1)) / 2; x < w - margin; x += stepX)
         for (var y = (h - stepY * (chunksY - 1)) / 2; y < h - margin; y += stepY)
         {
-            var colors = new Color[4];
+            var colors = new Rgba32[4];
             var index = 0;
             for (var i = -margin; i <= margin; i += 2 * margin)
             for (var j = -margin; j <= margin; j += 2 * margin)
             {
-                colors[index++] = image.GetPixelColor(x + i, y + j, pixels, alphas);
+                colors[index++] = image[x + i, y + j];
 #if DEBUG
-                image.SetPixel(x + i, y + j, Color.Red);
+                image[x + i, y + j] = Color.Red;
 #endif
             }
 
@@ -98,17 +107,18 @@ public class ColorTagService : IImageToTextService
 
 #if DEBUG
         var ticks = DateTime.UtcNow.Ticks;
+        var name = $"baka-{Math.Abs(path.GetHashCode())}-{ticks >> 32}";
         Directory.CreateDirectory("img");
-        image.SaveAs(Path.Combine("img", $"baka-{ticks}-dots.jpg"), AnyBitmap.ImageFormat.Jpeg, 50);
+        await image.SaveAsJpegAsync(Path.Combine("img", $"{name}-dots.jpg"), _defaultJpegEncoder);
 
         for (var x = 0; x < w; x++)
         for (var y = 0; y < h; y++)
         {
             var dot = x / stepX * chunksY + y / stepY;
-            image.SetPixel(x, y, dots[Math.Clamp(dot, 0, dots.Count - 1)].Value);
+            image[x, y] = dots[Math.Clamp(dot, 0, dots.Count - 1)].Value;
         }
 
-        image.SaveAs(Path.Combine("img", $"baka-{ticks}-colors.jpg"), AnyBitmap.ImageFormat.Jpeg, 50);
+        await image.SaveAsJpegAsync(Path.Combine("img", $"{name}-colors.jpg"), _defaultJpegEncoder);
 #endif
 
         var data = dots
@@ -121,11 +131,11 @@ public class ColorTagService : IImageToTextService
         return data;
     }
 
-    private KeyValuePair<string, Color> FindClosestKnownColor(Color color)
+    private KeyValuePair<string, Rgba32> FindClosestKnownColor(Rgba32 color)
     {
         var chunk = color.IsGrayscale()
             ? _colorSearchProfile.ColorsGrayscale
-            : _colorSearchProfile.ColorsFunny[_colorSearchProfile.Hues[color.GetHue() / 15]];
+            : _colorSearchProfile.ColorsFunny[_colorSearchProfile.Hues[color.Rgb.GetHue() / 15]];
         return chunk.MinBy(x => ColorHelpers.GetDifference(x.Value, color));
     }
 }

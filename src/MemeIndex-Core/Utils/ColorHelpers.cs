@@ -1,4 +1,4 @@
-using IronSoftware.Drawing;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace MemeIndex_Core.Utils;
 
@@ -7,12 +7,12 @@ public static class ColorHelpers
     /// <param name="hue">0 - 360</param>
     /// <param name="saturation">0 - 1</param>
     /// <param name="lightness">0 - 1</param>
-    public static Color ColorFromHSL(double hue, double saturation, double lightness)
+    public static Rgba32 ColorFromHSL(double hue, double saturation, double lightness)
     {
         if (saturation == 0)
         {
-            var value = (int)lightness;
-            return new Color(value, value, value);
+            var value = lightness.ClampToByte();
+            return new Rgba32(value, value, value);
         }
 
         var h = hue / 360D;
@@ -20,11 +20,11 @@ public static class ColorHelpers
         var max = lightness < 0.5D ? lightness * (1 + saturation) : lightness + saturation - lightness * saturation;
         var min = lightness * 2D - max;
 
-        return new Color
+        return new Rgba32
         (
-            (int)(255 * RGBChannelFromHue(min, max, h + 1 / 3D)),
-            (int)(255 * RGBChannelFromHue(min, max, h)),
-            (int)(255 * RGBChannelFromHue(min, max, h - 1 / 3D))
+            (255 * RGBChannelFromHue(min, max, h + 1 / 3D)).ClampToByte(),
+            (255 * RGBChannelFromHue(min, max, h /*    */)).ClampToByte(),
+            (255 * RGBChannelFromHue(min, max, h - 1 / 3D)).ClampToByte()
         );
     }
 
@@ -38,7 +38,7 @@ public static class ColorHelpers
         return min;
     }
 
-    public static int GetHue(this Color color)
+    public static int GetHue(this Rgb24 color)
     {
         var r = color.R / 255F;
         var g = color.G / 255F;
@@ -57,7 +57,7 @@ public static class ColorHelpers
         return (int)(h < 0 ? h + 360 : h);
     }
 
-    public static bool IsGrayscale(this Color c)
+    public static bool IsGrayscale(this Rgba32 c)
     {
         if (c.A < 64) return true;
 
@@ -72,57 +72,37 @@ public static class ColorHelpers
         return saturation < 28;
     }
 
-    public static int GetDifference(Color a, Color b)
+    public static int GetDifference(Rgba32 a, Rgba32 b)
     {
         if (a.A < 64 && b.A < 64) return 0;
 
         return Math.Abs(a.R - b.R) + Math.Abs(a.G - b.G) + Math.Abs(a.B - b.B);
     }
 
-    public static Color GetAverageColor(Color[] colors)
+    public static Rgba32 GetAverageColor(Rgba32[] colors)
     {
         if (colors.Max(x => x.A) < 64)
         {
-            return new Color(0, 0, 0, 0);
+            return new Rgba32(0, 0, 0, 0);
         }
 
-        return new Color
+        return new Rgba32
         (
-            colors.Sum(x => x.R) / colors.Length,
-            colors.Sum(x => x.G) / colors.Length,
-            colors.Sum(x => x.B) / colors.Length
+            colors.Average(x => x.R).ClampToByte(),
+            colors.Average(x => x.G).ClampToByte(),
+            colors.Average(x => x.B).ClampToByte()
         );
     }
 
-    public static Color GetPixelColor(this AnyBitmap image, int x, int y, byte[] pixels, byte[]? alphas)
-    {
-        if (x < 0 || x >= image.Width)
-            throw new ArgumentOutOfRangeException(nameof(x), "x is < 0 or >= Width.");
-
-        if (y < 0 || y >= image.Height)
-            throw new ArgumentOutOfRangeException(nameof(y), "y is < 0 or >= Height.");
-
-        var pos1 = y * image.Width + x;
-        var pos3 = pos1 * 3;
-
-        var r = pixels[pos3];
-        var g = pixels[pos3 + 1];
-        var b = pixels[pos3 + 2];
-
-        return alphas is null ? new Color(r, g, b) : new Color(alphas[pos1], r, g, b);
-    }
-
-    public static byte[]? GetAlphaBuffer(this AnyBitmap image)
-    {
-        return image.BitsPerPixel == 32 ? new AnyBitmap(image, image.Width, image.Height).ExtractAlphaData() : null;
-
-        // AnyBitmap needs to be copied because ExtractAlphaData() disposes it.
-    }
-
-    public static Color GetDarkerColor(this Color color) => new
+    public static Rgba32 GetDarkerColor(this Rgba32 color) => new
     (
-        Math.Clamp((int)(color.R * 0.75), 0, 255),
-        Math.Clamp((int)(color.G * 0.75), 0, 255),
-        Math.Clamp((int)(color.B * 0.75), 0, 255)
+        ((int)(color.R * 0.75)).ClampToByte(),
+        ((int)(color.G * 0.75)).ClampToByte(),
+        ((int)(color.B * 0.75)).ClampToByte()
     );
+
+    public static byte ClampToByte(this double value) => (byte)Math.Clamp(value, 0, 255);
+    public static byte ClampToByte(this int    value) => (byte)Math.Clamp(value, 0, 255);
+
+    public static string ToCss(this Rgba32 color) => $"rgb({color.R},{color.G},{color.B})";
 }
