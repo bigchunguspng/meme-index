@@ -13,6 +13,8 @@ public class ColorSearchProfile
 
     public List<char> Hues { get; } = Enumerable.Range(65, 24).Select(x => (char)x).ToList();
 
+    public static Rgba32 GetTransparent() => new(255, 127, 0, 0);
+
     private void Init()
     {
         for (var i = 0; i < 5; i++) // WHITE & BLACK
@@ -21,7 +23,7 @@ public class ColorSearchProfile
             ColorsGrayscale.Add($"_{i}", new Rgba32(value, value, value));
         }
 
-        ColorsGrayscale.Add("_-", new Rgba32(255, 127, 0, 0)); // TRANSPARENT
+        ColorsGrayscale.Add("_-", GetTransparent()); // TRANSPARENT
 
         for (var h = 0; h < 360; h += 15) // SATURATED
         {

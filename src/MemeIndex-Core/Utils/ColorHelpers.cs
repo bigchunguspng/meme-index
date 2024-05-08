@@ -1,3 +1,4 @@
+using MemeIndex_Core.Services.ImageToText.ColorTag;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace MemeIndex_Core.Utils;
@@ -83,7 +84,7 @@ public static class ColorHelpers
     {
         if (colors.Max(x => x.A) < 64)
         {
-            return new Rgba32(0, 0, 0, 0);
+            return ColorSearchProfile.GetTransparent();
         }
 
         return new Rgba32
