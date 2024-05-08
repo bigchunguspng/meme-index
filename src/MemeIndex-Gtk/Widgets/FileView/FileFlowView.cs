@@ -1,6 +1,7 @@
 using Gdk;
 using Gtk;
 using MemeIndex_Core.Utils;
+using MemeIndex_Gtk.Utils;
 using File = MemeIndex_Core.Entities.File;
 
 namespace MemeIndex_Gtk.Widgets.FileView;
@@ -69,50 +70,54 @@ public class FileFlowView : FlowBox, IFileView
     }
 
 
-    private bool _updatingIcons, _iconsUpdateStopRequested;
+    private readonly StoppableProcessMonopoly iconsUpdate = new();
 
     public async Task ShowFiles(List<File> files)
     {
-        SelectedFile = null;
-        AllocationSize = Size.Empty; // <-- to trigger icons update
+        try
+        {
+            SelectedFile = null;
+            AllocationSize = Size.Empty; // <-- to trigger icons update
 
-        _iconsUpdateStopRequested = true;
-        while (_updatingIcons) await Task.Delay(50);
+            await iconsUpdate.StopExternally();
 
-        foreach (var item in _items) item.Parent.Destroy();
+            foreach (var item in _items) item.Parent.Destroy();
 
-        _items.Clear();
+            _items.Clear();
 
-        foreach (var file in files) _items.Add(new FileFlowBoxItem(file));
-        foreach (var item in _items) Add(item);
+            foreach (var file in files) _items.Add(new FileFlowBoxItem(file));
+            foreach (var item in _items) Add(item);
 
-        ShowAll();
+            ShowAll();
+        }
+        finally
+        {
+            _iconsLoaded = false;
 
-        _iconsLoaded = false;
-        _iconsUpdateStopRequested = false;
+            iconsUpdate.AllowExternally();
+        }
     }
 
     private async void UpdateFileIcons()
     {
         try
         {
-            if (Parent is null) return; // widget not mounted
+            if (Parent is null) return; // if widget is not mounted
 
-            _updatingIcons = true;
+            await iconsUpdate.TakeRights();
 
             var (skip, take) = GetRangeForIconsUpdate() ?? (0, 0);
 
             if (take == 0) return;
 
-            foreach (var item in _items.Skip(skip).Take(take))
+            var tasks = _items.Skip(skip).Take(take).Select(async item =>
             {
-                if (_iconsUpdateStopRequested) return;
-
-                if (item.HasIcon) continue;
+                if (iconsUpdate.ExecutionDisallowed || item.HasIcon) return;
 
                 var pixbuf = await _utils.GetImageIcon(item.File.GetFullPath(), 96);
                 if (pixbuf is not null) item.SetIcon(pixbuf);
-            }
+            });
+            await Task.WhenAll(tasks);
 
             _iconsLoaded = _items.All(x => x.HasIcon);
         }
@@ -122,7 +127,7 @@ public class FileFlowView : FlowBox, IFileView
         }
         finally
         {
-            _updatingIcons = false;
+            iconsUpdate.ReleaseRights();
         }
     }
 
