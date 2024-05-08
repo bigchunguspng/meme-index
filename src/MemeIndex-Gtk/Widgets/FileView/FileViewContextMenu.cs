@@ -18,8 +18,9 @@ public class FileViewContextMenu
         get => _selectedFile;
         set
         {
+            var previous = _selectedFile;
             _selectedFile = value;
-            ShowFileDetailsInStatus();
+            ShowFileDetailsInStatus(previous);
         }
     }
 
@@ -84,13 +85,18 @@ public class FileViewContextMenu
         await ClipboardService.SetTextAsync(SelectedFile.GetFullPath().Quote());
     }
 
-    public void ShowFileDetailsInStatus()
+    public void ShowFileDetailsInStatus(File? previous)
     {
-        if (SelectedFile is null) return;
+        if (SelectedFile is null)
+        {
+            if (previous is not null) Logger.Status(null);
+
+            return;
+        }
 
         var path = SelectedFile.GetFullPath();
         var size = SelectedFile.Size.Bytes().ToString("#.#");
         var date = SelectedFile.Modified.ToLocalTime().ToString("dd.MM.yyyy' 'HH:mm");
-        Logger.Status($"Size: {size}, Modified: {date}, Path: {path}");
+        Logger.Status(GetHashCode(), $"Size: {size}, Modified: {date}, Path: {path}");
     }
 }

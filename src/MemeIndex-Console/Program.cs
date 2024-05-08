@@ -30,7 +30,7 @@ internal static class Program
             Console.InputEncoding = Encoding.Unicode;
         }
 
-        Logger.StatusChanged += Logger.Log!;
+        Logger.StatusChanged += (_, message) => Logger.Log(message ?? string.Empty);
 
         var builder = Host.CreateApplicationBuilder(args);
 

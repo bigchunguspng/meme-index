@@ -130,8 +130,8 @@ public class MainWindow : Window
 
         App.Context.Access.Release();
 
-        var txt = _queries.Select(x => $"Mean #{x.MeanId}: [{string.Join(' ', x.Words)}]");
-        Logger.Status($"Files: {_files.Count}, search: {string.Join(' ', txt)}");
+        var searchByMean = _queries.Select(x => $"Mean #{x.MeanId}: [{string.Join(' ', x.Words)}]");
+        Logger.Status(GetHashCode(), $"Files: {_files.Count}, search: {string.Join(' ', searchByMean)}");
 
         await _fileView!.ShowFiles(_files);
     }

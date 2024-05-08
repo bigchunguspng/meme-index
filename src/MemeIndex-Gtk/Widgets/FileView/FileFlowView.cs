@@ -30,7 +30,7 @@ public class FileFlowView : FlowBox, IFileView
         _menu = new FileViewContextMenu(this);
 
         Orientation = Orientation.Horizontal;
-        SelectionMode = SelectionMode.Browse;
+        SelectionMode = SelectionMode.Single;
         ColumnSpacing = 5;
         RowSpacing = 5;
         Homogeneous = true;
@@ -42,12 +42,9 @@ public class FileFlowView : FlowBox, IFileView
         _scroll.Vadjustment.ValueChanged += (_, _) => UpdateFileIcons();
 
         SizeAllocated += UpdateIcons_OnSizeAllocated;
-        SelectedChildrenChanged += (_, _) =>
-        {
-            SelectedFile = GetSelectedItem() is FileFlowBoxItem item ? item.File : null;
-        };
+        SelectedChildrenChanged += OnSelectionChanged;
         ChildActivated += (sender, _) => _menu.OpenFile(sender, EventArgs.Empty);
-        ButtonPressEvent += (_, args) => SelectItem_WithRightMouseButton(args.Event);
+        ButtonPressEvent += OnButtonPress;
     }
 
     private void UpdateIcons_OnSizeAllocated(object o, SizeAllocatedArgs sizeAllocatedArgs)
@@ -58,14 +55,17 @@ public class FileFlowView : FlowBox, IFileView
         UpdateFileIcons();
     }
 
-    private Widget? GetSelectedItem() => SelectedChildren.Length > 0 ? SelectedChildren[0].Children[0] : null;
-
-    private void SelectItem_WithRightMouseButton(EventButton press)
+    private void OnSelectionChanged(object? o, EventArgs eventArgs)
     {
-        if (press.Button != 3) return;
+        var selectedItem = SelectedChildren.Length > 0 ? SelectedChildren[0].Children[0] : null;
+        SelectedFile = selectedItem is FileFlowBoxItem item ? item.File : null;
+    }
 
-        var child = GetChildAtPos((int)press.X, (int)press.Y);
-        if (child is not null) SelectChild(child);
+    private void OnButtonPress(object o, ButtonPressEventArgs args)
+    {
+        var child = GetChildAtPos((int)args.Event.X, (int)args.Event.Y);
+        if (child is null) UnselectAll();
+        else if (args.Event.Button == 3) SelectChild(child);
     }
 
 

@@ -77,12 +77,13 @@ public class App : IDisposable
 
     public void SetStatusBar(Statusbar bar) => _status = bar;
 
-    private void SetStatus(string? message) => Application.Invoke((_, _) =>
+    private void SetStatus(string? message) => SetStatus(0, message);
+    
+    private void SetStatus(int id, string? message) => Application.Invoke((_, _) =>
     {
-        _status?.Pop(0);
-        if (message != null)
-        {
-            _status?.Push(0, message);
-        }
+        var uintId = (uint)Math.Clamp(id + int.MaxValue + 1, uint.MinValue, uint.MaxValue);
+
+        _status?.Pop(uintId);
+        if (message != null) _status?.Push(uintId, message);
     });
 }
