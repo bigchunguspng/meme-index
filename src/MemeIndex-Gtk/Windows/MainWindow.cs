@@ -93,7 +93,7 @@ public class MainWindow : Window
         if (_fileViewPool.TryGetValue(_largeIcons, out var value)) _fileView = value;
         else
         {
-            _fileView = _largeIcons ? new FileFlowView(App) : new FileTreeView(App);
+            _fileView = _largeIcons ? new FileFlowView(App, _scroll) : new FileTreeView(App);
             _fileViewPool[_largeIcons] = _fileView;
         }
 

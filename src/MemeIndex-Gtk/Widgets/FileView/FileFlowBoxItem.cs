@@ -15,7 +15,7 @@ public class FileFlowBoxItem : Box
     {
         File = file;
 
-        _icon = new Image { HeightRequest = 96 };
+        _icon = new Image { HeightRequest = 96, WidthRequest = 96 };
 
         Add(_icon);
         Add(new Label(file.Name)
@@ -30,6 +30,8 @@ public class FileFlowBoxItem : Box
 
         Show();
     }
+
+    public bool HasIcon => _icon.Pixbuf is not null;
 
     public void SetIcon(Pixbuf pixbuf)
     {

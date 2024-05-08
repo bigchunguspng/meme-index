@@ -9,6 +9,10 @@ public class FileFlowView : FlowBox, IFileView
 {
     private readonly FileViewUtils _utils = new();
     private readonly FileViewContextMenu _menu;
+    private readonly ScrolledWindow _scroll;
+
+    private bool _iconsLoaded;
+    private Size AllocationSize;
 
     private File? SelectedFile
     {
@@ -19,7 +23,7 @@ public class FileFlowView : FlowBox, IFileView
 
     private App App { get; }
 
-    public FileFlowView(App app)
+    public FileFlowView(App app, ScrolledWindow scroll)
     {
         App = app;
 
@@ -30,14 +34,28 @@ public class FileFlowView : FlowBox, IFileView
         ColumnSpacing = 5;
         RowSpacing = 5;
         Homogeneous = true;
+        MaxChildrenPerLine = 100;
+        Valign = Align.Start;
         ActivateOnSingleClick = false;
 
+        _scroll = scroll;
+        _scroll.Vadjustment.ValueChanged += (_, _) => UpdateFileIcons();
+
+        SizeAllocated += UpdateIcons_OnSizeAllocated;
         SelectedChildrenChanged += (_, _) =>
         {
             SelectedFile = GetSelectedItem() is FileFlowBoxItem item ? item.File : null;
         };
         ChildActivated += (sender, _) => _menu.OpenFile(sender, EventArgs.Empty);
         ButtonPressEvent += (_, args) => SelectItem_WithRightMouseButton(args.Event);
+    }
+
+    private void UpdateIcons_OnSizeAllocated(object o, SizeAllocatedArgs sizeAllocatedArgs)
+    {
+        if (_iconsLoaded || Allocation.Size == AllocationSize) return;
+
+        AllocationSize = Allocation.Size;
+        UpdateFileIcons();
     }
 
     private Widget? GetSelectedItem() => SelectedChildren.Length > 0 ? SelectedChildren[0].Children[0] : null;
@@ -56,6 +74,7 @@ public class FileFlowView : FlowBox, IFileView
     public async Task ShowFiles(List<File> files)
     {
         SelectedFile = null;
+        AllocationSize = Size.Empty; // <-- to trigger icons update
 
         _iconsUpdateStopRequested = true;
         while (_updatingIcons) await Task.Delay(50);
@@ -69,23 +88,33 @@ public class FileFlowView : FlowBox, IFileView
 
         ShowAll();
 
+        _iconsLoaded = false;
         _iconsUpdateStopRequested = false;
-        UpdateFileIcons();
     }
 
     private async void UpdateFileIcons()
     {
         try
         {
+            if (Parent is null) return; // widget not mounted
+
             _updatingIcons = true;
 
-            foreach (var item in _items)
+            var (skip, take) = GetRangeForIconsUpdate() ?? (0, 0);
+
+            if (take == 0) return;
+
+            foreach (var item in _items.Skip(skip).Take(take))
             {
                 if (_iconsUpdateStopRequested) return;
+
+                if (item.HasIcon) continue;
 
                 var pixbuf = await _utils.GetImageIcon(item.File.GetFullPath(), 96);
                 if (pixbuf is not null) item.SetIcon(pixbuf);
             }
+
+            _iconsLoaded = _items.All(x => x.HasIcon);
         }
         catch (Exception e)
         {
@@ -95,6 +124,27 @@ public class FileFlowView : FlowBox, IFileView
         {
             _updatingIcons = false;
         }
+    }
+
+    private (int skip, int take)? GetRangeForIconsUpdate()
+    {
+        var lastWithIcon = _items.FindLastIndex(x => x.HasIcon);
+
+        var skip = lastWithIcon + 1;
+        if (skip == _items.Count) return null;
+
+        var bottom = _scroll.Vadjustment.Value + _scroll.Vadjustment.PageSize;
+        var last = _items.FindLastIndex(x => x.Allocation.Top <= bottom);
+        if (last < skip) return null;
+
+        var take = last - skip + 1;
+
+#if DEBUG
+        Logger.Log("[Large Icons / Update] skip: {0}", skip);
+        Logger.Log("[Large Icons / Update] take: {0}", take);
+#endif
+
+        return (skip, take);
     }
 
     public Widget AsWidget() => this;
