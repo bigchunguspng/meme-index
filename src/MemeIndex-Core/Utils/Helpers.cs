@@ -1,15 +1,9 @@
 using System.Diagnostics;
-using System.Text.RegularExpressions;
 
 namespace MemeIndex_Core.Utils;
 
-public static partial class Helpers
+public static class Helpers
 {
-    [GeneratedRegex("[\\s\\n\\r]+")]
-    private static partial Regex LineBreaksRegex();
-
-    public static string RemoveLineBreaks(this string text) => LineBreaksRegex().Replace(text, " ");
-
     public static string Quote(this string text) => $"\"{text}\"";
 
     public static bool      FileExists(this string path) =>      File.Exists(path);
@@ -32,7 +26,7 @@ public static partial class Helpers
 
     public static IEnumerable<Entities.Directory> GetExisting(this IEnumerable<Entities.Directory> directories)
     {
-        return directories.Where(x => Directory.Exists(x.Path));
+        return directories.Where(x => x.Path.DirectoryExists());
     }
 
     public static List<FileInfo> GetImageFiles(string path, bool recursive)

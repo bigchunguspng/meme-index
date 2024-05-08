@@ -1,12 +1,13 @@
 using MemeIndex_Core.Data;
 using MemeIndex_Core.Utils;
 using Microsoft.EntityFrameworkCore;
+using File = MemeIndex_Core.Entities.File;
 
 namespace MemeIndex_Core.Controllers;
 
 public class SearchController
 {
-    //private Dictionary<string, List<Entities.File>> _cache;
+    //private Dictionary<string, List<File>> _cache;
 
     private readonly MemeDbContext _context;
 
@@ -15,12 +16,12 @@ public class SearchController
         _context = context;
     }
 
-    public async Task<HashSet<Entities.File>> Search(IEnumerable<SearchQuery> queries, LogicalOperator @operator)
+    public async Task<HashSet<File>> Search(IEnumerable<SearchQuery> queries, LogicalOperator @operator)
     {
-        var filesAll = new HashSet<Entities.File>();
+        var filesAll = new HashSet<File>();
         foreach (var query in queries)
         {
-            var filesByQuery = new HashSet<Entities.File>();
+            var filesByQuery = new HashSet<File>();
             foreach (var word in query.Words)
             {
                 var item = new SearchRequestItem(query.MeanId, word, SearchStrategyByMeanId(query.MeanId));
@@ -34,7 +35,7 @@ public class SearchController
         return filesAll;
     }
 
-    public async Task<List<Entities.File>> SearchAll(SearchRequestItem item)
+    public async Task<List<File>> SearchAll(SearchRequestItem item)
     {
         var tagsByMean = _context.Tags
             .Include(x => x.Word)

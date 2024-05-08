@@ -4,6 +4,7 @@ using MemeIndex_Core.Services.Data.Contracts;
 using MemeIndex_Core.Utils;
 using Microsoft.EntityFrameworkCore;
 using Directory = MemeIndex_Core.Entities.Directory;
+using File = MemeIndex_Core.Entities.File;
 
 namespace MemeIndex_Core.Services.Data;
 
@@ -16,7 +17,7 @@ public class FileService : IFileService
         _context = context;
     }
 
-    public async Task<IList<Entities.File>> GetAllFilesWithPath()
+    public async Task<IList<File>> GetAllFilesWithPath()
     {
         return await _context.Files.Include(x => x.Directory).ToListAsync();
     }
@@ -25,7 +26,7 @@ public class FileService : IFileService
     {
         var directory = await GetOrAddDirectory(file.DirectoryName!);
 
-        var entity = new Entities.File
+        var entity = new File
         {
             DirectoryId = directory.Id,
             Name = file.Name,
@@ -49,7 +50,7 @@ public class FileService : IFileService
         {
             var directory = await GetOrAddDirectory(file.DirectoryName!);
 
-            return new Entities.File
+            return new File
             {
                 DirectoryId = directory.Id,
                 Name = file.Name,
@@ -70,7 +71,7 @@ public class FileService : IFileService
         return results.Length;
     }
 
-    public async Task<int> UpdateFile(Entities.File entity, FileInfo file)
+    public async Task<int> UpdateFile(File entity, FileInfo file)
     {
         var directory = await GetOrAddDirectory(file.DirectoryName!);
 
@@ -87,7 +88,7 @@ public class FileService : IFileService
         return entity.Id;
     }
 
-    public async Task<int> RemoveRange(IEnumerable<Entities.File> files)
+    public async Task<int> RemoveRange(IEnumerable<File> files)
     {
         _context.Files.RemoveRange(files);
         return await _context.SaveChangesAsync();

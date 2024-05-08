@@ -4,6 +4,7 @@ using MemeIndex_Core.Data;
 using MemeIndex_Core.Services.Data.Contracts;
 using MemeIndex_Core.Utils;
 using Directory = MemeIndex_Core.Entities.Directory;
+using File = MemeIndex_Core.Entities.File;
 
 namespace MemeIndex_Core.Services.Indexing;
 
@@ -69,7 +70,7 @@ public class OvertakingService
 
         // LOCATING / ADDING / REMOVING
 
-        var locatedMissingFiles = new List<Entities.File>();
+        var locatedMissingFiles = new List<File>();
         var c0 = 0;
 
         foreach (var unknownFile in unknownFiles)
@@ -169,7 +170,7 @@ public class OvertakingService
     /// </summary>
     private static List<FileInfo> GetUnknownFiles
     (
-        IList<Entities.File> fileRecords,
+        IList<File> fileRecords,
         IEnumerable<FileInfo> files,
         IEnumerable<Directory> existingDirectories
     )
@@ -194,9 +195,9 @@ public class OvertakingService
     /// Returns a list of files that are present
     /// as records in Database, but missing as files in File System.
     /// </summary>
-    private static List<Entities.File> GetMissingFiles
+    private static List<File> GetMissingFiles
     (
-        IList<Entities.File> fileRecords,
+        IList<File> fileRecords,
         IEnumerable<Directory> existingDirectories
     )
     {
@@ -206,7 +207,7 @@ public class OvertakingService
                 var directoryMissing = !existingDirectories.Select(dir => dir.Id).Contains(x.DirectoryId);
                 if (directoryMissing) return true;
 
-                return !File.Exists(x.GetFullPath());
+                return !x.GetFullPath().FileExists();
             })
             .ToList();
     }
@@ -214,7 +215,7 @@ public class OvertakingService
     /// <summary>
     /// Returns true if both objects refers to a file with the same content.
     /// </summary>
-    private static bool FilesAreEquivalent(FileInfo fileInfo, Entities.File entity)
+    private static bool FilesAreEquivalent(FileInfo fileInfo, File entity)
     {
         var similarity = 0;
 
@@ -229,7 +230,7 @@ public class OvertakingService
     /// <summary>
     /// Returns true if the file content was probably changed.
     /// </summary>
-    private static bool FileWasUpdated(FileInfo fileInfo, Entities.File entity)
+    private static bool FileWasUpdated(FileInfo fileInfo, File entity)
     {
         return fileInfo.Length != entity.Size
             || fileInfo.LastWriteTimeUtc > entity.Tracked

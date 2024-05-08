@@ -5,6 +5,7 @@ using MemeIndex_Core.Services.ImageToText;
 using MemeIndex_Core.Utils;
 using Microsoft.EntityFrameworkCore;
 using Directory = System.IO.Directory;
+using File = MemeIndex_Core.Entities.File;
 
 namespace MemeIndex_Core.Services.Indexing;
 
@@ -93,7 +94,7 @@ public class IndexingService
     /// monitored by a <see cref="Mean"/> with the specified id,
     /// that have no related search tags.
     /// </summary>
-    private Task<List<Entities.File>> GetPendingFiles(int meanId)
+    private Task<List<File>> GetPendingFiles(int meanId)
     {
         var monitored = _monitoringService.GetDirectories(meanId);
         var dirs1 = monitored
@@ -135,7 +136,7 @@ public class IndexingService
         _context.Access.Release();
     }
 
-    private async Task<Entities.Word> GetOrCreateWordEntity(string word)
+    private async Task<Word> GetOrCreateWordEntity(string word)
     {
         var existing = _context.Words.FirstOrDefault(x => x.Text == word);
         if (existing != null)
@@ -143,7 +144,7 @@ public class IndexingService
             return existing;
         }
 
-        var entity = new Entities.Word { Text = word };
+        var entity = new Word { Text = word };
 
         await _context.Words.AddAsync(entity);
         await _context.SaveChangesAsync();
@@ -167,4 +168,4 @@ public class IndexingService
     }
 }
 
-public record ImageTextRepresentation(Entities.File File, List<RankedWord> Words, int Mean);
+public record ImageTextRepresentation(File File, List<RankedWord> Words, int Mean);
