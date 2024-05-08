@@ -10,15 +10,12 @@ public class ColorTagService : IImageToTextService
     private readonly ColorSearchProfile _colorSearchProfile;
 
 #if DEBUG
-    private readonly JpegEncoder _defaultJpegEncoder;
+    private readonly JpegEncoder _defaultJpegEncoder = new() { Quality = 50 };
 #endif
 
     public ColorTagService(ColorSearchProfile colorSearchProfile)
     {
         _colorSearchProfile = colorSearchProfile;
-#if DEBUG
-        _defaultJpegEncoder = new JpegEncoder { Quality = 50 };
-#endif
     }
 
     public event Action<Dictionary<string, List<RankedWord>>>? ImageProcessed;
@@ -39,15 +36,10 @@ public class ColorTagService : IImageToTextService
         await Task.WhenAll(tasks);
     }
 
-    public Task<List<RankedWord>?> GetTextRepresentation(string path)
-    {
-        return Task.Run(() => GetImageColorInfo(path));
-    }
-
     // todo:
-    // - (maybe) replace dot grid with line grid algorithm
+    // - replace dot grid with line grid algorithm
 
-    private async Task<List<RankedWord>?> GetImageColorInfo(string path)
+    public async Task<List<RankedWord>?> GetTextRepresentation(string path)
     {
         // CHECK FILE
         var file = new FileInfo(path);

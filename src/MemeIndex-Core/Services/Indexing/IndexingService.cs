@@ -64,6 +64,8 @@ public class IndexingService
 
     private async Task ProcessPendingFiles(Mean mean, ProcessingResults processing)
     {
+        Logger.Log(ConsoleColor.Magenta, $"Mean #{mean.Id}: {nameof(ProcessPendingFiles)}");
+
         var files = await GetPendingFiles(mean.Id);
         if (files.Count == 0) return;
 
