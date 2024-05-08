@@ -36,7 +36,7 @@ public class FileFlowView : FlowBox, IFileView
         RowSpacing = 5;
         Homogeneous = true;
         MaxChildrenPerLine = 100;
-        Valign = Align.Start;
+        Valign = Align.Fill;
         ActivateOnSingleClick = false;
 
         _scroll = scroll;
@@ -87,6 +87,8 @@ public class FileFlowView : FlowBox, IFileView
 
             foreach (var file in files) _items.Add(new FileFlowBoxItem(file));
             foreach (var item in _items) Add(item);
+
+            foreach (var child in Children) child.Valign = Align.Start;
 
             ShowAll();
         }

@@ -27,6 +27,7 @@ public class FileFlowBoxItem : Box
         });
 
         Margin = 5;
+        Valign = Align.Start;
 
         Show();
     }
