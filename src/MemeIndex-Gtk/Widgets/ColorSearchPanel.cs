@@ -66,8 +66,6 @@ public class ColorSearchPanel : Frame
 
             if (_buttonsBeingManaged) return;
 
-            LogSelectedColors();
-
             SelectionChanged?.Invoke(this, e);
         }
     }
@@ -88,11 +86,7 @@ public class ColorSearchPanel : Frame
         foreach (var checkButton in active) checkButton.Active = false;
 
         _buttonsBeingManaged = false;
-
-        LogSelectedColors();
     }
-
-    private void LogSelectedColors() => Logger.Status($"Selected colors: {string.Join(' ', SelectedColors)}");
 
     public event EventHandler? SelectionChanged;
 }
