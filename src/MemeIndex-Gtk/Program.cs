@@ -11,6 +11,7 @@ using MemeIndex_Core.Services.ImageToText.ColorTag;
 using MemeIndex_Core.Services.ImageToText.OCR;
 using MemeIndex_Core.Services.Indexing;
 using MemeIndex_Core.Services.Search;
+using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -23,6 +24,8 @@ namespace MemeIndex_Gtk
         [STAThread]
         public static void Main(string[] args)
         {
+            Logger.Log(ConsoleColor.Magenta, "[Start]");
+
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 
             if (Environment.OSVersion.Platform is PlatformID.Win32NT)
@@ -41,6 +44,7 @@ namespace MemeIndex_Gtk
             builder.Services.AddSingleton<IMonitoringService, MonitoringService>();
             builder.Services.AddSingleton<IDirectoryService, DirectoryService>();
             builder.Services.AddSingleton<IFileService, FileService>();
+            builder.Services.AddSingleton<TagService>();
 
             // LVL 2 SERVICES
             builder.Services.AddSingleton<FileWatchService>();

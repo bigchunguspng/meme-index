@@ -44,6 +44,7 @@ internal static class Program
         builder.Services.AddSingleton<IMonitoringService, MonitoringService>();
         builder.Services.AddSingleton<IDirectoryService, DirectoryService>();
         builder.Services.AddSingleton<IFileService, FileService>();
+        builder.Services.AddSingleton<TagService>();
 
         builder.Services.AddSingleton<FileWatchService>();
         builder.Services.AddSingleton<OvertakingService>();

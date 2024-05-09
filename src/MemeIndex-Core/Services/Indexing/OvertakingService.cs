@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using System.Text;
-using MemeIndex_Core.Data;
+using MemeIndex_Core.Services.Data;
 using MemeIndex_Core.Services.Data.Contracts;
 using MemeIndex_Core.Utils;
 using Directory = MemeIndex_Core.Entities.Directory;
@@ -13,28 +13,27 @@ public class OvertakingService
     private readonly IFileService _fileService;
     private readonly IDirectoryService _directoryService;
     private readonly IMonitoringService _monitoringService;
-    private readonly MemeDbContext _context;
+    private readonly TagService _tagService;
 
     public OvertakingService
     (
         IFileService fileService,
         IDirectoryService directoryService,
         IMonitoringService monitoringService,
-        MemeDbContext context
+        TagService tagService
     )
     {
         _fileService = fileService;
         _directoryService = directoryService;
         _monitoringService = monitoringService;
-        _context = context;
+        _tagService = tagService;
     }
 
     /// <summary>
     /// Overtakes the changes in file system, and updates the database
     /// to represent the real state of file system.
     /// </summary>
-    /// <returns> The number of files that need visual processing. </returns>
-    public async Task<int> UpdateFileSystemKnowledge()
+    public async Task UpdateFileSystemKnowledge()
     {
         // ON STARTUP
         // 1. a bunch of new files added to db
@@ -121,8 +120,6 @@ public class OvertakingService
             Logger.Status(builder.ToString());
         }
 
-        return c0 + c3;
-
         // WHEN NEW FILE(s) ADDED (spotted by file watcher)
         // 1. file change object added to purgatory
         // 2. after 0.5 second changes are interpreted and db is updated
@@ -156,10 +153,8 @@ public class OvertakingService
             await _fileService.UpdateFile(file.File, file.FileInfo);
         }
 
-        var ids = updated.Select(x => x.File.Id);
-        var tags = _context.Tags.Where(x => ids.Contains(x.FileId));
-        _context.Tags.RemoveRange(tags);
-        await _context.SaveChangesAsync();
+        var fileIds = updated.Select(x => x.File.Id);
+        await _tagService.RemoveTagsFromFiles(fileIds);
 
         return updated.Count;
     }

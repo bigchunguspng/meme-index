@@ -1,5 +1,6 @@
 using MemeIndex_Core.Data;
 using MemeIndex_Core.Entities;
+using MemeIndex_Core.Services.Data;
 using MemeIndex_Core.Services.Data.Contracts;
 using MemeIndex_Core.Services.ImageToText;
 using MemeIndex_Core.Utils;
@@ -14,6 +15,7 @@ public class IndexingService
     private readonly IDirectoryService _directoryService;
     private readonly IMonitoringService _monitoringService;
     private readonly MemeDbContext _context;
+    private readonly TagService _tagService;
     private readonly ImageToTextServiceResolver _imageToTextServiceResolver;
 
     public IndexingService
@@ -21,12 +23,14 @@ public class IndexingService
         IDirectoryService directoryService,
         IMonitoringService monitoringService,
         MemeDbContext context,
+        TagService tagService,
         ImageToTextServiceResolver imageToTextServiceResolver
     )
     {
         _directoryService = directoryService;
         _monitoringService = monitoringService;
         _context = context;
+        _tagService = tagService;
         _imageToTextServiceResolver = imageToTextServiceResolver;
     }
 
@@ -79,7 +83,7 @@ public class IndexingService
         imageToTextService.ImageProcessed += async dictionary =>
         {
             var results = dictionary
-                .Select(x => new ImageTextRepresentation(filesByPath[x.Key], x.Value, mean.Id))
+                .Select(x => new ImageContent(filesByPath[x.Key], x.Value, mean.Id))
                 .ToList();
             await UpdateDatabase(results);
 
@@ -109,47 +113,13 @@ public class IndexingService
             .ToListAsync();
     }
 
-    private async Task UpdateDatabase(IEnumerable<ImageTextRepresentation> results)
+    private async Task UpdateDatabase(IEnumerable<ImageContent> results)
     {
         await _context.Access.Take();
 
-        foreach (var result in results)
-        {
-            var wordIds = new Queue<int>();
-            foreach (var word in result.Words)
-            {
-                var entity = await GetOrCreateWordEntity(word.Word);
-                wordIds.Enqueue(entity.Id);
-            }
-
-            var tags = result.Words.Select(x => new Tag
-            {
-                FileId = result.File.Id,
-                WordId = wordIds.Dequeue(),
-                MeanId = result.Mean,
-                Rank = x.Rank,
-            });
-            await _context.Tags.AddRangeAsync(tags);
-            await _context.SaveChangesAsync();
-        }
+        await _tagService.AddRange(results);
 
         _context.Access.Release();
-    }
-
-    private async Task<Word> GetOrCreateWordEntity(string word)
-    {
-        var existing = _context.Words.FirstOrDefault(x => x.Text == word);
-        if (existing != null)
-        {
-            return existing;
-        }
-
-        var entity = new Word { Text = word };
-
-        await _context.Words.AddAsync(entity);
-        await _context.SaveChangesAsync();
-
-        return entity;
     }
 
 
@@ -168,4 +138,4 @@ public class IndexingService
     }
 }
 
-public record ImageTextRepresentation(File File, List<RankedWord> Words, int Mean);
+public record ImageContent(File File, List<RankedWord> Words, int MeanId);
