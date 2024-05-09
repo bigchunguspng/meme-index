@@ -1,5 +1,6 @@
 using Gtk;
 using MemeIndex_Core.Controllers;
+using MemeIndex_Core.Model;
 using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils;
 using MemeIndex_Gtk.Widgets;
