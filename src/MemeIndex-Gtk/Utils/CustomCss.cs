@@ -22,7 +22,7 @@ public class CustomCss
         var css2 = new CssProvider();
         css1.LoadFromResource("Style.css");
         css2.LoadFromData(GetColorSelectionCss());
-        StyleContext.AddProviderForScreen(Screen.Default, css1, StyleProviderPriority.Application);
+        StyleContext.AddProviderForScreen(Screen.Default, css1, StyleProviderPriority.Application); // 0.11 sec
         StyleContext.AddProviderForScreen(Screen.Default, css2, StyleProviderPriority.Application);
     }
 
