@@ -26,7 +26,7 @@ public class JsonIO<T> : JsonSerializerOptions where T : new()
         {
             using var stream = File.OpenText(_path);
             using var reader = new JsonTextReader(stream);
-            _data = Serializer.Deserialize<T>(reader)!;
+            _data = Serializer.Deserialize<T>(reader)!; // 0.17 sec
         }
         else
         {
@@ -36,7 +36,7 @@ public class JsonIO<T> : JsonSerializerOptions where T : new()
             _data = Serializer.Deserialize<T>(reader)!;
         }
 
-        SaveData();
+        SaveData(); // 0.03 sec
         return _data;
     }
 

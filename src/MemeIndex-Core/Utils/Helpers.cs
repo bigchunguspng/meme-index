@@ -79,4 +79,10 @@ public static class Helpers
         stopwatch.Start();
         return stopwatch;
     }
+
+    public static void Log(this Stopwatch stopwatch, string message)
+    {
+        Logger.Log($"{stopwatch.Elapsed.TotalSeconds}\t{message}");
+        stopwatch.Restart();
+    }
 }
