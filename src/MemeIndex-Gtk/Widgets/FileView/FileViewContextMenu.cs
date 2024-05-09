@@ -4,7 +4,7 @@ using Humanizer;
 using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils.FileOpener;
 using TextCopy;
-using File = MemeIndex_Core.Entities.File;
+using File = MemeIndex_Core.Data.Entities.File;
 
 namespace MemeIndex_Gtk.Widgets.FileView;
 

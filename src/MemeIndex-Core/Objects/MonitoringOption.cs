@@ -1,6 +1,6 @@
-using MemeIndex_Core.Entities;
+using MemeIndex_Core.Data.Entities;
 
-namespace MemeIndex_Core.Model;
+namespace MemeIndex_Core.Objects;
 
 public record MonitoringOption(string Path, bool Recursive, HashSet<int> Means)
 {

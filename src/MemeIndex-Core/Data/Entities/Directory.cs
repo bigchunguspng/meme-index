@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace MemeIndex_Core.Entities;
+namespace MemeIndex_Core.Data.Entities;
 
 /// <summary>
 /// Since user tracks only specific folders, it is better to store them here

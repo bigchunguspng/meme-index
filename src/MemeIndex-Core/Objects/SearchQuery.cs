@@ -1,6 +1,6 @@
 using MemeIndex_Core.Controllers;
 
-namespace MemeIndex_Core.Model;
+namespace MemeIndex_Core.Objects;
 
 public class SearchQuery
 {

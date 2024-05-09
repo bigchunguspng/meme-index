@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace MemeIndex_Core.Entities;
+namespace MemeIndex_Core.Data.Entities;
 
 /// <summary>
 /// <b>Directory</b> that is indexed and monitored for file changes.

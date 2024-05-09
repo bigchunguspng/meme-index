@@ -1,4 +1,4 @@
-using MemeIndex_Core.Entities;
+using MemeIndex_Core.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace MemeIndex_Core.Data;

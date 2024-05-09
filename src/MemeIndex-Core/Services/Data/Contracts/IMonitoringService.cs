@@ -1,5 +1,5 @@
-using MemeIndex_Core.Entities;
-using MemeIndex_Core.Model;
+using MemeIndex_Core.Data.Entities;
+using MemeIndex_Core.Objects;
 
 namespace MemeIndex_Core.Services.Data.Contracts;
 

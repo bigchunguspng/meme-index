@@ -1,12 +1,12 @@
 using Gtk;
 using MemeIndex_Core.Controllers;
-using MemeIndex_Core.Model;
+using MemeIndex_Core.Objects;
 using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils;
 using MemeIndex_Gtk.Widgets;
 using MemeIndex_Gtk.Widgets.FileView;
 using Application = Gtk.Application;
-using File = MemeIndex_Core.Entities.File;
+using File = MemeIndex_Core.Data.Entities.File;
 using MenuItem = Gtk.MenuItem;
 using UI = Gtk.Builder.ObjectAttribute;
 using Window = Gtk.Window;

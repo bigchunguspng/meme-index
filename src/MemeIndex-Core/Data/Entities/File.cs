@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 
-namespace MemeIndex_Core.Entities;
+namespace MemeIndex_Core.Data.Entities;
 
 /// <summary>
 /// An <b>image file</b>.

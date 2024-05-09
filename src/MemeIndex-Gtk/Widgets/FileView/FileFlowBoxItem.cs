@@ -1,7 +1,7 @@
 using Gdk;
 using Gtk;
 using Pango;
-using File = MemeIndex_Core.Entities.File;
+using File = MemeIndex_Core.Data.Entities.File;
 
 namespace MemeIndex_Gtk.Widgets.FileView;
 

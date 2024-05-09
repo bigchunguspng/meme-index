@@ -24,7 +24,7 @@ public static class Helpers
         return new List<string> { ".png", ".jpg", ".jpeg", ".tif", ".bmp" };
     }
 
-    public static IEnumerable<Entities.Directory> GetExisting(this IEnumerable<Entities.Directory> directories)
+    public static IEnumerable<Data.Entities.Directory> GetExisting(this IEnumerable<Data.Entities.Directory> directories)
     {
         return directories.Where(x => x.Path.DirectoryExists());
     }

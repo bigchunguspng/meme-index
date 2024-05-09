@@ -1,8 +1,8 @@
-using MemeIndex_Core.Entities;
+using MemeIndex_Core.Data.Entities;
 using MemeIndex_Core.Utils;
 using Microsoft.EntityFrameworkCore;
-using Directory = MemeIndex_Core.Entities.Directory;
-using File = MemeIndex_Core.Entities.File;
+using Directory = MemeIndex_Core.Data.Entities.Directory;
+using File = MemeIndex_Core.Data.Entities.File;
 
 namespace MemeIndex_Core.Data;
 
@@ -33,8 +33,7 @@ public class MemeDbContext : DbContext
     public DbSet<MonitoredDirectory> MonitoredDirectories { get; set; } = default!;
 
     // 1. open MemeIndex-Core in Terminal
-    // 2. dotnet ef --startup-project ..\MemeIndex-Console\ migrations add Initial
-    // 3. dotnet ef --startup-project ..\MemeIndex-Console\ database update
+    // 2. dotnet ef --startup-project ..\MemeIndex-Console\ migrations add Initial -o .\Data\Migrations\
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

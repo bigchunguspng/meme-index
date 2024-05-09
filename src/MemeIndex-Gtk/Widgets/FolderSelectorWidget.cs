@@ -1,6 +1,6 @@
 using Gtk;
-using MemeIndex_Core.Entities;
-using MemeIndex_Core.Model;
+using MemeIndex_Core.Data.Entities;
+using MemeIndex_Core.Objects;
 using MemeIndex_Gtk.Windows;
 
 namespace MemeIndex_Gtk.Widgets;

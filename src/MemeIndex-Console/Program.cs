@@ -3,7 +3,7 @@ using System.Text;
 using MemeIndex_Core;
 using MemeIndex_Core.Controllers;
 using MemeIndex_Core.Data;
-using MemeIndex_Core.Entities;
+using MemeIndex_Core.Data.Entities;
 using MemeIndex_Core.Services.Data;
 using MemeIndex_Core.Services.Data.Contracts;
 using MemeIndex_Core.Services.ImageToText;

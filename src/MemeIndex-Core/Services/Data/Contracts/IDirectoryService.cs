@@ -1,4 +1,4 @@
-using Directory = MemeIndex_Core.Entities.Directory;
+using Directory = MemeIndex_Core.Data.Entities.Directory;
 
 namespace MemeIndex_Core.Services.Data.Contracts;
 

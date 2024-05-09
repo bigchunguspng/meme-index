@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 
-namespace MemeIndex_Core.Entities;
+namespace MemeIndex_Core.Data.Entities;
 
 /// <summary>
 /// A <b>word</b> (text w/o spaces) that can be used as image search tag.

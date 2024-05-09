@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using MemeIndex_Core.Controllers;
-using MemeIndex_Core.Model;
+using MemeIndex_Core.Objects;
 using MemeIndex_Core.Utils;
 using Microsoft.Extensions.Hosting;
 

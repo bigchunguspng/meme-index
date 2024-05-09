@@ -1,9 +1,9 @@
 using MemeIndex_Core.Data;
-using MemeIndex_Core.Entities;
-using MemeIndex_Core.Model;
+using MemeIndex_Core.Data.Entities;
+using MemeIndex_Core.Objects;
 using MemeIndex_Core.Services.Data.Contracts;
 using Microsoft.EntityFrameworkCore;
-using Directory = MemeIndex_Core.Entities.Directory;
+using Directory = MemeIndex_Core.Data.Entities.Directory;
 
 namespace MemeIndex_Core.Services.Data;
 

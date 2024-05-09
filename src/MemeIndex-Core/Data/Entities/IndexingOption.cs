@@ -1,4 +1,4 @@
-namespace MemeIndex_Core.Entities;
+namespace MemeIndex_Core.Data.Entities;
 
 /// <summary>
 /// Relationship between the <b>folder</b> and its <b>indexing method</b>.

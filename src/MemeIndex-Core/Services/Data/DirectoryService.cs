@@ -1,6 +1,6 @@
 using MemeIndex_Core.Data;
 using MemeIndex_Core.Services.Data.Contracts;
-using Directory = MemeIndex_Core.Entities.Directory;
+using Directory = MemeIndex_Core.Data.Entities.Directory;
 
 namespace MemeIndex_Core.Services.Data;
 

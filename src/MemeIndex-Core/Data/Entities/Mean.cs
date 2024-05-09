@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace MemeIndex_Core.Entities;
+namespace MemeIndex_Core.Data.Entities;
 
 /// <summary>
 /// A <b>method</b> for representing image content.

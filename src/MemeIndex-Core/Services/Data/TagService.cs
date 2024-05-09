@@ -1,5 +1,5 @@
 using MemeIndex_Core.Data;
-using MemeIndex_Core.Entities;
+using MemeIndex_Core.Data.Entities;
 using MemeIndex_Core.Services.Indexing;
 
 namespace MemeIndex_Core.Services.Data;

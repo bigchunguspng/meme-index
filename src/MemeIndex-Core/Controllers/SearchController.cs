@@ -1,7 +1,7 @@
-using MemeIndex_Core.Model;
+using MemeIndex_Core.Objects;
 using MemeIndex_Core.Services.Search;
 using MemeIndex_Core.Utils;
-using File = MemeIndex_Core.Entities.File;
+using File = MemeIndex_Core.Data.Entities.File;
 
 namespace MemeIndex_Core.Controllers;
 

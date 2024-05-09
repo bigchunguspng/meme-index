@@ -17,7 +17,7 @@ namespace MemeIndexCore.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "7.0.0");
 
-            modelBuilder.Entity("MemeIndex_Core.Entities.Directory", b =>
+            modelBuilder.Entity("MemeIndex_Core.Data.Entities.Directory", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -35,7 +35,7 @@ namespace MemeIndexCore.Migrations
                     b.ToTable("Directories");
                 });
 
-            modelBuilder.Entity("MemeIndex_Core.Entities.File", b =>
+            modelBuilder.Entity("MemeIndex_Core.Data.Entities.File", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -68,7 +68,7 @@ namespace MemeIndexCore.Migrations
                     b.ToTable("Files");
                 });
 
-            modelBuilder.Entity("MemeIndex_Core.Entities.IndexingOption", b =>
+            modelBuilder.Entity("MemeIndex_Core.Data.Entities.IndexingOption", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -89,7 +89,7 @@ namespace MemeIndexCore.Migrations
                     b.ToTable("IndexingOptions");
                 });
 
-            modelBuilder.Entity("MemeIndex_Core.Entities.Mean", b =>
+            modelBuilder.Entity("MemeIndex_Core.Data.Entities.Mean", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -112,7 +112,7 @@ namespace MemeIndexCore.Migrations
                     b.ToTable("Means");
                 });
 
-            modelBuilder.Entity("MemeIndex_Core.Entities.MonitoredDirectory", b =>
+            modelBuilder.Entity("MemeIndex_Core.Data.Entities.MonitoredDirectory", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -132,7 +132,7 @@ namespace MemeIndexCore.Migrations
                     b.ToTable("MonitoredDirectories");
                 });
 
-            modelBuilder.Entity("MemeIndex_Core.Entities.Tag", b =>
+            modelBuilder.Entity("MemeIndex_Core.Data.Entities.Tag", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -161,7 +161,7 @@ namespace MemeIndexCore.Migrations
                     b.ToTable("Tags");
                 });
 
-            modelBuilder.Entity("MemeIndex_Core.Entities.Word", b =>
+            modelBuilder.Entity("MemeIndex_Core.Data.Entities.Word", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -179,9 +179,9 @@ namespace MemeIndexCore.Migrations
                     b.ToTable("Words");
                 });
 
-            modelBuilder.Entity("MemeIndex_Core.Entities.File", b =>
+            modelBuilder.Entity("MemeIndex_Core.Data.Entities.File", b =>
                 {
-                    b.HasOne("MemeIndex_Core.Entities.Directory", "Directory")
+                    b.HasOne("MemeIndex_Core.Data.Entities.Directory", "Directory")
                         .WithMany("Files")
                         .HasForeignKey("DirectoryId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -190,15 +190,15 @@ namespace MemeIndexCore.Migrations
                     b.Navigation("Directory");
                 });
 
-            modelBuilder.Entity("MemeIndex_Core.Entities.IndexingOption", b =>
+            modelBuilder.Entity("MemeIndex_Core.Data.Entities.IndexingOption", b =>
                 {
-                    b.HasOne("MemeIndex_Core.Entities.Mean", "Mean")
+                    b.HasOne("MemeIndex_Core.Data.Entities.Mean", "Mean")
                         .WithMany()
                         .HasForeignKey("MeanId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MemeIndex_Core.Entities.MonitoredDirectory", "MonitoredDirectory")
+                    b.HasOne("MemeIndex_Core.Data.Entities.MonitoredDirectory", "MonitoredDirectory")
                         .WithMany("IndexingOptions")
                         .HasForeignKey("MonitoredDirectoryId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -209,9 +209,9 @@ namespace MemeIndexCore.Migrations
                     b.Navigation("MonitoredDirectory");
                 });
 
-            modelBuilder.Entity("MemeIndex_Core.Entities.MonitoredDirectory", b =>
+            modelBuilder.Entity("MemeIndex_Core.Data.Entities.MonitoredDirectory", b =>
                 {
-                    b.HasOne("MemeIndex_Core.Entities.Directory", "Directory")
+                    b.HasOne("MemeIndex_Core.Data.Entities.Directory", "Directory")
                         .WithMany()
                         .HasForeignKey("DirectoryId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -220,21 +220,21 @@ namespace MemeIndexCore.Migrations
                     b.Navigation("Directory");
                 });
 
-            modelBuilder.Entity("MemeIndex_Core.Entities.Tag", b =>
+            modelBuilder.Entity("MemeIndex_Core.Data.Entities.Tag", b =>
                 {
-                    b.HasOne("MemeIndex_Core.Entities.File", "File")
+                    b.HasOne("MemeIndex_Core.Data.Entities.File", "File")
                         .WithMany("Tags")
                         .HasForeignKey("FileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MemeIndex_Core.Entities.Mean", "Mean")
+                    b.HasOne("MemeIndex_Core.Data.Entities.Mean", "Mean")
                         .WithMany()
                         .HasForeignKey("MeanId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MemeIndex_Core.Entities.Word", "Word")
+                    b.HasOne("MemeIndex_Core.Data.Entities.Word", "Word")
                         .WithMany("Tags")
                         .HasForeignKey("WordId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -247,22 +247,22 @@ namespace MemeIndexCore.Migrations
                     b.Navigation("Word");
                 });
 
-            modelBuilder.Entity("MemeIndex_Core.Entities.Directory", b =>
+            modelBuilder.Entity("MemeIndex_Core.Data.Entities.Directory", b =>
                 {
                     b.Navigation("Files");
                 });
 
-            modelBuilder.Entity("MemeIndex_Core.Entities.File", b =>
+            modelBuilder.Entity("MemeIndex_Core.Data.Entities.File", b =>
                 {
                     b.Navigation("Tags");
                 });
 
-            modelBuilder.Entity("MemeIndex_Core.Entities.MonitoredDirectory", b =>
+            modelBuilder.Entity("MemeIndex_Core.Data.Entities.MonitoredDirectory", b =>
                 {
                     b.Navigation("IndexingOptions");
                 });
 
-            modelBuilder.Entity("MemeIndex_Core.Entities.Word", b =>
+            modelBuilder.Entity("MemeIndex_Core.Data.Entities.Word", b =>
                 {
                     b.Navigation("Tags");
                 });

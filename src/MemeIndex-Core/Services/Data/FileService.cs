@@ -1,10 +1,10 @@
 using MemeIndex_Core.Data;
-using MemeIndex_Core.Entities;
+using MemeIndex_Core.Data.Entities;
 using MemeIndex_Core.Services.Data.Contracts;
 using MemeIndex_Core.Utils;
 using Microsoft.EntityFrameworkCore;
-using Directory = MemeIndex_Core.Entities.Directory;
-using File = MemeIndex_Core.Entities.File;
+using Directory = MemeIndex_Core.Data.Entities.Directory;
+using File = MemeIndex_Core.Data.Entities.File;
 
 namespace MemeIndex_Core.Services.Data;
 

@@ -1,4 +1,4 @@
-namespace MemeIndex_Core.Entities;
+namespace MemeIndex_Core.Data.Entities;
 
 /// <summary>
 /// <b>Search tag</b> that can be used to find an image file.

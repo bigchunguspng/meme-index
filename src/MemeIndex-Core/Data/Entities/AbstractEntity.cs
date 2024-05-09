@@ -1,4 +1,4 @@
-namespace MemeIndex_Core.Entities;
+namespace MemeIndex_Core.Data.Entities;
 
 public abstract class AbstractEntity
 {

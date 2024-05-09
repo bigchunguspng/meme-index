@@ -1,4 +1,4 @@
-using MemeIndex_Core.Model;
+using MemeIndex_Core.Objects;
 using MemeIndex_Core.Services.Data.Contracts;
 using MemeIndex_Core.Services.Indexing;
 using MemeIndex_Core.Utils;

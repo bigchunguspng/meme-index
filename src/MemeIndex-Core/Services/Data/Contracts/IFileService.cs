@@ -1,5 +1,5 @@
-using MemeIndex_Core.Entities;
-using File = MemeIndex_Core.Entities.File;
+using MemeIndex_Core.Data.Entities;
+using File = MemeIndex_Core.Data.Entities.File;
 
 namespace MemeIndex_Core.Services.Data.Contracts;
 
