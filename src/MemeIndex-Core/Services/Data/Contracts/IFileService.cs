@@ -7,6 +7,8 @@ public interface IFileService
 {
     Task<IList<File>> GetAllFilesWithPath();
 
+    Task<File?> TryGet(FileInfo file, string name);
+
     Task<int> AddFile(FileInfo file);
 
     Task<int> AddFiles(MonitoredDirectory monitoredDirectory);

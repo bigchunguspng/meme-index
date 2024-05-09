@@ -22,6 +22,13 @@ public class FileService : IFileService
         return await _context.Files.Include(x => x.Directory).ToListAsync();
     }
 
+    public Task<File?> TryGet(FileInfo file, string name) => _context.Files.FirstOrDefaultAsync
+    (
+        x => x.Name == name
+          && x.Size == file.Length
+          && x.Modified == file.LastWriteTimeUtc
+    );
+
     public async Task<int> AddFile(FileInfo file)
     {
         var directory = await GetOrAddDirectory(file.DirectoryName!);

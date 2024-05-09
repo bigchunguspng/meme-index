@@ -1,7 +1,5 @@
-using MemeIndex_Core.Data;
 using MemeIndex_Core.Services.Data.Contracts;
 using MemeIndex_Core.Utils;
-using Microsoft.EntityFrameworkCore;
 
 namespace MemeIndex_Core.Services.Indexing;
 
@@ -10,7 +8,6 @@ public class FileWatchService
     private readonly IDirectoryService _directoryService;
     private readonly IFileService _fileService;
     private readonly IMonitoringService _monitoringService;
-    private readonly MemeDbContext _context;
     private readonly List<DirectoryMonitor> _watchers;
     private readonly DebounceTimer _debounce;
 
@@ -18,14 +15,12 @@ public class FileWatchService
     (
         IDirectoryService directoryService,
         IFileService fileService,
-        IMonitoringService monitoringService,
-        MemeDbContext context
+        IMonitoringService monitoringService
     )
     {
         _directoryService = directoryService;
         _fileService = fileService;
         _monitoringService = monitoringService;
-        _context = context;
         _watchers = new List<DirectoryMonitor>();
         _debounce = new DebounceTimer();
     }
@@ -89,15 +84,12 @@ public class FileWatchService
     {
         // rename is handled instantly
 
-        if (e.FullPath.FileExists())
+        if (e.FullPath.FileExists() && e.OldName is not null)
         {
             var file = new FileInfo(e.FullPath);
             if (file.IsImage())
             {
-                var entity = await _context.Files.FirstOrDefaultAsync
-                (
-                    x => x.Name == e.OldName && x.Size == file.Length && x.Modified == file.LastWriteTime
-                );
+                var entity = await _fileService.TryGet(file, e.OldName);
                 if (entity != null)
                 {
                     await _fileService.UpdateFile(entity, file);
