@@ -33,7 +33,7 @@ namespace MemeIndex_Gtk
                 Console.InputEncoding = Encoding.Unicode;
             }
 
-            var builder = Host.CreateApplicationBuilder(args);
+            var builder = Host.CreateApplicationBuilder(args); // 0.13-0.25 sec
 
             builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
@@ -78,8 +78,8 @@ namespace MemeIndex_Gtk
             builder.Services.AddSingleton<App>();
             builder.Services.AddTransient<CustomCss>();
 
-            using var host = builder.Build();
-            using var app = host.Services.GetRequiredService<App>();
+            using var host = builder.Build(); // 0.13 sec
+            using var app = host.Services.GetRequiredService<App>(); // 0.20 sec
 
             app.Start();
         }

@@ -82,7 +82,7 @@ public static class Helpers
 
     public static void Log(this Stopwatch stopwatch, string message)
     {
-        Logger.Log($"{stopwatch.Elapsed.TotalSeconds}\t{message}");
+        Logger.Log($"{stopwatch.Elapsed.TotalSeconds:##0.00000}\t{message}");
         stopwatch.Restart();
     }
 }
