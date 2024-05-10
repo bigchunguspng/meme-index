@@ -24,6 +24,7 @@ namespace MemeIndex_Gtk
         [STAThread]
         public static void Main(string[] args)
         {
+            var sw = Helpers.GetStartedStopwatch();
             Logger.Log(ConsoleColor.Magenta, "[Start]");
 
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
@@ -89,9 +90,20 @@ namespace MemeIndex_Gtk
             builder.Services.AddLazy<MemeDbContext>();
 
             using var host = builder.Build(); // 0.13 --> 0.08 sec
+
+            var configProvider = host.Services.GetRequiredService<IConfigProvider<Config>>();
+            Task.Run(configProvider.LoadConfig);
+
             using var app = host.Services.GetRequiredService<App>(); // 0.20 --> 0.01 sec
 
+            sw.Log("app.Start...");
             app.Start();
+        }
+
+        private static void LoadConfig(this IConfigProvider<Config> provider)
+        {
+            var config = provider.GetConfig();
+            Logger.Log(ConsoleColor.Magenta, $"[{config.GetType().Name} Loaded]");
         }
 
         private static void AddLazy<T>(this IServiceCollection services) where T : notnull

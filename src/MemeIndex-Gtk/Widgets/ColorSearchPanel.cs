@@ -24,7 +24,7 @@ public class ColorSearchPanel : Frame
 
         App = app;
 
-        BuildPalette();
+        Realized += (_, _) => BuildPalette();
 
         _buttonClearColorSelection.Clicked += ClearColorSelectionOnClicked;
     }

@@ -46,7 +46,7 @@ public class MainWindow : Window
         App = app;
         app.SetStatusBar(_status);
 
-        var position = App.ConfigProvider.GetConfig().WindowPosition; // 0.21 sec (-> JsonIO)
+        var position = App.ConfigProvider.GetConfig().WindowPosition; // 0.21 (-> JsonIO) --> 0.00 sec
         if (position.HasValue)
         {
             var p = position.Value;
@@ -54,7 +54,7 @@ public class MainWindow : Window
             Resize(p.Width, p.Height);
         }
 
-        _colorSearchPanel = new ColorSearchPanel(app, new WindowBuilder(nameof(ColorSearchPanel))); // 0.08 sec
+        _colorSearchPanel = new ColorSearchPanel(app, new WindowBuilder(nameof(ColorSearchPanel))); // 0.08 --> 0.00 sec
         _colorSearch.PackStart(_colorSearchPanel, true, true, 0);
 
         _largeIcons = App.ConfigProvider.GetConfig().FileViewLargeIcons ?? true;
@@ -68,7 +68,7 @@ public class MainWindow : Window
             ChangeFileView();
         };
 
-        ChangeFileView(); // 0.03 sec
+        ChangeFileView(); // 0.04 sec flow | 0.10 sec tree
 
         DeleteEvent             += Window_DeleteEvent;
         _menuFileQuit.Activated += Window_DeleteEvent;

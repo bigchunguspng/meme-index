@@ -51,17 +51,21 @@ public class App : IDisposable
 
     public void Start()
     {
+        var sw = Helpers.GetStartedStopwatch();
         Application.Init(); // 0.13 sec
 
         var app = new Application("only.in.ohio.MemeIndex", ApplicationFlags.None);
 
         _css.AddProviders(); // 0.14 sec
 
-        var win = new MainWindow(this, new WindowBuilder(nameof(MainWindow))); // 0.47 sec
+        var win = new MainWindow(this, new WindowBuilder(nameof(MainWindow))); // 0.47 --> 0.20 sec
 
         app.Register(Cancellable.Current); // 0.15 sec
         app.AddWindow(win);
-        win.Show(); // 0.81 sec
+
+        sw.Log("mainWindow.Show...");
+        win.Show(); // 0.80-0.90 sec
+        sw.Log("mainWindow.Show");
 
         Task.Run(() =>
         {
