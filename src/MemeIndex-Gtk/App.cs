@@ -17,29 +17,34 @@ public class App : IDisposable
     private Statusbar? _status;
     private readonly CustomCss _css;
 
+    private readonly Lazy<IndexController> _indexController;
+    private readonly Lazy<SearchController> _searchController;
+    private readonly Lazy<MemeDbContext> _context;
+
+    public IndexController IndexController => _indexController.Value;
+    public SearchController SearchController => _searchController.Value;
+    public MemeDbContext Context => _context.Value;
     public IConfigProvider<ConfigGtk> ConfigProvider { get; }
-    public IndexController IndexController { get; }
-    public SearchController SearchController { get; }
     public ColorSearchProfile ColorSearchProfile { get; }
-    public MemeDbContext Context { get; }
 
     public App
     (
+        Lazy<IndexController> indexController,
+        Lazy<SearchController> searchController,
+        Lazy<MemeDbContext> context,
         IConfigProvider<ConfigGtk> configProvider,
-        IndexController indexController,
-        SearchController searchController,
         ColorSearchProfile colorSearchProfile,
-        MemeDbContext context,
         CustomCss css
     )
     {
         _css = css;
 
+        _indexController = indexController;
+        _searchController = searchController;
+        _context = context;
+
         ConfigProvider = configProvider;
-        IndexController = indexController;
-        SearchController = searchController;
         ColorSearchProfile = colorSearchProfile;
-        Context = context;
 
         Logger.StatusChanged += SetStatus;
     }

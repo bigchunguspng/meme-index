@@ -33,7 +33,12 @@ namespace MemeIndex_Gtk
                 Console.InputEncoding = Encoding.Unicode;
             }
 
-            var builder = Host.CreateApplicationBuilder(args); // 0.13-0.25 sec
+            var settings = new HostApplicationBuilderSettings
+            {
+                DisableDefaults = true,
+                ApplicationName = "Meme-Index™"
+            };
+            var builder = new HostApplicationBuilder(settings); // 0.13-0.25 --> 0.03 sec
 
             builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
@@ -78,10 +83,20 @@ namespace MemeIndex_Gtk
             builder.Services.AddSingleton<App>();
             builder.Services.AddTransient<CustomCss>();
 
-            using var host = builder.Build(); // 0.13 sec
-            using var app = host.Services.GetRequiredService<App>(); // 0.20 sec
+            // LAZY
+            builder.Services.AddLazy<IndexController>();
+            builder.Services.AddLazy<SearchController>();
+            builder.Services.AddLazy<MemeDbContext>();
+
+            using var host = builder.Build(); // 0.13 --> 0.08 sec
+            using var app = host.Services.GetRequiredService<App>(); // 0.20 --> 0.01 sec
 
             app.Start();
+        }
+
+        private static void AddLazy<T>(this IServiceCollection services) where T : notnull
+        {
+            services.AddTransient<Lazy<T>>(provider => new(provider.GetRequiredService<T>));
         }
     }
 }
