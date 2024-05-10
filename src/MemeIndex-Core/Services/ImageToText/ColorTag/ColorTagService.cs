@@ -115,14 +115,18 @@ public class ColorTagService : IImageToTextService
             await image.SaveAsJpegAsync(Path.Combine("img", $"{name}-colors.jpg"), _defaultJpegEncoder);
 #endif
 
-            var data = dots
+            var keyCounts = dots
                 .Select(x => x.Key)
                 .GroupBy(x => x)
-                .OrderByDescending(g => g.Count())
-                .Select((x, i) => new RankedWord(x.Key, i))
+                .Select(x => (Text: x.Key, Count: x.Count()))
+                .ToList();
+            var colorsOnImage = (double)keyCounts.Sum(x => x.Count);
+            var rankedWords = keyCounts
+                .OrderByDescending(x => x.Count)
+                .Select((x, i) => new RankedWord(x.Text, (int)(i * Math.Pow(1 - x.Count / colorsOnImage, 2))))
                 .ToList();
 
-            return data;
+            return rankedWords;
         }
         catch (Exception e)
         {
