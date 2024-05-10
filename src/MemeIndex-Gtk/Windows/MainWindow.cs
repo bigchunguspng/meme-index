@@ -142,10 +142,13 @@ public class MainWindow : Window
 
     #region EVENT HANDLERS
 
-    private void OpenManageFoldersDialog(object? sender, EventArgs e)
+    private async void OpenManageFoldersDialog(object? sender, EventArgs e)
     {
+        await App.Context.Access.Take();
         var builder = new WindowBuilder(nameof(ManageFoldersDialog));
-        new ManageFoldersDialog(App, builder).Show();
+        var window = new ManageFoldersDialog(App, builder);
+        App.Context.Access.Release();
+        window.Show();
     }
 
     private void OpenSettingsDialog(object? sender, EventArgs e)
