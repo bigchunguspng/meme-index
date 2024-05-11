@@ -6,6 +6,8 @@
     <RootNamespace>MemeIndex_Gtk</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <AssemblyName>meme-index</AssemblyName>
+    <AssemblyTitle>Meme Index</AssemblyTitle>
     <ApplicationIcon>Static\Icon\48x48.ico</ApplicationIcon>
   </PropertyGroup>
 
