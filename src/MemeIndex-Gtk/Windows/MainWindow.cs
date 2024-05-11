@@ -86,7 +86,7 @@ public class MainWindow : Window
 
     private void ChangeFileView()
     {
-        _buttonSwitchFileView.Label = _largeIcons ? "Large Icons" : "Table";
+        _buttonSwitchFileView.Label = _largeIcons ? "Table" : "Large Icons";
 
         if (_scroll.Children.Length > 0)
             _scroll.Remove(_scroll.Children[0]);
