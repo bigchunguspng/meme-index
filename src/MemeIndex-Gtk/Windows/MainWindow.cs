@@ -78,6 +78,11 @@ public class MainWindow : Window
         _search.SearchChanged += OnSearchChanged;
         _colorSearchPanel.SelectionChanged += OnColorSelectionChanged;
 
+        Realized += OnRealized;
+    }
+
+    private void OnRealized(object? sender, EventArgs e)
+    {
         var showPanel = App.ConfigProvider.GetConfig().ShowColorSearchPanel;
         _colorSearch.Visible = showPanel ?? false;
         _buttonColorSearch.Active = _colorSearch.Visible;
