@@ -1,3 +1,4 @@
+using ColorHelper;
 using MemeIndex_Core.Services.ImageToText.ColorTag;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -5,6 +6,10 @@ namespace MemeIndex_Core.Utils;
 
 public static class ColorHelpers
 {
+
+    public static RGB   ToRGB(this Rgb24 color) => new(color.R, color.G, color.B);
+    public static Rgb24 ToRgb24(this RGB color) => new(color.R, color.G, color.B);
+
     /// <param name="hue">0 - 360</param>
     /// <param name="saturation">0 - 1</param>
     /// <param name="lightness">0 - 1</param>
