@@ -100,6 +100,16 @@ public static class ColorHelpers
         );
     }
 
+    public static Rgb24 GetAverageColor(Rgb24[] colors)
+    {
+        return new Rgb24
+        (
+            colors.Average(x => x.R).ClampToByte(),
+            colors.Average(x => x.G).ClampToByte(),
+            colors.Average(x => x.B).ClampToByte()
+        );
+    }
+
     public static Rgba32 GetDarkerColor(this Rgba32 color) => new
     (
         ((int)(color.R * 0.75)).ClampToByte(),

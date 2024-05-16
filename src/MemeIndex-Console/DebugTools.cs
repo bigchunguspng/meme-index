@@ -60,15 +60,30 @@ public static class DebugTools
         report.PutLines(100, 100);
         report.PutLines(200, 100);
 
-        for (var x = 0; x < source.Width; x += 16)
-        for (var y = 0; y < source.Height; y += 16)
+        // 720 x 720 => 16
+        // 180 x 180 =>  4
+        var step = (int)Math.Clamp(Math.Sqrt(source.Width * source.Height / 2025D), 2, 32);
+
+        for (var x = 0; x < source.Width /* - 3*/; x += step)
+        for (var y = 0; y < source.Height/* - 3*/; y += step)
         {
             var sample = source[x, y];
+
+            /*var colors = new[]
+            {
+                source[x, y],
+                source[x + 1, y + 1],
+                source[x + 2, y + 0],
+                source[x + 0, y + 2],
+                source[x + 2, y + 2],
+            };
+            var sample = ColorHelpers.GetAverageColor(colors);*/
+
             var hsl = ColorConverter.RgbToHsl(sample.ToRGB());
             var l = hsl.L < 100 ? hsl.L : 99;
             var s = hsl.S < 100 ? hsl.S : 99;
 
-            var hue = hsl.H % 360 / 30; // 0..11 => 12 hues
+            var hue = (hsl.H + 15) % 360 / 30; // 0..11 => 12 hues
             var offsetX = hue / 4 * 100;
             var offsetY = hue % 2 == 0 ? 0 : 100;
 
@@ -77,7 +92,9 @@ public static class DebugTools
 
         sw.Log("colors picked");
 
-        report.SaveAsPng($"HSL-Profile-{Math.Abs(path.GetHashCode())}.png".InDebugDirectory());
+        var code = Math.Abs(path.GetHashCode());
+        var suffix = Path.GetFileName(Path.GetDirectoryName(path));
+        report.SaveAsPng($"HSL-Profile-{code}-{suffix}.png".InDebugDirectory());
         sw.Log("image rendered");
     }
 
@@ -89,5 +106,8 @@ public static class DebugTools
         image.Mutate(x => x.Fill(new Rgb24(50, 50, 50), new RectangleF(offsetX + 10, offsetY + 50, 30, 50)));
         image.Mutate(x => x.Fill(new Rgb24(70, 70, 70), new RectangleF(offsetX + 40, offsetY +  0, 60, 50)));
         image.Mutate(x => x.Fill(new Rgb24(60, 60, 60), new RectangleF(offsetX + 40, offsetY + 50, 60, 50)));
+
+        image.Mutate(x => x.Fill(new Rgb24(32, 32, 32), new RectangleF(offsetX + 0, offsetY + 96, 100, 4)));
+        image.Mutate(x => x.Fill(new Rgb24(98, 98, 98), new RectangleF(offsetX + 0, offsetY +  0, 100, 4)));
     }
 }
