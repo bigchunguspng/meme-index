@@ -9,6 +9,14 @@ namespace MemeIndex_Console;
 
 public static class DebugTools
 {
+    private const string DIR = "debug";
+
+    private static string InDebugDirectory(this string path)
+    {
+        Directory.CreateDirectory(DIR);
+        return Path.Combine(DIR, path);
+    }
+
     public static void LoopHSL(int step)
     {
         for (var hue = 0; hue < 360; hue += step)
@@ -34,7 +42,7 @@ public static class DebugTools
 
         sw.Log("hue filled");
 
-        image.SaveAsPng($"{nameof(HSL)}-{hue}.png");
+        image.SaveAsPng($"{nameof(HSL)}-{hue}.png".InDebugDirectory());
         sw.Log("image rendered");
     }
 
@@ -69,7 +77,7 @@ public static class DebugTools
 
         sw.Log("colors picked");
 
-        report.SaveAsPng($"{nameof(RenderHSL_Profile)}-{Math.Abs(path.GetHashCode())}.png");
+        report.SaveAsPng($"HSL-Profile-{Math.Abs(path.GetHashCode())}.png".InDebugDirectory());
         sw.Log("image rendered");
     }
 
