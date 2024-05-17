@@ -18,12 +18,12 @@ public class AccessGate
         {
             while (_accessKey != null) // access is taken
             {
-                await Task.Delay(15); // wait
+                await Task.Delay(25); // wait
             }
 
             _accessKey = key; // insert our key
 
-            await Task.Delay(5);
+            await Task.Delay(10);
 
             accessGranted = _accessKey == key; // make sure no one has overriden our key
         }
