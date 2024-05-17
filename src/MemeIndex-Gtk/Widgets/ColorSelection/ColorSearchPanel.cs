@@ -2,18 +2,17 @@ using Gtk;
 using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils;
 using MemeIndex_Gtk.Widgets.ColorSelection.Selectors;
-using UI = Gtk.Builder.ObjectAttribute;
 
 namespace MemeIndex_Gtk.Widgets.ColorSelection;
 
 public class ColorSearchPanel : Frame
 {
-    [UI] private readonly Box _box = default!;
+    private readonly Box _box;
 
     private readonly     FunnyColorSelector _funnyColors;
     private readonly GrayscaleColorSelector  _grayColors;
 
-    private readonly Button _buttonClearColorSelection;
+    private readonly Button _clearSelection;
 
     private bool _buttonsBeingManaged;
 
@@ -21,19 +20,27 @@ public class ColorSearchPanel : Frame
 
     public HashSet<string> SelectedColors { get; } = [];
 
-    public ColorSearchPanel(App app, WindowBuilder builder) : base(builder.Raw)
+    public ColorSearchPanel(App app) : base("Color search")
     {
-        builder.Builder.Autoconnect(this);
-
         App = app;
 
-        Realized += (_, _) => BuildPalette();
+        Margin = 5;
+        ShadowType = ShadowType.Out;
+
+        LabelXalign = 0.5F;
+        LabelWidget.MarginStart = 5;
+        LabelWidget.MarginEnd = 5;
+
+        _box = new Box(Orientation.Horizontal, 10) { Margin = 10 };
+        Add(_box);
 
         _funnyColors = new FunnyColorSelector(App);
         _grayColors = new GrayscaleColorSelector(App);
 
-        _buttonClearColorSelection = new Button { Label = "Clear selection", Expand = true };
-        _buttonClearColorSelection.Clicked += DeactivateCheckboxes;
+        _clearSelection = new Button { Label = "Clear selection", Expand = true };
+        _clearSelection.Clicked += DeactivateCheckboxes;
+
+        Realized += (_, _) => BuildPalette();
     }
 
     private void BuildPalette()
@@ -42,9 +49,9 @@ public class ColorSearchPanel : Frame
         ConstructColorSelector(_grayColors);
 
         var box = new Box(Orientation.Vertical, 0) { Expand = false };
-        box.Add(_buttonClearColorSelection);
+        box.Add(_clearSelection);
         _box.Add(box);
-        
+
         ShowAll();
     }
 

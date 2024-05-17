@@ -54,7 +54,7 @@ public class MainWindow : Window
             Resize(p.Width, p.Height);
         }
 
-        _colorSearchPanel = new ColorSearchPanel(app, new WindowBuilder(nameof(ColorSearchPanel))); // 0.08 --> 0.00 sec
+        _colorSearchPanel = new ColorSearchPanel(app);
         _colorSearch.PackStart(_colorSearchPanel, true, true, 0);
 
         _largeIcons = App.ConfigProvider.GetConfig().FileViewLargeIcons ?? true;
