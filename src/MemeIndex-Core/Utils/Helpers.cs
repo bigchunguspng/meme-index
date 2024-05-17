@@ -6,6 +6,8 @@ public static class Helpers
 {
     public static string Quote(this string text) => $"\"{text}\"";
 
+    public static int FancyHashCode(this object x) => Math.Abs(x.GetHashCode());
+
     public static bool      FileExists(this string path) =>      File.Exists(path);
     public static bool DirectoryExists(this string path) => Directory.Exists(path);
 
@@ -84,5 +86,20 @@ public static class Helpers
     {
         Logger.Log($"{stopwatch.Elapsed.TotalSeconds:##0.00000}\t{message}");
         stopwatch.Restart();
+    }
+
+    public static void ForEachTry<T>(this IEnumerable<T> source, Action<T> action)
+    {
+        foreach (var item in source)
+        {
+            try
+            {
+                action(item);
+            }
+            catch
+            {
+                /* xd */
+            }
+        }
     }
 }
