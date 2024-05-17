@@ -1,22 +1,18 @@
+using ColorHelper;
+using MemeIndex_Core.Data.Entities;
 using MemeIndex_Core.Utils;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
+using Directory = System.IO.Directory;
 
 namespace MemeIndex_Core.Services.ImageToText.ColorTag;
 
-public class ColorTagService : IImageToTextService
+public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTextService
 {
-    private readonly ColorSearchProfile _colorSearchProfile;
-
 #if DEBUG
-    private readonly JpegEncoder _defaultJpegEncoder = new() { Quality = 50 };
+    private readonly JpegEncoder _defaultJpegEncoder = new() { Quality = 80 };
 #endif
-
-    public ColorTagService(ColorSearchProfile colorSearchProfile)
-    {
-        _colorSearchProfile = colorSearchProfile;
-    }
 
     public event Action<Dictionary<string, List<RankedWord>>>? ImageProcessed;
 
@@ -37,7 +33,7 @@ public class ColorTagService : IImageToTextService
     }
 
     // todo:
-    // - replace dot grid with line grid algorithm
+    // - replace dot grid with line grid algorithm  (still relevant???xd)
 
     public async Task<List<RankedWord>?> GetTextRepresentation(string path)
     {
@@ -50,54 +46,56 @@ public class ColorTagService : IImageToTextService
                 return null;
             }
 
-            // GET DATA / MEASUREMENTS
-            /*var info = await ImageHelpers.GetImageInfo(file.FullName);
-            var isRgba = info.PixelType.BitsPerPixel == 32;*/
+            // TODO BETTER GRAYSCALE / RGB24 HANDLING
 
-            //using var image = isRgba ? Image.Load<Rgba32>(file.FullName) : Image.Load<Rgb24>(file.FullName);
-            using var image = await Image.LoadAsync<Rgba32>(file.FullName);
+            var sw = Helpers.GetStartedStopwatch();
 
-            var w = image.Width;
-            var h = image.Height;
+            using var image = await Image.LoadAsync<Rgba32>(path);
 
-            var margin = Math.Min(w, h) < 80 ? 1 : 2;
+            sw.Log("IMAGE LOADED");
 
-            var w2 = w - 2 * margin;
-            var h2 = h - 2 * margin;
+            // 720 x 720 => 16
+            // 180 x 180 =>  4
+            var step = (int)Math.Clamp(Math.Sqrt(image.Width * image.Height / 2025D), 2, 32);
+            Logger.Log($"[step = {step}]");
 
-            var stepX = GetStep(w2);
-            var stepY = GetStep(h2);
+            var samplesGrayscale = new ColorFrequency();
+            var samplesFunny = colorSearchProfile.Hues.Select(_ => new ColorFrequency()).ToArray();
 
-            int GetStep(int side) =>
-                side < 80
-                    ? Math.Max(side >> 3, 4)
-                    : side < 720
-                        ? side >> 4
-                        : side >> 5;
-
-            var chunksX = w2 / stepX;
-            var chunksY = h2 / stepY;
-
-            var dots = new List<KeyValuePair<string, Rgba32>>();
+            sw.Restart();
 
             // SCAN IMAGE
-            for (var x = (w - stepX * (chunksX - 1)) / 2; x < w - margin; x += stepX)
-            for (var y = (h - stepY * (chunksY - 1)) / 2; y < h - margin; y += stepY)
+            var samplesCollected = 0;
+            for (var x = 0; x < image.Width;  x += step)
+            for (var y = 0; y < image.Height; y += step)
             {
-                var colors = new Rgba32[4];
-                var index = 0;
-                for (var i = -margin; i <= margin; i += 2 * margin)
-                for (var j = -margin; j <= margin; j += 2 * margin)
-                {
-                    colors[index++] = image[x + i, y + j];
-#if DEBUG
-                    image[x + i, y + j] = Color.Red;
-#endif
-                }
+                var sample = image[x, y];
 
-                var color = FindClosestKnownColor(ColorHelpers.GetAverageColor(colors));
-                dots.Add(color);
+                var hsl = ColorConverter.RgbToHsl(sample.ToRGB());
+                var s = hsl.S;
+                var l = hsl.L;
+
+                var hue = (hsl.H + 15) % 360 / 30; // 0..11 => 12 hues
+
+#if DEBUG
+                image[x, y] = Color.Red;
+#endif
+
+                var point = new Point(s, l);
+
+                var grayscale = s < 10 || l is < 4 or > 96;
+                var sampleTable = grayscale ? samplesGrayscale : samplesFunny[hue];
+
+                sampleTable.ContainsKey(point).Execute
+                (
+                    () => sampleTable[point]++,
+                    () => sampleTable.Add(point, 1)
+                );
+
+                samplesCollected++;
             }
+
+            sw.Log($"IMAGE SCANNED ({samplesCollected} samples collected)");
 
 #if DEBUG
             var ticks = DateTime.UtcNow.Ticks;
@@ -105,28 +103,87 @@ public class ColorTagService : IImageToTextService
             Directory.CreateDirectory("img");
             await image.SaveAsJpegAsync(Path.Combine("img", $"{name}-dots.jpg"), _defaultJpegEncoder);
 
-            for (var x = 0; x < w; x++)
-            for (var y = 0; y < h; y++)
-            {
-                var dot = x / stepX * chunksY + y / stepY;
-                image[x, y] = dots[Math.Clamp(dot, 0, dots.Count - 1)].Value;
-            }
-
-            await image.SaveAsJpegAsync(Path.Combine("img", $"{name}-colors.jpg"), _defaultJpegEncoder);
+            sw.Log("DEBUG-DOTS EXPORTED");
 #endif
 
-            var keyCounts = dots
-                .Select(x => x.Key)
-                .GroupBy(x => x)
-                .Select(x => (Text: x.Key, Count: x.Count()))
-                .ToList();
-            var colorsOnImage = (double)keyCounts.Sum(x => x.Count);
-            var rankedWords = keyCounts
-                .OrderByDescending(x => x.Count)
-                .Select((x, i) => new RankedWord(x.Text, (int)(i * Math.Pow(1 - x.Count / colorsOnImage, 2))))
-                .ToList();
+            // ANALYZE
 
-            return rankedWords;
+            var samplesTotal = (double)samplesCollected;
+            var threshold = (int)Math.Round(Math.Log2(samplesTotal / 1000));
+            var result = new List<RankedWord>();
+
+            Logger.Log($"[threshold = {threshold}]");
+
+            var white = samplesGrayscale.Where(x => x.Key.Y > 96);
+            var black = samplesGrayscale.Where(x => x.Key.Y < 04);
+
+            var gray = samplesGrayscale.Where(x => x.Key is { X: < 10, Y: >= 4 and <= 96 }).ToList();
+
+            var y4 = gray.Where(x => x.Key is { Y:           < 27 });
+            var y3 = gray.Where(x => x.Key is { Y: >= 27 and < 50 });
+            var y2 = gray.Where(x => x.Key is { Y: >= 50 and < 73 });
+            var y1 = gray.Where(x => x.Key is { Y: >= 73          });
+
+            var codes = colorSearchProfile.ColorsGrayscale.Keys.ToArray();
+            var g = 0;
+
+            AddIfPositive(codes[g++], white);
+            AddIfPositive(codes[g++], y1);
+            AddIfPositive(codes[g++], y2);
+            AddIfPositive(codes[g++], y3);
+            AddIfPositive(codes[g++], y4);
+            AddIfPositive(codes[g  ], black);
+
+            for (var i = 0; i < samplesFunny.Length; i++)
+            {
+                // * D - dark, L - light
+
+                var samples = samplesFunny[i];
+                if (samples.Count == 0) continue;
+
+                var paleD = samples.Where(x => x.Key is { X: >= 10 and < 40, Y: >= 12 and < 50 });
+                var paleL = samples.Where(x => x.Key is { X: >= 10 and < 40, Y: >= 50 and < 88 });
+
+                var vibrantD = samples.Where(x => x.Key is { X: >= 40, Y: >= 20 and < 50 });
+                var vibrantL = samples.Where(x => x.Key is { X: >= 40, Y: >= 50 and < 80 });
+
+                var veryD = samples.Where(x => x.Key is { X: >= 10, Y: >= 04 and < 20 } and not { X: < 40, Y: >= 12 });
+                var veryL = samples.Where(x => x.Key is { X: >= 10, Y: >= 80 and < 96 } and not { X: < 40, Y: <  88 });
+
+                var tones = colorSearchProfile.GetShadesByHue(i);
+                var x = 0;
+
+                AddIfPositive(tones[x++], veryL);
+                AddIfPositive(tones[x++], vibrantL);
+                AddIfPositive(tones[x++], vibrantD);
+                AddIfPositive(tones[x++], veryD);
+                AddIfPositive(tones[x++], paleD);
+                AddIfPositive(tones[x  ], paleL);
+            }
+
+            sw.Log("ANALYSIS DONE");
+
+            // RETURN
+
+            return result.OrderByDescending(x => x.Rank).ToList();
+
+
+            // == FUN ==
+
+            void AddIfPositive(string key, IEnumerable<KeyValuePair<Point, ushort>> samples)
+            {
+                var rank = CalculateRank(samples);
+                if (rank > 0) result.Add(new RankedWord(key, rank));
+            }
+
+            int CalculateRank(IEnumerable<KeyValuePair<Point, ushort>> samples)
+            {
+                var sum = samples.Sum(x => x.Value);
+                if (sum <= threshold) return 0;
+
+                var ratio = sum / samplesTotal;
+                return (int)Math.Round(ratio * Tag.MAX_RANK);
+            }
         }
         catch (Exception e)
         {
@@ -134,12 +191,6 @@ public class ColorTagService : IImageToTextService
             return null;
         }
     }
-
-    private KeyValuePair<string, Rgba32> FindClosestKnownColor(Rgba32 color)
-    {
-        var chunk = color.IsGrayscale()
-            ? _colorSearchProfile.ColorsGrayscale
-            : _colorSearchProfile.ColorsFunny[_colorSearchProfile.Hues [color.Rgb.GetHue() / 30]];
-        return chunk.MinBy(x => ColorHelpers.GetDifference(x.Value, color));
-    }
 }
+
+internal class ColorFrequency : Dictionary<Point, ushort>;
