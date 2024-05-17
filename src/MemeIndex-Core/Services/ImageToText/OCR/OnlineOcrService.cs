@@ -1,3 +1,4 @@
+using MemeIndex_Core.Data.Entities;
 using MemeIndex_Core.Utils;
 using Newtonsoft.Json.Linq;
 using Point = SixLabors.ImageSharp.Point;
@@ -29,7 +30,7 @@ public class OnlineOcrService : IImageToTextService
 
     private AvailabilityTimer Availability { get; } = new();
 
-    private List<RankedWord> EmptyResponse { get; } = new() { new(EMPTY_WORD, 1) };
+    private List<RankedWord> EmptyResponse { get; } = [new RankedWord(EMPTY_WORD, Tag.MAX_RANK)];
 
     /*
 
@@ -205,34 +206,21 @@ public class OnlineOcrService : IImageToTextService
     {
         if (words.Count == 0) return EmptyResponse;
 
-        var maxHeight = words.Max(x => x.Height);
-        var countPenalty = (int)Math.Sqrt(words.Count) - 1; // [0..]
+        var maxWordHeight = words.Max(x => x.Height);
 
         var rankedWords = words
-            .Select(word =>
-            {
-                var sizePenalty = (int)Math.Round(maxHeight / word.Height); // [1..]
-                var text = word.WordText.ToLower();
-                return new RankedWord(text, countPenalty + sizePenalty);
-            })
-            .ToList();
-
-        var uniqueRankedWords = rankedWords
-            .GroupBy(x => x.Word)
+            .Select(x => x with { WordText = x.WordText.ToLower() })
+            .GroupBy(x => x.WordText)
             .Select(g =>
             {
-                var count = g.Count();
-                return count == 1
-                    ? g.First()
-                    : new RankedWord
-                    (
-                        g.Key,
-                        Math.Max(g.Min(x => x.Rank) - (int)Math.Round(Math.Sqrt(2 * count)), 1)
-                    );
+                var word = g.MaxBy(x => x.Height)!;
+                var heightRatio = word.Height / maxWordHeight;
+                var countRatio = g.Count() / (double)words.Count;
+                return new RankedWord(word.WordText, (int)(countRatio * heightRatio * Tag.MAX_RANK));
             })
             .ToList();
 
-        return uniqueRankedWords;
+        return rankedWords;
     }
 
     public record TextLine(Word[] Words);

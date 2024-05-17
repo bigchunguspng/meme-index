@@ -5,18 +5,11 @@ using File = MemeIndex_Core.Data.Entities.File;
 
 namespace MemeIndex_Core.Services.Search;
 
-public class SearchService
+public class SearchService(MemeDbContext context)
 {
-    private readonly MemeDbContext _context;
-
-    public SearchService(MemeDbContext context)
-    {
-        _context = context;
-    }
-
     public async Task<List<File>> FindAll(SearchRequestItem item)
     {
-        var tagsByMean = _context.Tags
+        var tagsByMean = context.Tags
             .Include(x => x.Word)
             .Include(x => x.File)
             .ThenInclude(x => x.Directory)
@@ -36,9 +29,8 @@ public class SearchService
 
         var files = await tagsFiltered
             .GroupBy(x => x.File)
-            .OrderBy(g => g.Count())
-            .ThenBy(g => g.Min(x => x.Rank))
-            .Select(g => g.Key)
+            .OrderByDescending(g => g.Sum(x => x.Rank))
+            .Select(g => g.Key) // todo return ranked + resort in controller
             .ToListAsync();
 
         return files;
