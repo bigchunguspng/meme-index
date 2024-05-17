@@ -1,12 +1,12 @@
 using Gtk;
 
-namespace MemeIndex_Gtk.Widgets;
+namespace MemeIndex_Gtk.Widgets.ColorSelection;
 
-public class ColorSearchCheckButton : CheckButton
+public class ColorCheckButton : CheckButton
 {
     public string Key { get; }
 
-    public ColorSearchCheckButton(string key)
+    public ColorCheckButton(string key)
     {
         Key = key;
 

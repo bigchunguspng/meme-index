@@ -1,5 +1,5 @@
+using ColorHelper;
 using MemeIndex_Core.Utils;
-using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace MemeIndex_Core.Services.ImageToText.ColorTag;
@@ -8,52 +8,61 @@ public class ColorSearchProfile
 {
     public ColorSearchProfile() => Init();
 
-    public Dictionary<char, Dictionary<string, Rgba32>> ColorsFunny     { get; } = new();
-    public                  Dictionary<string, Rgba32>  ColorsGrayscale { get; } = new();
+    public const int HUE_RANGE = 30, HUES_TOTAL = 360 / HUE_RANGE;
 
-    public List<char> Hues { get; } = Enumerable.Range(65, 24).Select(x => (char)x).ToList();
+    public Dictionary<char, ColorPalette> ColorsFunny     { get; } = new();
+    public                  ColorPalette  ColorsGrayscale { get; } = new();
+
+    public List<char> Hues  { get; } = Enumerable.Range(65, 12).Select(x => (char)x).ToList();
 
     public static Rgba32 GetTransparent() => new(255, 127, 0, 0);
 
     private void Init()
     {
-        for (var i = 0; i < 5; i++) // WHITE & BLACK
+        var grayscale = new byte[]
         {
-            var value = (byte)Math.Max(0, 255 - i * 64);
-            ColorsGrayscale.Add($"_{i}", new Rgba32(value, value, value));
+            255,
+            16 + 30 + 60 * 3,
+            16 + 30 + 60 * 2,
+            16 + 30 + 60,
+            16 + 30,
+            0,
+        };
+        for (var i = 0; i < grayscale.Length; i++) // WHITE & BLACK
+        {
+            var value = grayscale[i];
+            ColorsGrayscale.Add($"Y{i}", new Rgba32(value, value, value));
         }
 
-        ColorsGrayscale.Add("_-", GetTransparent()); // TRANSPARENT
+        ColorsGrayscale.Add("X", GetTransparent()); // TRANSPARENT
 
-        for (var h = 0; h < 360; h += 15) // SATURATED
+        var saturated = new byte[]
         {
-            var hue = Hues[h / 15];
-            ColorsFunny[hue] = new Dictionary<string, Rgba32>();
+            100 - 12, // LIGHT
+            100 - 40,
+            000 + 40,
+            000 + 16, // DARK
+        };
 
-            for (var l = 0; l <= 5; l++)
+        for (var h = 0; h < 360; h += HUE_RANGE)
+        {
+            // SATURATED
+
+            var key = Hues[h / HUE_RANGE];
+            ColorsFunny[key] = new ColorPalette();
+
+            for (var i = 0; i < saturated.Length; i++)
             {
-                var lightness = Math.Clamp(0.95D - l * 0.15D, 0.1D, 0.9D);
-                ColorsFunny[hue].Add($"{hue}{l}", ColorHelpers.ColorFromHSL(h, 0.75D, lightness));
+                var rgb = ColorConverter.HslToRgb(new HSL(h, 75, saturated[i]));
+                ColorsFunny[key].Add($"{key}S{i}", rgb.ToRgba32());
             }
+
+            // DESATURATED
+
+            ColorsFunny[key].Add($"{key}D1", ColorConverter.HslToRgb(new HSL(h, 25, 28)).ToRgba32());
+            ColorsFunny[key].Add($"{key}D2", ColorConverter.HslToRgb(new HSL(h, 20, 64)).ToRgba32());
         }
-    }
-
-    private void PrintColors()
-    {
-        var w = 16 * ColorsFunny.Count;
-        var h = 16 * ColorsFunny.First().Value.Count;
-
-        using var image = new Image<Rgb24>(w, h);
-
-        for (var x = 0; x < w; x++)
-        {
-            var hue = ColorsFunny[(char)(65 + x / 16)];
-            for (var y = 0; y < h; y++)
-            {
-                image[x, y] = hue.ElementAt(y / 16).Value.Rgb;
-            }
-        }
-
-        image.SaveAsPng("colors.png");
     }
 }
+
+public class ColorPalette : Dictionary<string, Rgba32>;

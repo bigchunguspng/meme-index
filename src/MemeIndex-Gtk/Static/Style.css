@@ -8,7 +8,7 @@ checkbutton.color:checked check {
   border-style: dashed;
 }
 
-checkbutton._- check {
+checkbutton.X check {
   background-color: #888;
   background-image:
           linear-gradient( 45deg, #444 25%, transparent 25%),
@@ -24,6 +24,6 @@ list {
   background-color: transparent;
 }
 
-viewport {
+viewport, menubar {
   background-color: white;
 }

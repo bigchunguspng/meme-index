@@ -12,7 +12,7 @@
     <property name="label-xalign">0.01</property>
     <property name="shadow-type">out</property>
     <child>
-      <object class="GtkBox">
+      <object class="GtkBox" id="_box">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="margin-start">10</property>
@@ -20,8 +20,8 @@
         <property name="margin-top">10</property>
         <property name="margin-bottom">10</property>
         <property name="spacing">10</property>
-        <child>
-          <!-- n-columns=24 n-rows=7 -->
+        <!--<child>
+          &lt;!&ndash; n-columns=24 n-rows=7 &ndash;&gt;
           <object class="GtkGrid" id="_gridColorsFunny">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -37,9 +37,9 @@
             <property name="fill">True</property>
             <property name="position">0</property>
           </packing>
-        </child>
-        <child>
-          <!-- n-columns=1 n-rows=5 -->
+        </child>-->
+        <!--<child>
+          &lt;!&ndash; n-columns=1 n-rows=5 &ndash;&gt;
           <object class="GtkGrid" id="_gridColorsGray">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -55,8 +55,8 @@
             <property name="fill">True</property>
             <property name="position">1</property>
           </packing>
-        </child>
-        <child>
+        </child>-->
+        <!--<child>
           <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -80,7 +80,7 @@
             <property name="fill">True</property>
             <property name="position">2</property>
           </packing>
-        </child>
+        </child>-->
       </object>
     </child>
     <child type="label">

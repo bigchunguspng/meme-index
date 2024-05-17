@@ -101,7 +101,7 @@ public class ColorTagService : IImageToTextService
 
 #if DEBUG
             var ticks = DateTime.UtcNow.Ticks;
-            var name = $"baka-{Math.Abs(path.GetHashCode())}-{ticks >> 32}";
+            var name = $"baka-{path.FancyHashCode()}-{ticks >> 32}";
             Directory.CreateDirectory("img");
             await image.SaveAsJpegAsync(Path.Combine("img", $"{name}-dots.jpg"), _defaultJpegEncoder);
 
@@ -139,7 +139,7 @@ public class ColorTagService : IImageToTextService
     {
         var chunk = color.IsGrayscale()
             ? _colorSearchProfile.ColorsGrayscale
-            : _colorSearchProfile.ColorsFunny[_colorSearchProfile.Hues[color.Rgb.GetHue() / 15]];
+            : _colorSearchProfile.ColorsFunny[_colorSearchProfile.Hues [color.Rgb.GetHue() / 30]];
         return chunk.MinBy(x => ColorHelpers.GetDifference(x.Value, color));
     }
 }

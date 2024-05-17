@@ -3,7 +3,7 @@ using MemeIndex_Core.Controllers;
 using MemeIndex_Core.Objects;
 using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils;
-using MemeIndex_Gtk.Widgets;
+using MemeIndex_Gtk.Widgets.ColorSelection;
 using MemeIndex_Gtk.Widgets.FileView;
 using Application = Gtk.Application;
 using File = MemeIndex_Core.Data.Entities.File;
@@ -34,7 +34,7 @@ public class MainWindow : Window
     private IFileView? _fileView;
     private bool _largeIcons;
 
-    public App App { get; }
+    private App App { get; }
 
     public MainWindow(App app, WindowBuilder builder) : base(builder.Raw)
     {
