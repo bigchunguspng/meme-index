@@ -1,5 +1,5 @@
 using Gtk;
-using MemeIndex_Core.Services.ImageToText.ColorTag;
+using MemeIndex_Core.Services.ImageAnalysis.Color;
 
 namespace MemeIndex_Gtk.Widgets.ColorSelection.Selectors.Funny;
 

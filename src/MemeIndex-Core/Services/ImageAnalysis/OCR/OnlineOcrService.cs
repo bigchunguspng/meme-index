@@ -1,9 +1,11 @@
 using MemeIndex_Core.Data.Entities;
 using MemeIndex_Core.Utils;
+using MemeIndex_Core.Utils.Access;
+using MemeIndex_Core.Utils.Geometry;
 using Newtonsoft.Json.Linq;
 using Point = SixLabors.ImageSharp.Point;
 
-namespace MemeIndex_Core.Services.ImageToText.OCR;
+namespace MemeIndex_Core.Services.ImageAnalysis.OCR;
 
 public class OnlineOcrService : IImageToTextService
 {
@@ -45,7 +47,7 @@ public class OnlineOcrService : IImageToTextService
 
     public async Task ProcessFiles(IEnumerable<string> paths)
     {
-        var fileInfos = paths.Select(Helpers.GetFileInfo).OfType<FileInfo>();
+        var fileInfos = paths.Select(FileHelpers.GetFileInfo).OfType<FileInfo>();
 
         await _groupingService.ProcessFiles(fileInfos);
     }

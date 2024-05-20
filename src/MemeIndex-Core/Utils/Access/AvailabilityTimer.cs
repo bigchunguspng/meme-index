@@ -1,4 +1,4 @@
-namespace MemeIndex_Core.Utils;
+namespace MemeIndex_Core.Utils.Access;
 
 /// <summary>
 /// Can be used to make a specific recourse unavailable

@@ -1,6 +1,6 @@
 using SixLabors.ImageSharp;
 
-namespace MemeIndex_Core.Utils;
+namespace MemeIndex_Core.Utils.Geometry;
 
 public static class PointHelpers
 {

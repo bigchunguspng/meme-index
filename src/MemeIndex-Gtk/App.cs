@@ -3,7 +3,7 @@ using Gtk;
 using MemeIndex_Core;
 using MemeIndex_Core.Controllers;
 using MemeIndex_Core.Data;
-using MemeIndex_Core.Services.ImageToText.ColorTag;
+using MemeIndex_Core.Services.ImageAnalysis.Color;
 using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils;
 using MemeIndex_Gtk.Windows;

@@ -1,5 +1,5 @@
 using MemeIndex_Core.Data.Entities;
-using MemeIndex_Core.Utils;
+using MemeIndex_Core.Utils.Access;
 using Microsoft.EntityFrameworkCore;
 using Directory = MemeIndex_Core.Data.Entities.Directory;
 using File = MemeIndex_Core.Data.Entities.File;

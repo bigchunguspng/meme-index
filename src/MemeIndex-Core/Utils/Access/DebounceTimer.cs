@@ -1,4 +1,4 @@
-namespace MemeIndex_Core.Utils;
+namespace MemeIndex_Core.Utils.Access;
 
 public class DebounceTimer
 {

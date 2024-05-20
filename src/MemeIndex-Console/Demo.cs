@@ -1,4 +1,4 @@
-using MemeIndex_Core.Services.ImageToText.ColorTag;
+using MemeIndex_Core.Services.ImageAnalysis.Color;
 using MemeIndex_Core.Utils;
 
 // ReSharper disable UnusedType.Global

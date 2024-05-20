@@ -1,4 +1,4 @@
-namespace MemeIndex_Core.Utils;
+namespace MemeIndex_Core.Utils.Geometry;
 
 /// <param name="xs">X values (EXACTLY 4 items).</param>
 /// <param name="ys">Y values (EXACTLY 4 items).</param>

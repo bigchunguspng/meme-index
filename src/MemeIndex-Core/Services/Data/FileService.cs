@@ -51,7 +51,7 @@ public class FileService : IFileService
 
     public async Task<int> AddFiles(MonitoredDirectory monitoredDirectory)
     {
-        var files = Helpers.GetImageFiles(monitoredDirectory.Directory.Path, monitoredDirectory.Recursive);
+        var files = FileHelpers.GetImageFiles(monitoredDirectory.Directory.Path, monitoredDirectory.Recursive);
 
         var tasks = files.Select(async file =>
         {

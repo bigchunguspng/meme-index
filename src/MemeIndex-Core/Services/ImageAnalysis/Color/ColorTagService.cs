@@ -1,13 +1,13 @@
-using System.Collections;
 using ColorHelper;
 using MemeIndex_Core.Data.Entities;
 using MemeIndex_Core.Utils;
+using MemeIndex_Core.Utils.Geometry;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using Directory = System.IO.Directory;
 
-namespace MemeIndex_Core.Services.ImageToText.ColorTag;
+namespace MemeIndex_Core.Services.ImageAnalysis.Color;
 
 public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTextService
 {
@@ -32,9 +32,6 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
 
         await Task.WhenAll(tasks);
     }
-
-    // todo:
-    // - replace dot grid with line grid algorithm  (still relevant???xd)
 
     public async Task<List<RankedWord>?> GetTextRepresentation(string path)
     {
@@ -74,7 +71,6 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
             sw.Log("ANALYSIS DONE");
 
             return rankedWords.OrderByDescending(x => x.Rank).ToList();
-
         }
         catch (Exception e)
         {
@@ -82,6 +78,8 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
             return null;
         }
     }
+
+    // SCANNING
 
     private ImageScanResult ScanImage(Image<Rgba32> image)
     {
@@ -93,7 +91,7 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         var totalOpacity = 0;
         var samplesCollected = 0;
 
-        var grayscaleXLimits = GetGraySeparatorXValues();
+        var grayscaleLimits = GetGrayscaleLimits();
 
         foreach (var (x, y) in new SizeIterator(image.Size, step))
         {
@@ -106,18 +104,18 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
             if (sample.A < 8) continue; // discard almost invisible pixels
 
             var hsl = ColorConverter.RgbToHsl(sample.ToRGB());
-            var s = hsl.S;
-            var l = hsl.L;
+            var s = hsl.S; // saturation = x
+            var l = hsl.L; // lightness  = y
 
             var hue = (hsl.H + 15) % 360 / 30; // 0..11 => 12 hues
 
 #if DEBUG
-            image[x, y] = Color.Red;
+            image[x, y] = new Rgba32(255, 0, 0);
 #endif
 
             var point = new BytePoint(s, l);
 
-            var isGrayscale = s < grayscaleXLimits[l];
+            var isGrayscale = s < grayscaleLimits[l];
             var sampleTable = isGrayscale ? samplesGrayscale : samplesFunny[hue];
 
             sampleTable.AddOrIncrement(point);
@@ -139,8 +137,16 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         return step;
     }
 
-    public static int[] GetGraySeparatorXValues()
+    private static int[]? _grayscaleLimits;
+
+    /// <summary>
+    /// Returns <b>saturation</b> values which separate grayscale colors from saturated ones.
+    /// Array indexes represent <b>lightness</b> values.
+    /// </summary>
+    public static int[] GetGrayscaleLimits()
     {
+        if (_grayscaleLimits != null) return _grayscaleLimits;
+
         var xs = new double[101];
 
         var p = new PointF[]
@@ -157,7 +163,7 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         for (var y = 00; y <   50; y++) xs[y] = b1.GetX(b1.GetT_ByY(y));
         for (var y = 50; y <= 100; y++) xs[y] = b2.GetX(b2.GetT_ByY(y));
 
-        return xs.Select(x => x.RoundToInt()).ToArray();
+        return _grayscaleLimits = xs.Select(x => x.RoundToInt()).ToArray();
     }
 
     /*
@@ -175,6 +181,8 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         +---+--------+---------------+ 50
         saturation -->
      */
+
+    // ANALYZING
 
     private const int X_GRAY = 5, X_PALE = 40;
     private const int Y_BLACK = 04, Y_WHITE = 96;
@@ -275,7 +283,13 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         }
     }
 
-    private record ImageScanResult(int TotalSamples, int Transparency, ColorFrequency Grayscale, ColorFrequency[] Funny);
+    private record ImageScanResult
+    (
+        int TotalSamples,
+        int Transparency,
+        ColorFrequency Grayscale,
+        ColorFrequency[] Funny
+    );
 }
 
 internal class ColorFrequency : Dictionary<BytePoint, ushort>
@@ -285,44 +299,4 @@ internal class ColorFrequency : Dictionary<BytePoint, ushort>
         if (ContainsKey(point)) this[point]++;
         else /*               */ Add(point, 1);
     }
-}
-
-internal readonly struct BytePoint(byte x, byte y)
-{
-    public byte X { get; } = x;
-    public byte Y { get; } = y;
-
-    public override bool Equals(object? obj)
-    {
-        return obj is BytePoint other
-            && X.Equals(other.X)
-            && Y.Equals(other.Y);
-    }
-
-    public override int GetHashCode()
-    {
-        return Y << 8 ^ X;
-    }
-}
-
-public class SizeIterator(Size size, int step) : IEnumerable<Point>
-{
-    public IEnumerator<Point> GetEnumerator()
-    {
-        var halfStep = step / 2;
-        var row = 0;
-        for (var y = 0; y < size.Height; y += halfStep)
-        {
-            var oddRow = row % 2 != 0;
-
-            for (var x = oddRow ? halfStep : 0; x < size.Width; x += step)
-            {
-                yield return new Point(x, y);
-            }
-
-            row++;
-        }
-    }
-
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

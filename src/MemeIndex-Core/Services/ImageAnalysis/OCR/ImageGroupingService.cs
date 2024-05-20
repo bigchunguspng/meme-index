@@ -4,7 +4,7 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
-namespace MemeIndex_Core.Services.ImageToText.OCR;
+namespace MemeIndex_Core.Services.ImageAnalysis.OCR;
 
 /// <summary>
 /// Is used to bypass OCR API rate limit
@@ -12,16 +12,11 @@ namespace MemeIndex_Core.Services.ImageToText.OCR;
 /// </summary>
 public class ImageGroupingService
 {
-    private readonly JpegEncoder _defaultJpegEncoder;
-
-    public ImageGroupingService()
+    private readonly JpegEncoder _defaultJpegEncoder = new()
     {
-        _defaultJpegEncoder = new JpegEncoder
-        {
-            Quality = 60,
-            ColorType = JpegEncodingColor.Luminance
-        };
-    }
+        Quality = 60,
+        ColorType = JpegEncodingColor.Luminance
+    };
 
     public event Action<CollageInfo>? CollageCreated;
 
@@ -42,7 +37,7 @@ public class ImageGroupingService
 
     private static async Task<FileImageInfo> GetImageInfo(FileInfo file)
     {
-        return new(file, await ImageHelpers.GetImageInfo(file.FullName));
+        return new(file, await FileHelpers.GetImageInfo(file.FullName));
     }
 
     private static List<CollageRequest> DistributeImages(IEnumerable<FileImageInfo> infos)
@@ -143,7 +138,7 @@ public class ImageGroupingService
 
         var placements = new List<ImagePlacement>(collageInfo.Columns.Sum(x => x.Images.Count));
 
-        using var collage = new Image<Rgb24>(collageInfo.Size.Width, collageInfo.Size.Height, Color.White);
+        using var collage = new Image<Rgb24>(collageInfo.Size.Width, collageInfo.Size.Height, new Rgb24(255, 255, 255));
 
         var offset = new Point(0, 0);
 

@@ -1,4 +1,4 @@
-namespace MemeIndex_Core.Services.ImageToText;
+namespace MemeIndex_Core.Services.ImageAnalysis;
 
 public interface IImageToTextService
 {

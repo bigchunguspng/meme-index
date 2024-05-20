@@ -1,6 +1,7 @@
 using ColorHelper;
-using MemeIndex_Core.Services.ImageToText.ColorTag;
+using MemeIndex_Core.Services.ImageAnalysis.Color;
 using MemeIndex_Core.Utils;
+using MemeIndex_Core.Utils.Geometry;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
@@ -119,12 +120,12 @@ public static class DebugTools
         image.Mutate(x => x.Fill(new Rgb24(50, 50, 50), new RectangleF(offsetX + 05, offsetY + 51, 35, 38))); // P-LIGHT
 
         var ops = new DrawingOptions { GraphicsOptions = new GraphicsOptions { BlendPercentage = 0.85F } };
-        var b = ColorTagService.GetGraySeparatorXValues();
-        for (var y = 0; y < b.Length; y++)
+        var limits = ColorTagService.GetGrayscaleLimits();
+        for (var y = 0; y < limits.Length; y++)
         {
             var value = (byte)(y < 4 ? 98 : y > 96 ? 32 : y < 50 ? 90 : 40);
             var color = new Rgb24(value, value, value);
-            image.Mutate(x => x.Fill(ops, color, new RectangleF(offsetX + 0, offsetY + y, b[y], 1)));
+            image.Mutate(x => x.Fill(ops, color, new RectangleF(offsetX + 0, offsetY + y, limits[y], 1)));
         }
     }
 }

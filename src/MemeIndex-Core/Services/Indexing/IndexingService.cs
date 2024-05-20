@@ -2,7 +2,7 @@ using MemeIndex_Core.Data;
 using MemeIndex_Core.Data.Entities;
 using MemeIndex_Core.Services.Data;
 using MemeIndex_Core.Services.Data.Contracts;
-using MemeIndex_Core.Services.ImageToText;
+using MemeIndex_Core.Services.ImageAnalysis;
 using MemeIndex_Core.Utils;
 using Microsoft.EntityFrameworkCore;
 using Directory = System.IO.Directory;

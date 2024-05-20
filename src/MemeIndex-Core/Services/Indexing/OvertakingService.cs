@@ -50,7 +50,7 @@ public class OvertakingService
         var existingDirectoriesAll = _directoryService.GetAll().GetExisting().ToList();
         var existingDirectoriesTracked = await _monitoringService.GetDirectories();
 
-        var files = existingDirectoriesTracked.SelectMany(x => Helpers.GetImageFiles(x.Directory.Path, x.Recursive)).ToList();
+        var files = existingDirectoriesTracked.SelectMany(x => FileHelpers.GetImageFiles(x.Directory.Path, x.Recursive)).ToList();
         var fileRecords = await _fileService.GetAllFilesWithPath();
 
         Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} files loaded", files.Count);

@@ -2,7 +2,7 @@ using ColorHelper;
 using MemeIndex_Core.Utils;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace MemeIndex_Core.Services.ImageToText.ColorTag;
+namespace MemeIndex_Core.Services.ImageAnalysis.Color;
 
 public class ColorSearchProfile
 {
