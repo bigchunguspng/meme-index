@@ -81,16 +81,12 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
                 image[x, y] = Color.Red;
 #endif
 
-                var point = new Point(s, l);
+                var point = new BytePoint(s, l);
 
-                var grayscale = s < 10 || l is < 4 or > 96;
-                var sampleTable = grayscale ? samplesGrayscale : samplesFunny[hue];
+                var isGrayscale = s < 10 || l is < 4 or > 96;
+                var sampleTable = isGrayscale ? samplesGrayscale : samplesFunny[hue];
 
-                sampleTable.ContainsKey(point).Execute
-                (
-                    () => sampleTable[point]++,
-                    () => sampleTable.Add(point, 1)
-                );
+                sampleTable.AddOrIncrement(point);
 
                 samplesCollected++;
             }
@@ -170,13 +166,13 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
 
             // == FUN ==
 
-            void AddIfPositive(string key, IEnumerable<KeyValuePair<Point, ushort>> samples)
+            void AddIfPositive(string key, IEnumerable<KeyValuePair<BytePoint, ushort>> samples)
             {
                 var rank = CalculateRank(samples);
                 if (rank > 0) result.Add(new RankedWord(key, rank));
             }
 
-            int CalculateRank(IEnumerable<KeyValuePair<Point, ushort>> samples)
+            int CalculateRank(IEnumerable<KeyValuePair<BytePoint, ushort>> samples)
             {
                 var sum = samples.Sum(x => x.Value);
                 if (sum <= threshold) return 0;
@@ -193,4 +189,32 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
     }
 }
 
-internal class ColorFrequency : Dictionary<Point, ushort>;
+internal class ColorFrequency : Dictionary<BytePoint, ushort>
+{
+    public void AddOrIncrement(BytePoint point)
+    {
+        ContainsKey(point).Execute
+        (
+            () => this[point]++,
+            () => Add(point, 1)
+        );
+    }
+}
+
+internal readonly struct BytePoint(byte x, byte y)
+{
+    public byte X { get; } = x;
+    public byte Y { get; } = y;
+
+    public override bool Equals(object? obj)
+    {
+        return obj is BytePoint other
+            && X.Equals(other.X)
+            && Y.Equals(other.Y);
+    }
+
+    public override int GetHashCode()
+    {
+        return Y << 8 ^ X;
+    }
+}
