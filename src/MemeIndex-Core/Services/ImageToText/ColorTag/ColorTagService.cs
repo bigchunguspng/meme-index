@@ -46,8 +46,6 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
                 return null;
             }
 
-            // TODO BETTER GRAYSCALE / RGB24 HANDLING
-
             var sw = Helpers.GetStartedStopwatch();
 
             ImageScanResult scanResult;
@@ -91,11 +89,19 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         var samplesGrayscale = new ColorFrequency();
         var samplesFunny = colorSearchProfile.Hues.Select(_ => new ColorFrequency()).ToArray();
 
+        var totalOpacity = 0;
+
         var samplesCollected = 0;
         for (var x = 0; x < image.Width;  x += step)
         for (var y = 0; y < image.Height; y += step)
         {
+            samplesCollected++;
+
             var sample = image[x, y];
+
+            totalOpacity += sample.A;
+
+            if (sample.A < 8) continue; // discard almost invisible pixels
 
             var hsl = ColorConverter.RgbToHsl(sample.ToRGB());
             var s = hsl.S;
@@ -113,11 +119,11 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
             var sampleTable = isGrayscale ? samplesGrayscale : samplesFunny[hue];
 
             sampleTable.AddOrIncrement(point);
-
-            samplesCollected++;
         }
 
-        return new ImageScanResult(samplesCollected, samplesGrayscale, samplesFunny);
+        var transparency = samplesCollected * byte.MaxValue - totalOpacity;
+
+        return new ImageScanResult(samplesCollected, transparency, samplesGrayscale, samplesFunny);
     }
 
     private static int CalculateStep(Size size)
@@ -162,6 +168,8 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
 
         Logger.Log($"[threshold = {threshold}]");
 
+        // GRAYSCALE
+
         var white = data.Grayscale.Where(x => x.Key.Y > Y_WHITE);
         var black = data.Grayscale.Where(x => x.Key.Y < Y_BLACK);
 
@@ -175,12 +183,14 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         var codes = colorSearchProfile.ColorsGrayscale.Keys.ToArray();
         var g = 0;
 
-        AddIfPositive(codes[g++], white);
-        AddIfPositive(codes[g++], y1);
-        AddIfPositive(codes[g++], y2);
-        AddIfPositive(codes[g++], y3);
-        AddIfPositive(codes[g++], y4);
-        AddIfPositive(codes[g  ], black);
+        AddIfPositiveFromSamples(codes[g++], white);
+        AddIfPositiveFromSamples(codes[g++], y1);
+        AddIfPositiveFromSamples(codes[g++], y2);
+        AddIfPositiveFromSamples(codes[g++], y3);
+        AddIfPositiveFromSamples(codes[g++], y4);
+        AddIfPositiveFromSamples(codes[g  ], black);
+
+        // FUNNY
 
         for (var i = 0; i < data.Funny.Length; i++)
         {
@@ -201,21 +211,30 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
             var tones = colorSearchProfile.GetShadesByHue(i);
             var x = 0;
 
-            AddIfPositive(tones[x++], veryL);
-            AddIfPositive(tones[x++], vibrantL);
-            AddIfPositive(tones[x++], vibrantD);
-            AddIfPositive(tones[x++], veryD);
-            AddIfPositive(tones[x++], paleD);
-            AddIfPositive(tones[x  ], paleL);
+            AddIfPositiveFromSamples(tones[x++], veryL);
+            AddIfPositiveFromSamples(tones[x++], vibrantL);
+            AddIfPositiveFromSamples(tones[x++], vibrantD);
+            AddIfPositiveFromSamples(tones[x++], veryD);
+            AddIfPositiveFromSamples(tones[x++], paleD);
+            AddIfPositiveFromSamples(tones[x  ], paleL);
         }
+
+        // OTHER
+
+        AddIfPositive(colorSearchProfile.CodeTransparent, () => CalculateTransparencyRank(data.Transparency));
 
         return result;
 
         // == FUN ==
 
-        void AddIfPositive(string key, IEnumerable<KeyValuePair<BytePoint, ushort>> samples)
+        void AddIfPositiveFromSamples(string key, IEnumerable<KeyValuePair<BytePoint, ushort>> samples)
         {
-            var rank = CalculateRank(samples);
+            AddIfPositive(key, () => CalculateRank(samples));
+        }
+
+        void AddIfPositive(string key, Func<int> calculateRank)
+        {
+            var rank = calculateRank();
             if (rank > 0) result.Add(new RankedWord(key, rank));
         }
 
@@ -227,9 +246,17 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
             var ratio = sum / samplesTotal;
             return (int)Math.Round(ratio * Tag.MAX_RANK);
         }
+
+        int CalculateTransparencyRank(int value)
+        {
+            if (value == 0) return 0;
+
+            var ratio = value / (samplesTotal * byte.MaxValue);
+            return (int)Math.Round(ratio * Tag.MAX_RANK);
+        }
     }
 
-    private record ImageScanResult(int TotalSamples, ColorFrequency Grayscale, ColorFrequency[] Funny);
+    private record ImageScanResult(int TotalSamples, int Transparency, ColorFrequency Grayscale, ColorFrequency[] Funny);
 }
 
 internal class ColorFrequency : Dictionary<BytePoint, ushort>

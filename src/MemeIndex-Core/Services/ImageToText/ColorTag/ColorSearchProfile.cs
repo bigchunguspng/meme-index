@@ -17,6 +17,8 @@ public class ColorSearchProfile
 
     public List<char> Hues  { get; } = Enumerable.Range(65, 12).Select(x => (char)x).ToList();
 
+    public string CodeTransparent => "X";
+
     public string[] GetShadesByHue(int i)
     {
         var key = Hues[i];
@@ -42,6 +44,7 @@ public class ColorSearchProfile
             ColorsGrayscale.Add($"Y{i}", new Rgba32(value, value, value));
         }
 
+        // todo remove (after not needed in gtk app)
         ColorsGrayscale.Add("X", GetTransparent()); // TRANSPARENT
 
         var saturated = new byte[]
