@@ -1,6 +1,7 @@
 using MemeIndex_Core.Data;
 using MemeIndex_Core.Data.Entities;
 using MemeIndex_Core.Services.Indexing;
+using Microsoft.EntityFrameworkCore;
 
 namespace MemeIndex_Core.Services.Data;
 
@@ -59,10 +60,8 @@ public class TagService
         await _context.SaveChangesAsync();
     }
 
-    public async Task<int> RemoveTagsByMean(int meanId)
+    public Task<int> RemoveTagsByMean(int meanId)
     {
-        var tags = _context.Tags.Where(x => x.MeanId == meanId);
-        _context.Tags.RemoveRange(tags);
-        return await _context.SaveChangesAsync();
+        return _context.Tags.Where(x => x.MeanId == meanId).ExecuteDeleteAsync();
     }
 }
