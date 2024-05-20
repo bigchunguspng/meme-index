@@ -59,13 +59,13 @@ public static class DebugTools
         using var source = Image.Load<Rgb24>(path);
         sw.Log("image is loaded");
 
-        using var report = new Image<Rgb24>(300, 200, new Rgb24(50, 50, 50));
+        using var report = new Image<Rgb24>(303, 202, new Rgb24(50, 50, 50));
         report.PutLines();
-        report.PutLines(100);
-        report.PutLines(200);
-        report.PutLines(000, 100);
-        report.PutLines(100, 100);
-        report.PutLines(200, 100);
+        report.PutLines(101);
+        report.PutLines(202);
+        report.PutLines(001, 101);
+        report.PutLines(101, 101);
+        report.PutLines(202, 101);
         sw.Log("report is ready");
 
         var step = ColorTagService.CalculateStep(source.Size);
@@ -86,12 +86,12 @@ public static class DebugTools
             var sample = ColorHelpers.GetAverageColor(colors);*/
 
             var hsl = ColorConverter.RgbToHsl(sample.ToRGB());
-            var l = hsl.L < 100 ? hsl.L : 99;
-            var s = hsl.S < 100 ? hsl.S : 99;
+            var l = hsl.L;
+            var s = hsl.S;
 
             var hue = (hsl.H + 15) % 360 / 30; // 0..11 => 12 hues
-            var offsetX = hue / 4 * 100;
-            var offsetY = hue % 2 == 0 ? 0 : 100;
+            var offsetX = hue / 4 * 101;
+            var offsetY = hue % 2 == 0 ? 0 : 101;
 
             report[offsetX + s, offsetY + l] = sample;
         }
@@ -106,16 +106,25 @@ public static class DebugTools
 
     private static void PutLines(this Image<Rgb24> image, int offsetX = 0, int offsetY = 0)
     {
+        image.Mutate(x => x.Fill(new Rgb24(98, 98, 98), new RectangleF(offsetX +  0, offsetY +  0, 101, 4))); // BLACK
+        image.Mutate(x => x.Fill(new Rgb24(32, 32, 32), new RectangleF(offsetX +  0, offsetY + 97, 101, 4))); // WHITE
         image.Mutate(x => x.Fill(new Rgb24(90, 90, 90), new RectangleF(offsetX +  0, offsetY +  0, 05, 50))); // Y-DARK
-        image.Mutate(x => x.Fill(new Rgb24(40, 40, 40), new RectangleF(offsetX +  0, offsetY + 50, 05, 50))); // Y-LIGHT
-        image.Mutate(x => x.Fill(new Rgb24(70, 70, 70), new RectangleF(offsetX + 40, offsetY +  0, 60, 50))); // S-DARK
-        image.Mutate(x => x.Fill(new Rgb24(60, 60, 60), new RectangleF(offsetX + 40, offsetY + 50, 60, 50))); // S-LIGHT
-        image.Mutate(x => x.Fill(new Rgb24(45, 45, 45), new RectangleF(offsetX + 05, offsetY +  4, 95, 16))); // DARK
-        image.Mutate(x => x.Fill(new Rgb24(85, 85, 85), new RectangleF(offsetX + 05, offsetY + 80, 95, 16))); // LIGHT
-        image.Mutate(x => x.Fill(new Rgb24(80, 80, 80), new RectangleF(offsetX + 05, offsetY + 12, 35, 38))); // D-DARK
-        image.Mutate(x => x.Fill(new Rgb24(50, 50, 50), new RectangleF(offsetX + 05, offsetY + 50, 35, 38))); // D-LIGHT
+        image.Mutate(x => x.Fill(new Rgb24(40, 40, 40), new RectangleF(offsetX +  0, offsetY + 50, 05, 51))); // Y-LIGHT
 
-        image.Mutate(x => x.Fill(new Rgb24(98, 98, 98), new RectangleF(offsetX + 0, offsetY +  0, 100, 4))); // BLACK
-        image.Mutate(x => x.Fill(new Rgb24(32, 32, 32), new RectangleF(offsetX + 0, offsetY + 96, 100, 4))); // WHITE
+        image.Mutate(x => x.Fill(new Rgb24(70, 70, 70), new RectangleF(offsetX + 40, offsetY + 20, 61, 50))); // S-DARK
+        image.Mutate(x => x.Fill(new Rgb24(60, 60, 60), new RectangleF(offsetX + 40, offsetY + 50, 61, 31))); // S-LIGHT
+        image.Mutate(x => x.Fill(new Rgb24(45, 45, 45), new RectangleF(offsetX + 05, offsetY +  4, 96, 16))); // DARK
+        image.Mutate(x => x.Fill(new Rgb24(85, 85, 85), new RectangleF(offsetX + 05, offsetY + 81, 96, 16))); // LIGHT
+        image.Mutate(x => x.Fill(new Rgb24(80, 80, 80), new RectangleF(offsetX + 05, offsetY + 12, 35, 38))); // P-DARK
+        image.Mutate(x => x.Fill(new Rgb24(50, 50, 50), new RectangleF(offsetX + 05, offsetY + 51, 35, 38))); // P-LIGHT
+
+        var ops = new DrawingOptions { GraphicsOptions = new GraphicsOptions { BlendPercentage = 0.85F } };
+        var b = ColorTagService.GetGraySeparatorXValues();
+        for (var y = 0; y < b.Length; y++)
+        {
+            var value = (byte)(y < 4 ? 98 : y > 96 ? 32 : y < 50 ? 90 : 40);
+            var color = new Rgb24(value, value, value);
+            image.Mutate(x => x.Fill(ops, color, new RectangleF(offsetX + 0, offsetY + y, b[y], 1)));
+        }
     }
 }

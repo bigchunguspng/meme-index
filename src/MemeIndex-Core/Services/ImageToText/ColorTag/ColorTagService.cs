@@ -93,6 +93,8 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         var totalOpacity = 0;
         var samplesCollected = 0;
 
+        var grayscaleXLimits = GetGraySeparatorXValues();
+
         foreach (var (x, y) in new SizeIterator(image.Size, step))
         {
             samplesCollected++;
@@ -115,7 +117,7 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
 
             var point = new BytePoint(s, l);
 
-            var isGrayscale = s < 10 || l is < 4 or > 96;
+            var isGrayscale = s < grayscaleXLimits[l];
             var sampleTable = isGrayscale ? samplesGrayscale : samplesFunny[hue];
 
             sampleTable.AddOrIncrement(point);
@@ -135,6 +137,27 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         Logger.Log($"[step = {step}]");
 
         return step;
+    }
+
+    public static int[] GetGraySeparatorXValues()
+    {
+        var xs = new double[101];
+
+        var p = new PointF[]
+        {
+            new(101, Y_BLACK - 0.5F),
+            new(X_GRAY, Y_BLACK),
+            new(X_GRAY, 50),
+            new(X_GRAY, Y_WHITE),
+            new(101, Y_WHITE + 0.5F)
+        };
+        var b1 = new Bezier([p[0].X, p[1].X, p[1].X, p[2].X], [p[0].Y, p[1].Y, p[1].Y, p[2].Y]);
+        var b2 = new Bezier([p[2].X, p[3].X, p[3].X, p[4].X], [p[2].Y, p[3].Y, p[3].Y, p[4].Y]);
+
+        for (var y = 00; y <   50; y++) xs[y] = b1.GetX(b1.GetT_ByY(y));
+        for (var y = 50; y <= 100; y++) xs[y] = b2.GetX(b2.GetT_ByY(y));
+
+        return xs.Select(x => x.RoundToInt()).ToArray();
     }
 
     /*
@@ -171,12 +194,10 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         var white = data.Grayscale.Where(x => x.Key.Y > Y_WHITE);
         var black = data.Grayscale.Where(x => x.Key.Y < Y_BLACK);
 
-        var gray = data.Grayscale.Where(x => x.Key is { X: < X_GRAY, Y: >= Y_BLACK and <= Y_WHITE }).ToList();
-
-        var y4 = gray.Where(x => x.Key is { Y:           < 27 });
-        var y3 = gray.Where(x => x.Key is { Y: >= 27 and < 50 });
-        var y2 = gray.Where(x => x.Key is { Y: >= 50 and < 73 });
-        var y1 = gray.Where(x => x.Key is { Y: >= 73 });
+        var y4 = data.Grayscale.Where(x => x.Key is { Y: >= Y_BLACK and < 27 });
+        var y3 = data.Grayscale.Where(x => x.Key is { Y: >= 27 and < 50 });
+        var y2 = data.Grayscale.Where(x => x.Key is { Y: >= 50 and < 73 });
+        var y1 = data.Grayscale.Where(x => x.Key is { Y: >= 73 and < Y_WHITE });
 
         var codes = colorSearchProfile.ColorsGrayscale.Keys.ToArray();
         var g = 0;
@@ -200,11 +221,11 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
             var paleD = samples.Where(x => x.Key is { X: >= X_GRAY and < X_PALE, Y: >= Y_DIM_D and < 50 });
             var paleL = samples.Where(x => x.Key is { X: >= X_GRAY and < X_PALE, Y: >= 50 and < Y_DIM_L });
 
-            var vibrantD = samples.Where(x => x.Key is { X: >= X_PALE, Y: >= Y_VIB_D and < 50 });
-            var vibrantL = samples.Where(x => x.Key is { X: >= X_PALE, Y: >= 50 and < Y_VIB_L });
+            var vibrantD = samples.Where(x => x.Key is { X: >= X_PALE, Y: <  50 and >= Y_VIB_D });
+            var vibrantL = samples.Where(x => x.Key is { X: >= X_PALE, Y: >= 50 and <= Y_VIB_L });
 
-            var veryD = samples.Where(x => x.Key is { X: >= X_GRAY, Y: >= Y_BLACK and < 20 } and not { X: < X_PALE, Y: >= Y_DIM_D });
-            var veryL = samples.Where(x => x.Key is { X: >= X_GRAY, Y: >= 80 and < Y_WHITE } and not { X: < X_PALE, Y: <  Y_DIM_L });
+            var veryD = samples.Where(x => x.Key is { X: >= X_GRAY, Y: >= Y_BLACK and < Y_VIB_D } and not { X: < X_PALE, Y: >= Y_DIM_D });
+            var veryL = samples.Where(x => x.Key is { X: >= X_GRAY, Y: <= Y_WHITE and > Y_VIB_L } and not { X: < X_PALE, Y: <  Y_DIM_L });
 
             var tones = colorSearchProfile.GetShadesByHue(i);
             var x = 0;
