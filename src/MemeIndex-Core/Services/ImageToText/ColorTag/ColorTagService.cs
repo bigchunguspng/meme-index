@@ -133,6 +133,27 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         return step;
     }
 
+    /*
+        0   5       40             100
+        +---+--------+---------------+  0
+        |              WHITE / BLACK |
+        +---+--------+---------------+  4 / 96
+        | G |                        |
+        | R +--------+  DARK / LIGHT | 12 / 88
+        | A |        |               |
+        | Y |        +---------------+ 20 / 80
+        |   |  PALE  |               |
+        |   |        |    VIBRANT    |
+        |   |        |               |
+        +---+--------+---------------+ 50
+        saturation -->
+     */
+
+    private const int X_GRAY = 5, X_PALE = 40;
+    private const int Y_BLACK = 04, Y_WHITE = 96;
+    private const int Y_DIM_D = 12, Y_DIM_L = 88;
+    private const int Y_VIB_D = 20, Y_VIB_L = 80;
+
     private List<RankedWord> AnalyzeImageSamples(ImageScanResult data)
     {
         var samplesTotal = (double)data.TotalSamples;
@@ -141,10 +162,10 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
 
         Logger.Log($"[threshold = {threshold}]");
 
-        var white = data.Grayscale.Where(x => x.Key.Y > 96);
-        var black = data.Grayscale.Where(x => x.Key.Y < 04);
+        var white = data.Grayscale.Where(x => x.Key.Y > Y_WHITE);
+        var black = data.Grayscale.Where(x => x.Key.Y < Y_BLACK);
 
-        var gray = data.Grayscale.Where(x => x.Key is { X: < 10, Y: >= 4 and <= 96 }).ToList();
+        var gray = data.Grayscale.Where(x => x.Key is { X: < X_GRAY, Y: >= Y_BLACK and <= Y_WHITE }).ToList();
 
         var y4 = gray.Where(x => x.Key is { Y:           < 27 });
         var y3 = gray.Where(x => x.Key is { Y: >= 27 and < 50 });
@@ -168,14 +189,14 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
             var samples = data.Funny[i];
             if (samples.Count == 0) continue;
 
-            var paleD = samples.Where(x => x.Key is { X: >= 10 and < 40, Y: >= 12 and < 50 });
-            var paleL = samples.Where(x => x.Key is { X: >= 10 and < 40, Y: >= 50 and < 88 });
+            var paleD = samples.Where(x => x.Key is { X: >= X_GRAY and < X_PALE, Y: >= Y_DIM_D and < 50 });
+            var paleL = samples.Where(x => x.Key is { X: >= X_GRAY and < X_PALE, Y: >= 50 and < Y_DIM_L });
 
-            var vibrantD = samples.Where(x => x.Key is { X: >= 40, Y: >= 20 and < 50 });
-            var vibrantL = samples.Where(x => x.Key is { X: >= 40, Y: >= 50 and < 80 });
+            var vibrantD = samples.Where(x => x.Key is { X: >= X_PALE, Y: >= Y_VIB_D and < 50 });
+            var vibrantL = samples.Where(x => x.Key is { X: >= X_PALE, Y: >= 50 and < Y_VIB_L });
 
-            var veryD = samples.Where(x => x.Key is { X: >= 10, Y: >= 04 and < 20 } and not { X: < 40, Y: >= 12 });
-            var veryL = samples.Where(x => x.Key is { X: >= 10, Y: >= 80 and < 96 } and not { X: < 40, Y: <  88 });
+            var veryD = samples.Where(x => x.Key is { X: >= X_GRAY, Y: >= Y_BLACK and < 20 } and not { X: < X_PALE, Y: >= Y_DIM_D });
+            var veryL = samples.Where(x => x.Key is { X: >= X_GRAY, Y: >= 80 and < Y_WHITE } and not { X: < X_PALE, Y: <  Y_DIM_L });
 
             var tones = colorSearchProfile.GetShadesByHue(i);
             var x = 0;

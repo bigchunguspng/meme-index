@@ -101,21 +101,21 @@ public static class DebugTools
         sw.Log("samples collected");
 
         var suffix = Path.GetFileName(Path.GetDirectoryName(path));
-        var export = $"HSL-Profile-{path.FancyHashCode()}-{suffix}.png".InDebugDirectory();
-        report.SaveAsPng(export);
-        sw.Log($"report was saved as {export}");
+        var export = $"HSL-Profile-{path.FancyHashCode()}-{suffix}.png";
+        report.SaveAsPng(export.InDebugDirectory());
+        sw.Log($"report was saved as \"{export}\"");
     }
 
     private static void PutLines(this Image<Rgb24> image, int offsetX = 0, int offsetY = 0)
     {
-        image.Mutate(x => x.Fill(new Rgb24(90, 90, 90), new RectangleF(offsetX +  0, offsetY +  0, 10, 50))); // Y-DARK
-        image.Mutate(x => x.Fill(new Rgb24(40, 40, 40), new RectangleF(offsetX +  0, offsetY + 50, 10, 50))); // Y-LIGHT
+        image.Mutate(x => x.Fill(new Rgb24(90, 90, 90), new RectangleF(offsetX +  0, offsetY +  0, 05, 50))); // Y-DARK
+        image.Mutate(x => x.Fill(new Rgb24(40, 40, 40), new RectangleF(offsetX +  0, offsetY + 50, 05, 50))); // Y-LIGHT
         image.Mutate(x => x.Fill(new Rgb24(70, 70, 70), new RectangleF(offsetX + 40, offsetY +  0, 60, 50))); // S-DARK
         image.Mutate(x => x.Fill(new Rgb24(60, 60, 60), new RectangleF(offsetX + 40, offsetY + 50, 60, 50))); // S-LIGHT
-        image.Mutate(x => x.Fill(new Rgb24(45, 45, 45), new RectangleF(offsetX + 10, offsetY +  4, 90, 16))); // DARK
-        image.Mutate(x => x.Fill(new Rgb24(85, 85, 85), new RectangleF(offsetX + 10, offsetY + 80, 90, 16))); // LIGHT
-        image.Mutate(x => x.Fill(new Rgb24(80, 80, 80), new RectangleF(offsetX + 10, offsetY + 12, 30, 38))); // D-DARK
-        image.Mutate(x => x.Fill(new Rgb24(50, 50, 50), new RectangleF(offsetX + 10, offsetY + 50, 30, 38))); // D-LIGHT
+        image.Mutate(x => x.Fill(new Rgb24(45, 45, 45), new RectangleF(offsetX + 05, offsetY +  4, 95, 16))); // DARK
+        image.Mutate(x => x.Fill(new Rgb24(85, 85, 85), new RectangleF(offsetX + 05, offsetY + 80, 95, 16))); // LIGHT
+        image.Mutate(x => x.Fill(new Rgb24(80, 80, 80), new RectangleF(offsetX + 05, offsetY + 12, 35, 38))); // D-DARK
+        image.Mutate(x => x.Fill(new Rgb24(50, 50, 50), new RectangleF(offsetX + 05, offsetY + 50, 35, 38))); // D-LIGHT
 
         image.Mutate(x => x.Fill(new Rgb24(98, 98, 98), new RectangleF(offsetX + 0, offsetY +  0, 100, 4))); // BLACK
         image.Mutate(x => x.Fill(new Rgb24(32, 32, 32), new RectangleF(offsetX + 0, offsetY + 96, 100, 4))); // WHITE

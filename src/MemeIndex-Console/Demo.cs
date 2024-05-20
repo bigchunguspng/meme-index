@@ -12,17 +12,19 @@ public static class Demo
     {
         var sw = Helpers.GetStartedStopwatch();
         DebugTools.RenderHSL_Profile(path);
-        sw.Log("DebugTools.RenderHSL_Profile(path);");
+        sw.Log("\tDebugTools.RenderHSL_Profile(path);");
 
         var words = new ColorTagService(new ColorSearchProfile()).GetTextRepresentation(path).Result;
-        sw.Log("GetTextRepresentation(path)");
+        sw.Log("\tGetTextRepresentation(path)");
 
         if (words is null) return;
 
-        Console.WriteLine("COLORS FOUND: " + words.Count);
+        Console.WriteLine("\nCOLORS FOUND: " + words.Count);
         foreach (var word in words)
         {
             Console.WriteLine(word.ToString());
         }
+
+        Console.WriteLine();
     }
 }
