@@ -7,7 +7,7 @@ namespace MemeIndex_Gtk.Widgets.ColorSelection;
 
 public class ColorSearchPanel : Frame
 {
-    private readonly Box _box;
+    private readonly Box _box, _boxColors;
 
     private readonly     FunnyColorSelector _funnyColors;
     private readonly GrayscaleColorSelector  _grayColors;
@@ -31,8 +31,17 @@ public class ColorSearchPanel : Frame
         LabelWidget.MarginStart = 5;
         LabelWidget.MarginEnd = 5;
 
-        _box = new Box(Orientation.Horizontal, 10) { Margin = 10 };
+        _box = new Box(Orientation.Vertical, 10) { Margin = 10 };
         Add(_box);
+        _boxColors = new Box(Orientation.Horizontal, 10);
+        _box.Add(_boxColors);
+
+        var tb = new Box(Orientation.Horizontal, 10);
+        var transparent = new ColorCheckButton("X");
+        tb.Add(transparent);
+        tb.Add(new Label("Transparent"));
+        transparent.Toggled += CheckButtonOnToggled;
+        _box.Add(tb);
 
         _funnyColors = new FunnyColorSelector(App);
         _grayColors = new GrayscaleColorSelector(App);
@@ -50,7 +59,7 @@ public class ColorSearchPanel : Frame
 
         var box = new Box(Orientation.Vertical, 0) { Expand = false };
         box.Add(_clearSelection);
-        _box.Add(box);
+        _boxColors.Add(box);
 
         ShowAll();
     }
@@ -58,7 +67,7 @@ public class ColorSearchPanel : Frame
     private void ConstructColorSelector(IColorSelector colorSelector)
     {
         colorSelector.Construct();
-        _box.Add(colorSelector.AsWidget());
+        _boxColors.Add(colorSelector.AsWidget());
         colorSelector.AsWidget().ShowAll();
         foreach (var checkButton in colorSelector.CheckButtons)
         {

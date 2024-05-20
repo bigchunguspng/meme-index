@@ -1,4 +1,5 @@
 using MemeIndex_Core.Objects;
+using MemeIndex_Core.Services.Data;
 using MemeIndex_Core.Services.Data.Contracts;
 using MemeIndex_Core.Services.Indexing;
 using MemeIndex_Core.Utils;
@@ -9,6 +10,7 @@ public class IndexController
 {
     private readonly IMonitoringService _monitoringService;
     private readonly IFileService _fileService;
+    private readonly TagService _tagService;
     private readonly IndexingService _indexingService;
     private readonly FileWatchService _fileWatchService;
     private readonly OvertakingService _overtakingService;
@@ -19,7 +21,7 @@ public class IndexController
         IFileService fileService,
         IndexingService indexingService,
         FileWatchService fileWatchService,
-        OvertakingService overtakingService
+        OvertakingService overtakingService, TagService tagService
     )
     {
         _monitoringService = monitoringService;
@@ -27,6 +29,7 @@ public class IndexController
         _indexingService = indexingService;
         _fileWatchService = fileWatchService;
         _overtakingService = overtakingService;
+        _tagService = tagService;
 
         _fileWatchService.UpdateFileSystemKnowledge += UpdateFileSystemKnowledge;
     }
@@ -100,6 +103,11 @@ public class IndexController
         await _monitoringService.RemoveDirectory(path);
 
         Logger.Status($"Removed {path.Quote()}");
+    }
+
+    public Task<int> RemoveTagsByMean(int meanId)
+    {
+        return _tagService.RemoveTagsByMean(meanId);
     }
 
     public async Task UpdateFileSystemKnowledge()

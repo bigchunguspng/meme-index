@@ -1,12 +1,15 @@
 using Gtk;
 using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils;
+using Microsoft.EntityFrameworkCore;
+using EventArgs = System.EventArgs;
 using UI = Gtk.Builder.ObjectAttribute;
 
 namespace MemeIndex_Gtk.Windows;
 
 public class SettingsDialog : Dialog
 {
+    [UI] private readonly Box _box = default!;
     [UI] private readonly Entry _entryApiKey = default!;
 
     [UI] private readonly Button _buttonOk = default!;
@@ -21,12 +24,30 @@ public class SettingsDialog : Dialog
         App = app;
         Modal = true;
 
-        _entryApiKey.Text = App.ConfigProvider.GetConfig().OrcApiKey;
+        LoadData();
 
         ShowAll();
 
         _buttonOk.Clicked += Ok;
         _buttonCancel.Clicked += Cancel;
+    }
+
+    private void LoadData()
+    {
+        _entryApiKey.Text = App.ConfigProvider.GetConfig().OrcApiKey;
+
+        var means = App.Context.Means.AsNoTracking().ToArray();
+        foreach (var mean in means)
+        {
+            var button = new Button { Label = $"Delete all \"{mean.Title}\" search tags" };
+            _box.Add(button);
+            button.Clicked += async (_, _) =>
+            {
+                var tagsRemoved = await App.IndexController.RemoveTagsByMean(mean.Id);
+                Logger.Status($"Removed {tagsRemoved} \"{mean.Title}\" search tags");
+            };
+        }
+        ShowAll();
     }
 
     private async void Ok(object? sender, EventArgs e)

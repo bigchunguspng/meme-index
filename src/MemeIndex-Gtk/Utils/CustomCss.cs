@@ -7,15 +7,8 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace MemeIndex_Gtk.Utils;
 
-public class CustomCss
+public class CustomCss(ColorSearchProfile colorSearchProfile)
 {
-    private readonly ColorSearchProfile _colorSearchProfile;
-
-    public CustomCss(ColorSearchProfile colorSearchProfile)
-    {
-        _colorSearchProfile = colorSearchProfile;
-    }
-
     public void AddProviders()
     {
         var css1 = new CssProvider();
@@ -29,12 +22,12 @@ public class CustomCss
     private string GetColorSelectionCss()
     {
         var sb = new StringBuilder();
-        foreach (var color in _colorSearchProfile.ColorsFunny.SelectMany(hue => hue.Value))
+        foreach (var color in colorSearchProfile.ColorsFunny.SelectMany(hue => hue.Value))
         {
             AppendStyle(sb, color.Key, color.Value);
         }
 
-        foreach (var color in _colorSearchProfile.ColorsGrayscale.Where(x => x.Value.A > 0))
+        foreach (var color in colorSearchProfile.ColorsGrayscale)
         {
             AppendStyle(sb, color.Key, color.Value);
         }
@@ -42,7 +35,7 @@ public class CustomCss
         return sb.ToString();
     }
 
-    private static void AppendStyle(StringBuilder sb, string key, Rgba32 color)
+    private static void AppendStyle(StringBuilder sb, string key, Rgb24 color)
     {
         var colorA = color                 .ToCss();
         var colorB = color.GetDarkerColor().ToCss();

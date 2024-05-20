@@ -58,4 +58,11 @@ public class TagService
         _context.Tags.RemoveRange(tags);
         await _context.SaveChangesAsync();
     }
+
+    public async Task<int> RemoveTagsByMean(int meanId)
+    {
+        var tags = _context.Tags.Where(x => x.MeanId == meanId);
+        _context.Tags.RemoveRange(tags);
+        return await _context.SaveChangesAsync();
+    }
 }

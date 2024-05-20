@@ -11,7 +11,7 @@ public static class ColorHelpers
     public static Rgb24  ToRgb24 (this RGB    color) => new(color.R, color.G, color.B);
     public static Rgba32 ToRgba32(this RGB    color) => new(color.R, color.G, color.B);
 
-    public static Rgba32 GetDarkerColor(this Rgba32 color) => new
+    public static Rgb24 GetDarkerColor(this Rgb24 color) => new
     (
         ((int)(color.R * 0.75)).ClampToByte(),
         ((int)(color.G * 0.75)).ClampToByte(),
@@ -20,5 +20,5 @@ public static class ColorHelpers
 
     public static byte ClampToByte(this int value) => (byte)Math.Clamp(value, 0, 255);
 
-    public static string ToCss(this Rgba32 color) => $"rgb({color.R},{color.G},{color.B})";
+    public static string ToCss(this Rgb24 color) => $"rgb({color.R},{color.G},{color.B})";
 }

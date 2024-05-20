@@ -25,8 +25,6 @@ public class ColorSearchProfile
         return ColorsFunny[key].Keys.ToArray();
     }
 
-    public static Rgba32 GetTransparent() => new(255, 127, 0, 0);
-
     private void Init()
     {
         var grayscale = new byte[]
@@ -41,11 +39,8 @@ public class ColorSearchProfile
         for (var i = 0; i < grayscale.Length; i++) // WHITE & BLACK
         {
             var value = grayscale[i];
-            ColorsGrayscale.Add($"Y{i}", new Rgba32(value, value, value));
+            ColorsGrayscale.Add($"Y{i}", new Rgb24(value, value, value));
         }
-
-        // todo remove (after not needed in gtk app)
-        ColorsGrayscale.Add("X", GetTransparent()); // TRANSPARENT
 
         var saturated = new byte[]
         {
@@ -65,15 +60,15 @@ public class ColorSearchProfile
             for (var i = 0; i < saturated.Length; i++)
             {
                 var rgb = ColorConverter.HslToRgb(new HSL(h, 75, saturated[i]));
-                ColorsFunny[key].Add($"{key}S{i + 1}", rgb.ToRgba32());
+                ColorsFunny[key].Add($"{key}S{i + 1}", rgb.ToRgb24());
             }
 
             // DESATURATED
 
-            ColorsFunny[key].Add($"{key}PD", ColorConverter.HslToRgb(new HSL(h, 25, 28)).ToRgba32());
-            ColorsFunny[key].Add($"{key}PL", ColorConverter.HslToRgb(new HSL(h, 20, 64)).ToRgba32());
+            ColorsFunny[key].Add($"{key}PD", ColorConverter.HslToRgb(new HSL(h, 25, 28)).ToRgb24());
+            ColorsFunny[key].Add($"{key}PL", ColorConverter.HslToRgb(new HSL(h, 20, 64)).ToRgb24());
         }
     }
 }
 
-public class ColorPalette : Dictionary<string, Rgba32>;
+public class ColorPalette : Dictionary<string, Rgb24>;
