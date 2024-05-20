@@ -102,4 +102,8 @@ public static class Helpers
             }
         }
     }
+
+    public static int RoundToInt(this double x) => (int)Math.Round(x);
+
+    public static int FloorToEven(this int x) => x >> 1 << 1;
 }

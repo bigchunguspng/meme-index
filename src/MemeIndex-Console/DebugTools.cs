@@ -1,4 +1,5 @@
 using ColorHelper;
+using MemeIndex_Core.Services.ImageToText.ColorTag;
 using MemeIndex_Core.Utils;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
@@ -67,13 +68,10 @@ public static class DebugTools
         report.PutLines(200, 100);
         sw.Log("report is ready");
 
-        // 720 x 720 => 16
-        // 180 x 180 =>  4
-        var step = (int)Math.Clamp(Math.Sqrt(source.Width * source.Height / 2025D), 2, 32);
+        var step = ColorTagService.CalculateStep(source.Size);
         Logger.Log($"using step - {step}");
 
-        for (var x = 0; x < source.Width /* - 3*/; x += step)
-        for (var y = 0; y < source.Height/* - 3*/; y += step)
+        foreach (var (x, y) in new SizeIterator(source.Size, step))
         {
             var sample = source[x, y];
 

@@ -1,3 +1,4 @@
+using System.Collections;
 using ColorHelper;
 using MemeIndex_Core.Data.Entities;
 using MemeIndex_Core.Utils;
@@ -90,10 +91,9 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         var samplesFunny = colorSearchProfile.Hues.Select(_ => new ColorFrequency()).ToArray();
 
         var totalOpacity = 0;
-
         var samplesCollected = 0;
-        for (var x = 0; x < image.Width;  x += step)
-        for (var y = 0; y < image.Height; y += step)
+
+        foreach (var (x, y) in new SizeIterator(image.Size, step))
         {
             samplesCollected++;
 
@@ -110,7 +110,7 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
             var hue = (hsl.H + 15) % 360 / 30; // 0..11 => 12 hues
 
 #if DEBUG
-                image[x, y] = Color.Red;
+            image[x, y] = Color.Red;
 #endif
 
             var point = new BytePoint(s, l);
@@ -126,13 +126,11 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         return new ImageScanResult(samplesCollected, transparency, samplesGrayscale, samplesFunny);
     }
 
-    private static int CalculateStep(Size size)
+    public static int CalculateStep(Size size)
     {
-        // 720 x 720 => 16
-        // 180 x 180 =>  4
-
         var area = size.Width * size.Height;
-        var step = (int)Math.Clamp(Math.Sqrt(area / 2025D), 2, 32);
+        var value = Math.Sqrt(area / 4050D).RoundToInt();
+        var step = Math.Clamp(value.FloorToEven(), 4, 32);
 
         Logger.Log($"[step = {step}]");
 
@@ -284,4 +282,26 @@ internal readonly struct BytePoint(byte x, byte y)
     {
         return Y << 8 ^ X;
     }
+}
+
+public class SizeIterator(Size size, int step) : IEnumerable<Point>
+{
+    public IEnumerator<Point> GetEnumerator()
+    {
+        var halfStep = step / 2;
+        var row = 0;
+        for (var y = 0; y < size.Height; y += halfStep)
+        {
+            var oddRow = row % 2 != 0;
+
+            for (var x = oddRow ? halfStep : 0; x < size.Width; x += step)
+            {
+                yield return new Point(x, y);
+            }
+
+            row++;
+        }
+    }
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
