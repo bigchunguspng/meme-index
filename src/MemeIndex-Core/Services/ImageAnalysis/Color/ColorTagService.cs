@@ -138,34 +138,52 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         return step;
     }
 
-    private static int[]? _grayscaleLimits;
+    // LIMITS
 
-    /// <summary>
-    /// Returns <b>saturation</b> values which separate grayscale colors from saturated ones.
-    /// Array indexes represent <b>lightness</b> values.
-    /// </summary>
-    public static int[] GetGrayscaleLimits()
+    private static readonly BezierLimitBuilder[] _limits =
+        Enumerable.Range(0, 4).Select(_ => new BezierLimitBuilder()).ToArray();
+
+    public static int[] GetGrayscaleLimits() => _limits[0].GetLimits(new PointF[]
     {
-        if (_grayscaleLimits != null) return _grayscaleLimits;
+        new(101, Y_BLACK - 0.5F),
+        new(X_GRAY, Y_BLACK), new(X_GRAY, Y_BLACK),
+        new(X_GRAY, 50), new(X_GRAY, 50),
+        new(X_GRAY, Y_WHITE), new(X_GRAY, Y_WHITE),
+        new(101, Y_WHITE + 0.5F)
+    });
 
-        var xs = new double[101];
+    public static int[] GetSubPaleLimits() => _limits[1].GetLimits(new PointF[]
+    {
+        new(101, Y_BLACK + 3.5F),
+        new(15, 12), new(15, 12),
+        new(10, 50), new(10, 50),
+        new(15, 88), new(15, 88),
+        new(101, Y_WHITE - 3.5F)
+    });
 
-        var p = new PointF[]
-        {
-            new(101, Y_BLACK - 0.5F),
-            new(X_GRAY, Y_BLACK),
-            new(X_GRAY, 50),
-            new(X_GRAY, Y_WHITE),
-            new(101, Y_WHITE + 0.5F)
-        };
-        var b1 = new Bezier([p[0].X, p[1].X, p[1].X, p[2].X], [p[0].Y, p[1].Y, p[1].Y, p[2].Y]);
-        var b2 = new Bezier([p[2].X, p[3].X, p[3].X, p[4].X], [p[2].Y, p[3].Y, p[3].Y, p[4].Y]);
+    public static int[] GetPaleLimits() => _limits[2].GetLimits(new PointF[]
+    {
+        new(101, 20),
+        new(40, 20),
+        new(20, 40),
+        new(20, 50),
+        new(20, 50),
+        new(20, 60),
+        new(40, 80),
+        new(101, 80)
+    });
 
-        for (var y = 00; y <   50; y++) xs[y] = b1.GetX(b1.GetT_ByY(y));
-        for (var y = 50; y <= 100; y++) xs[y] = b2.GetX(b2.GetT_ByY(y));
-
-        return _grayscaleLimits = xs.Select(x => x.RoundToInt()).ToArray();
-    }
+    public static int[] GetPeakLimits() => _limits[3].GetLimits(new PointF[]
+    {
+        new(0, 0 - 1),
+        new(0, 10 - 1),
+        new(50, 30 - 1),
+        new(101, 30 - 1),
+        new(101, 70 + 1),
+        new(50, 70 + 1),
+        new(0, 90 + 1),
+        new(0, 100 + 1)
+    });
 
     /*
         0   5       40             100
@@ -173,7 +191,7 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         |              WHITE / BLACK |
         +---+--------+---------------+  4 / 96
         | G |                        |
-        | R +--------+  DARK / LIGHT | 12 / 88
+        | R +--------+  DARK / LIGHT | 12 / 88      <-- [ TO BE DEPRECATED ]
         | A |        |               |
         | Y |        +---------------+ 20 / 80
         |   |  PALE  |               |
@@ -263,7 +281,7 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         var funnyTotal =   funnySamples.Sum(x => x.Value);
         var  grayTotal = data.Grayscale.Sum(x => x.Value);
 
-        var grayRange = (data.Grayscale.Max(x => x.Key.Y) - data.Grayscale.Min(x => x.Key.Y)) / 100D;
+        var grayRange = grayTotal == 0 ? 0 : (data.Grayscale.Max(x => x.Key.Y) - data.Grayscale.Min(x => x.Key.Y)) / 100D;
         var grayAdjusted = (grayTotal * grayRange).RoundToInt();
 
         var pale    = funnySamples.Where(x => x.Key.X <  X_PALE);
@@ -283,6 +301,8 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
 
         // AddIfPositive("^S", () => ...) // HUE SINGLE     MONOTONE
         // AddIfPositive("^M", () => ...) // HUE MANY       MULTI TONE
+        
+        // TODO CHANGE COLOR SCHEMA
 
         return result;
 

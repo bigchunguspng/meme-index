@@ -5,6 +5,12 @@ namespace MemeIndex_Core.Utils;
 
 public static class ColorHelpers
 {
+    public static Rgb24 ToRgb24(this byte value) => new(value, value, value);
+    public static Rgb24 ToRgb24(this int  value)
+    {
+        var b = value.ClampToByte();
+        return new Rgb24(b, b, b);
+    }
 
     public static RGB    ToRGB   (this Rgb24  color) => new(color.R, color.G, color.B);
     public static RGB    ToRGB   (this Rgba32 color) => new(color.R, color.G, color.B);

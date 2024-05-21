@@ -16,6 +16,7 @@ namespace MemeIndex_Console;
 public static class DebugTools
 {
     private const string DIR = "debug";
+    private const int SIDE = 101;
 
     private static string InDebugDirectory(this string path)
     {
@@ -60,12 +61,12 @@ public static class DebugTools
         using var source = Image.Load<Rgb24>(path);
         sw.Log("image is loaded");
 
-        using var report = new Image<Rgb24>(303, 202, new Rgb24(50, 50, 50));
+        using var report = new Image<Rgb24>(SIDE * 3, SIDE * 2, new Rgb24(50, 50, 50));
 
         for (var row = 0; row < 2; row++)
         for (var col = 0; col < 3; col++)
         {
-            report.PutLines(col * 101, row * 101);
+            report.PutLines(col * SIDE, row * SIDE);
         }
 
         sw.Log("report is ready");
@@ -92,8 +93,8 @@ public static class DebugTools
             var s = hsl.S;
 
             var hue = (hsl.H + 15) % 360 / 30; // 0..11 => 12 hues
-            var offsetX = hue / 4 * 101;
-            var offsetY = hue % 2 == 0 ? 0 : 101;
+            var offsetX = hue / 4 * SIDE;
+            var offsetY = hue % 2 == 0 ? 0 : SIDE;
 
             report[offsetX + s, offsetY + l] = sample;
         }
@@ -108,25 +109,43 @@ public static class DebugTools
 
     private static void PutLines(this Image<Rgb24> image, int offsetX = 0, int offsetY = 0)
     {
-        image.Mutate(x => x.Fill(new Rgb24(98, 98, 98), new RectangleF(offsetX +  0, offsetY +  0, 101, 4))); // BLACK
-        image.Mutate(x => x.Fill(new Rgb24(32, 32, 32), new RectangleF(offsetX +  0, offsetY + 97, 101, 4))); // WHITE
-        image.Mutate(x => x.Fill(new Rgb24(90, 90, 90), new RectangleF(offsetX +  0, offsetY +  0, 05, 50))); // Y-DARK
-        image.Mutate(x => x.Fill(new Rgb24(40, 40, 40), new RectangleF(offsetX +  0, offsetY + 50, 05, 51))); // Y-LIGHT
+        Rgb24 c1A = 98.ToRgb24(), c2A = 90.ToRgb24(), c3A = 80.ToRgb24(), c4A = 70.ToRgb24(); 
+        Rgb24 c1B = 32.ToRgb24(), c2B = 40.ToRgb24(), c3B = 50.ToRgb24(), c4B = 60.ToRgb24(); 
 
-        image.Mutate(x => x.Fill(new Rgb24(70, 70, 70), new RectangleF(offsetX + 40, offsetY + 20, 61, 50))); // S-DARK
-        image.Mutate(x => x.Fill(new Rgb24(60, 60, 60), new RectangleF(offsetX + 40, offsetY + 50, 61, 31))); // S-LIGHT
-        image.Mutate(x => x.Fill(new Rgb24(45, 45, 45), new RectangleF(offsetX + 05, offsetY +  4, 96, 16))); // DARK
-        image.Mutate(x => x.Fill(new Rgb24(85, 85, 85), new RectangleF(offsetX + 05, offsetY + 81, 96, 16))); // LIGHT
-        image.Mutate(x => x.Fill(new Rgb24(80, 80, 80), new RectangleF(offsetX + 05, offsetY + 12, 35, 38))); // P-DARK
-        image.Mutate(x => x.Fill(new Rgb24(50, 50, 50), new RectangleF(offsetX + 05, offsetY + 51, 35, 38))); // P-LIGHT
+        image.Mutate(x => x.Fill(c2A, new RectangleF(offsetX +  0, offsetY +  0, SIDE, 50))); // Y-DARK
+        image.Mutate(x => x.Fill(c2B, new RectangleF(offsetX +  0, offsetY + 50, SIDE, 51))); // Y-LIGHT
+        image.Mutate(x => x.Fill(c1A, new RectangleF(offsetX +  0, offsetY +  0, SIDE,  4))); // BLACK
+        image.Mutate(x => x.Fill(c1B, new RectangleF(offsetX +  0, offsetY + 97, SIDE,  4))); // WHITE
 
-        var ops = new DrawingOptions { GraphicsOptions = new GraphicsOptions { BlendPercentage = 0.85F } };
-        var limits = ColorTagService.GetGrayscaleLimits();
-        for (var y = 0; y < limits.Length; y++)
+        var b1 = ColorTagService.GetGrayscaleLimits();
+        var b2 = ColorTagService.GetSubPaleLimits();
+        var b3 = ColorTagService.GetPaleLimits();
+        var b4 = ColorTagService.GetPeakLimits();
+        for (var y = 4; y <= 96; y++)
         {
-            var value = (byte)(y < 4 ? 98 : y > 96 ? 32 : y < 50 ? 90 : 40);
-            var color = new Rgb24(value, value, value);
-            image.Mutate(x => x.Fill(ops, color, new RectangleF(offsetX + 0, offsetY + y, limits[y], 1)));
+            var c1 = y < 50 ? c4A : c4B; // pale-weak
+            var c2 = y < 50 ? c3A : c3B; // pale-strong
+            var c3 = y < 50 ? c4B : c4A; // vivid
+
+            var w1 = b1[y];
+            var w2 = b2[y];
+            var w3 = b3[y];
+            var w4 = b4[y];
+            var w5 = Math.Max(w1, w4);
+            var w6 = Math.Max(w2, w4);
+
+            DrawLine(y, c1, w1,   w2 - w1);
+            DrawLine(y, c2, w2,   w3 - w2);
+            DrawLine(y, c3, w3, SIDE - w3);
+            DrawLine(y, c2, w5,   w3 - w5);
+            DrawLine(y, c1, w6,   w3 - w6);
+        }
+
+        return;
+
+        void DrawLine(int y, Color color, int offset, int width)
+        {
+            image.Mutate(x => x.Fill(color, new RectangleF(offsetX + offset, offsetY + y, width, 1)));
         }
     }
 }
