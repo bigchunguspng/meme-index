@@ -61,12 +61,13 @@ public static class DebugTools
         sw.Log("image is loaded");
 
         using var report = new Image<Rgb24>(303, 202, new Rgb24(50, 50, 50));
-        report.PutLines();
-        report.PutLines(101);
-        report.PutLines(202);
-        report.PutLines(001, 101);
-        report.PutLines(101, 101);
-        report.PutLines(202, 101);
+
+        for (var row = 0; row < 2; row++)
+        for (var col = 0; col < 3; col++)
+        {
+            report.PutLines(col * 101, row * 101);
+        }
+
         sw.Log("report is ready");
 
         var step = ColorTagService.CalculateStep(source.Size);
