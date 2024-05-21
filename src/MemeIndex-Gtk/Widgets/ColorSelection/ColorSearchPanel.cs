@@ -37,11 +37,14 @@ public class ColorSearchPanel : Frame
         _box.Add(_boxColors);
 
         var tb = new Box(Orientation.Horizontal, 10);
-        var transparent = new ColorCheckButton("X");
-        tb.Add(transparent);
-        tb.Add(new Label("Transparent"));
-        transparent.Toggled += CheckButtonOnToggled;
         _box.Add(tb);
+        
+        AddOption("X", "Transparent");
+        AddOption("#Y", "Mostly grayscale");
+        AddOption("#P", "Mostly pale");
+        AddOption("#S", "Mostly saturated");
+        AddOption("#D", "Mostly dark");
+        AddOption("#L", "Mostly light");
 
         _funnyColors = new FunnyColorSelector(App);
         _grayColors = new GrayscaleColorSelector(App);
@@ -50,6 +53,16 @@ public class ColorSearchPanel : Frame
         _clearSelection.Clicked += DeactivateCheckboxes;
 
         Realized += (_, _) => BuildPalette();
+
+        return;
+
+        void AddOption(string key, string label)
+        {
+            var cb = new ColorCheckButton(key);
+            tb.Add(cb);
+            tb.Add(new Label(label));
+            cb.Toggled += CheckButtonOnToggled;
+        }
     }
 
     private void BuildPalette()
