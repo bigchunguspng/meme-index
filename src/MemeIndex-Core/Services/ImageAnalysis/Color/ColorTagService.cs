@@ -88,20 +88,21 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         var samplesGrayscale = new ColorFrequency();
         var samplesFunny = colorSearchProfile.Hues.Select(_ => new ColorFrequency()).ToArray();
 
-        var totalOpacity = 0;
-        var samplesCollected = 0;
+        int totalOpacity = 0, samplesTaken = 0, opaqueSamplesTaken = 0;
 
         var grayscaleLimits = GetGrayscaleLimits();
 
         foreach (var (x, y) in new SizeIterator(image.Size, step))
         {
-            samplesCollected++;
+            samplesTaken++;
 
             var sample = image[x, y];
 
             totalOpacity += sample.A;
 
             if (sample.A < 8) continue; // discard almost invisible pixels
+
+            opaqueSamplesTaken++;
 
             var hsl = ColorConverter.RgbToHsl(sample.ToRGB());
             var s = hsl.S; // saturation = x
@@ -121,9 +122,9 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
             sampleTable.AddOrIncrement(point);
         }
 
-        var transparency = samplesCollected * byte.MaxValue - totalOpacity;
+        var transparency = samplesTaken * byte.MaxValue - totalOpacity;
 
-        return new ImageScanResult(samplesCollected, transparency, samplesGrayscale, samplesFunny);
+        return new ImageScanResult(samplesTaken, opaqueSamplesTaken, transparency, samplesGrayscale, samplesFunny);
     }
 
     public static int CalculateStep(Size size)
@@ -208,14 +209,14 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         var y1 = data.Grayscale.Where(x => x.Key is { Y: >= 73 and < Y_WHITE });
 
         var codes = colorSearchProfile.ColorsGrayscale.Keys.ToArray();
-        var g = 0;
+        var index = 0;
 
-        AddIfPositiveFromSamples(codes[g++], white);
-        AddIfPositiveFromSamples(codes[g++], y1);
-        AddIfPositiveFromSamples(codes[g++], y2);
-        AddIfPositiveFromSamples(codes[g++], y3);
-        AddIfPositiveFromSamples(codes[g++], y4);
-        AddIfPositiveFromSamples(codes[g  ], black);
+        AddIfPositiveFromSamples(codes[index++], white);
+        AddIfPositiveFromSamples(codes[index++], y1);
+        AddIfPositiveFromSamples(codes[index++], y2);
+        AddIfPositiveFromSamples(codes[index++], y3);
+        AddIfPositiveFromSamples(codes[index++], y4);
+        AddIfPositiveFromSamples(codes[index  ], black);
 
         // FUNNY
 
@@ -250,6 +251,39 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
 
         AddIfPositive(colorSearchProfile.CodeTransparent, () => CalculateTransparencyRank(data.Transparency));
 
+        var funnySamples = data.Funny
+            .SelectMany(x => x)
+            .GroupBy(x => x.Key)
+            .ToDictionary(g => g.Key, g => (ushort)Math.Min(g.Sum(x => x.Value), ushort.MaxValue));
+        var allSamples = funnySamples
+            .Concat(data.Grayscale)
+            .GroupBy(x => x.Key)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Value));
+
+        var funnyTotal =   funnySamples.Sum(x => x.Value);
+        var  grayTotal = data.Grayscale.Sum(x => x.Value);
+
+        var grayRange = (data.Grayscale.Max(x => x.Key.Y) - data.Grayscale.Min(x => x.Key.Y)) / 100D;
+        var grayAdjusted = (grayTotal * grayRange).RoundToInt();
+
+        var pale    = funnySamples.Where(x => x.Key.X <  X_PALE);
+        var vibrant = funnySamples.Where(x => x.Key.X >= X_PALE);
+        var dark    = allSamples.Where(x => x.Key.Y <  50);
+        var light   = allSamples.Where(x => x.Key.Y >= 50);
+
+        var paleRatioBase = grayTotal > funnyTotal ? data.TotalSamples : funnyTotal;
+
+        AddIfPositive("#Y", () => CalculateRankByRatio(grayAdjusted, data.OpaqueSamples));
+        AddIfPositive("#P", () => CalculateRankByRatio(pale   .Sum(x => x.Value), paleRatioBase));
+        AddIfPositive("#S", () => CalculateRankByRatio(vibrant.Sum(x => x.Value), funnyTotal));
+        AddIfPositive("#D", () => CalculateRankByRatio(dark   .Sum(x => x.Value), data.OpaqueSamples));
+        AddIfPositive("#L", () => CalculateRankByRatio(light  .Sum(x => x.Value), data.OpaqueSamples));
+
+        //
+
+        // AddIfPositive("^S", () => ...) // HUE SINGLE     MONOTONE
+        // AddIfPositive("^M", () => ...) // HUE MANY       MULTI TONE
+
         return result;
 
         // == FUN ==
@@ -281,11 +315,22 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
             var ratio = value / (samplesTotal * byte.MaxValue);
             return (int)Math.Round(ratio * Tag.MAX_RANK);
         }
+
+        int CalculateRankByRatio(int value, int total)
+        {
+            if (value == 0 || total == 0) return 0;
+
+            var ratio = value / (double)total;
+            return ratio < 0.25 ? 0 : (Math.Pow(0.0001, 1 - ratio) * Tag.MAX_RANK).RoundToInt();
+
+            // 100% -> 10_000, 75% -> 1000, 50% -> 100, 25% -> 10
+        }
     }
 
     private record ImageScanResult
     (
         int TotalSamples,
+        int OpaqueSamples,
         int Transparency,
         ColorFrequency Grayscale,
         ColorFrequency[] Funny

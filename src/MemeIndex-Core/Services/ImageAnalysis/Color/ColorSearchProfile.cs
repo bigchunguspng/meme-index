@@ -8,9 +8,7 @@ public class ColorSearchProfile
 {
     public ColorSearchProfile() => Init();
 
-    public const int HUE_RANGE = 30, HUES_TOTAL = 360 / HUE_RANGE;
-
-    // todo Rgba32 -> Rgb24
+    private const int HUE_RANGE = 30;
 
     public Dictionary<char, ColorPalette> ColorsFunny     { get; } = new();
     public                  ColorPalette  ColorsGrayscale { get; } = new();
