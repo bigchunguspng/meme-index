@@ -36,7 +36,6 @@ public class SearchController
             .Select(g => g.Key)
             .ToHashSet();
 
-        sw.Log($"[Search / {result.Count} files]");
         return result;
     }
 
