@@ -16,27 +16,62 @@ public class SearchController
 
     public async Task<HashSet<File>> Search(IEnumerable<SearchQuery> queries, LogicalOperator @operator)
     {
-        var filesAll = new HashSet<File>();
+        var sw = Helpers.GetStartedStopwatch();
+        var files = new Dictionary<File, double>();
         foreach (var query in queries)
         {
-            var filesByQuery = new HashSet<File>();
+            var filesByQuery = new Dictionary<File, double>();
             foreach (var word in query.Words)
             {
                 var item = new SearchRequestItem(query.MeanId, word, SearchStrategyByMeanId(query.MeanId));
-                var result = await _searchService.FindAll(item);
-                JoinResults(filesByQuery, result, query.Operator);
+                var results = await _searchService.FindAll(item);
+                JoinResults(filesByQuery, results, query.Operator);
             }
 
-            JoinResults(filesAll, filesByQuery, @operator);
+            JoinResults(files, filesByQuery, @operator);
         }
 
-        return filesAll;
+        var result = files
+            .OrderByDescending(x => x.Value)
+            .Select(g => g.Key)
+            .ToHashSet();
+
+        sw.Log($"[Search / {result.Count} files]");
+        return result;
     }
 
-    private static void JoinResults<T>(ISet<T> accumulator, ICollection<T> addition, LogicalOperator @operator)
+    private static void JoinResults
+    (
+        Dictionary<File, double> first,
+        Dictionary<File, double> second,
+        LogicalOperator @operator
+    )
     {
-        var unite = @operator == LogicalOperator.OR || accumulator.Count == 0 || addition.Count == 0;
-        unite.Switch(accumulator.UnionWith, accumulator.IntersectWith)(addition);
+        var unite = @operator == LogicalOperator.OR || first.Count == 0 || second.Count == 0;
+        if (unite)
+        {
+            foreach (var pair in second)
+            {
+                if (first.ContainsKey(pair.Key))
+                    first[pair.Key] *= pair.Value;
+                else
+                    first.Add(pair.Key, pair.Value);
+            }
+        }
+        else
+        {
+            foreach (var pair in second)
+            {
+                if (first.ContainsKey(pair.Key))
+                    first[pair.Key] *= pair.Value;
+            }
+
+            var keys = first.Where(x => !second.ContainsKey(x.Key)).Select(x => x.Key);
+            foreach (var key in keys)
+            {
+                first.Remove(key);
+            }
+        }
     }
 
     private static SearchStrategy SearchStrategyByMeanId(int meanId) => meanId switch

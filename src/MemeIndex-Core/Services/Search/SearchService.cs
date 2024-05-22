@@ -7,7 +7,7 @@ namespace MemeIndex_Core.Services.Search;
 
 public class SearchService(MemeDbContext context)
 {
-    public async Task<List<File>> FindAll(SearchRequestItem item)
+    public async Task<Dictionary<File, double>> FindAll(SearchRequestItem item)
     {
         var tagsByMean = context.Tags
             .Include(x => x.Word)
@@ -29,9 +29,7 @@ public class SearchService(MemeDbContext context)
 
         var files = await tagsFiltered
             .GroupBy(x => x.File)
-            .OrderByDescending(g => g.Sum(x => x.Rank))
-            .Select(g => g.Key) // todo return ranked + resort in controller
-            .ToListAsync();
+            .ToDictionaryAsync(g => g.Key, g => g.Sum(x => x.Rank / 100D));
 
         return files;
     }
