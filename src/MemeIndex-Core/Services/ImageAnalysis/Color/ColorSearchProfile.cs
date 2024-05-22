@@ -9,11 +9,12 @@ public class ColorSearchProfile
     public ColorSearchProfile() => Init();
 
     private const int HUE_RANGE = 30;
+    public  const int HUE_COUNT = 12;
 
     public Dictionary<char, ColorPalette> ColorsFunny     { get; } = new();
     public                  ColorPalette  ColorsGrayscale { get; } = new();
 
-    public List<char> Hues  { get; } = Enumerable.Range(65, 12).Select(x => (char)x).ToList();
+    public List<char> Hues { get; } = Enumerable.Range(65, 12).Select(x => (char)x).ToList();
 
     public string CodeTransparent => "X";
 
@@ -48,6 +49,8 @@ public class ColorSearchProfile
             000 + 16, // DARK
         };
 
+        var saturatedCodes = new[] { 'L', '1', '2', 'D' };
+
         for (var h = 0; h < 360; h += HUE_RANGE)
         {
             // SATURATED
@@ -58,7 +61,7 @@ public class ColorSearchProfile
             for (var i = 0; i < saturated.Length; i++)
             {
                 var rgb = ColorConverter.HslToRgb(new HSL(h, 75, saturated[i]));
-                ColorsFunny[key].Add($"{key}S{i + 1}", rgb.ToRgb24());
+                ColorsFunny[key].Add($"{key}S{saturatedCodes[i]}", rgb.ToRgb24());
             }
 
             // DESATURATED

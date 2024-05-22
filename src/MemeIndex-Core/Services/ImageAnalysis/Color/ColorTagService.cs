@@ -86,11 +86,13 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         var step = CalculateStep(image.Size);
 
         var samplesGrayscale = new ColorFrequency();
-        var samplesFunny = colorSearchProfile.Hues.Select(_ => new ColorFrequency()).ToArray();
+        var samplesFunny = new ColorFrequencyFunny();
 
         int totalOpacity = 0, samplesTaken = 0, opaqueSamplesTaken = 0;
 
         var grayscaleLimits = GetGrayscaleLimits();
+        var subPaleLimits = GetSubPaleLimits();
+        var paleLimits = GetPaleLimits();
 
         foreach (var (x, y) in new SizeIterator(image.Size, step))
         {
@@ -116,8 +118,14 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
 
             var point = new BytePoint(s, l);
 
-            var isGrayscale = s < grayscaleLimits[l];
-            var sampleTable = isGrayscale ? samplesGrayscale : samplesFunny[hue];
+            var sampleTable =
+                s < grayscaleLimits[l]
+                    ? samplesGrayscale
+                    : s < subPaleLimits[l]
+                        ? samplesFunny.GetFunny(hue, Shade.WeakPale)
+                        : s < paleLimits[l]
+                            ? samplesFunny.GetFunny(hue, Shade.StrongPale)
+                            : samplesFunny.GetFunny(hue, Shade.Vivid);
 
             sampleTable.AddOrIncrement(point);
         }
@@ -203,10 +211,8 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
 
     // ANALYZING
 
-    private const int X_GRAY = 5, X_PALE = 40;
+    private const int X_GRAY = 5;
     private const int Y_BLACK = 04, Y_WHITE = 96;
-    private const int Y_DIM_D = 12, Y_DIM_L = 88;
-    private const int Y_VIB_D = 20, Y_VIB_L = 80;
 
     private List<RankedWord> AnalyzeImageSamples(ImageScanResult data)
     {
@@ -216,15 +222,58 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
 
         Logger.Log($"[threshold = {threshold}]");
 
+        // GENERAL
+
+        AddIfPositive(colorSearchProfile.CodeTransparent, () => CalculateTransparencyRank(data.Transparency));
+
+        var grayscale = data.Grayscale;
+        var funny = data.Funny;
+
+        var funnyTotal = funny.Sum();
+        var grayTotal = grayscale.Sum(x => x.Value);
+
+        var grayRangeRatio = grayTotal == 0 ? 0 : (grayscale.Max(x => x.Key.Y) - grayscale.Min(x => x.Key.Y)) / 100D;
+        var grayRange = (grayTotal * grayRangeRatio).RoundToInt();
+
+        var totalPaleW = funny.SumByShade(Shade.WeakPale);
+        var totalPaleS = funny.SumByShade(Shade.StrongPale);
+        var totalVivid = funny.SumByShade(Shade.Vivid);
+        var totalD = grayscale.Where(x => x.Key.Y <  50).Sum(x => x.Value) + funny.SumByDarkness(Darkness.Dark);
+        var totalL = grayscale.Where(x => x.Key.Y >= 50).Sum(x => x.Value) + funny.SumByDarkness(Darkness.Light);
+
+        Logger.Log(ConsoleColor.Green, $"\tfunnyTotal\t{funnyTotal,7}");
+        Logger.Log(ConsoleColor.Green, $"\t grayTotal\t{grayTotal,7}\trange:\t{grayRange} ({grayRangeRatio:P2})");
+        Logger.Log(ConsoleColor.Green, $"\ttotalPaleW\t{totalPaleW,7}");
+        Logger.Log(ConsoleColor.Green, $"\ttotalPaleS\t{totalPaleS,7}");
+        Logger.Log(ConsoleColor.Green, $"\ttotalVivid\t{totalVivid,7}");
+        Logger.Log(ConsoleColor.Green, $"\ttotalD    \t{totalD,7}");
+        Logger.Log(ConsoleColor.Green, $"\ttotalL    \t{totalL,7}");
+
+        var almostGrayscale = totalPaleW > 8 * totalPaleS && totalPaleS > 8 * totalVivid;
+        var paleGrayness = Math.Clamp(Math.Sqrt(totalPaleW / (double)totalPaleS / 40D), 0, 1);
+        var grayPart = almostGrayscale ? grayRange + (totalPaleW * paleGrayness).RoundToInt() : grayRange;
+
+        var palePart = almostGrayscale ? totalPaleS : totalPaleS + totalPaleW;
+        var paleBase = almostGrayscale ? data.TotalSamples : funnyTotal;
+
+        AddIfPositive("#Y", () => CalculateRankByRatio("#Y", grayPart, data.OpaqueSamples));
+        AddIfPositive("#P", () => CalculateRankByRatio("#P", palePart, paleBase));
+        AddIfPositive("#S", () => CalculateRankByRatio("#S", totalVivid, funnyTotal));
+        AddIfPositive("#D", () => CalculateRankByRatio("#D", totalD, data.OpaqueSamples));
+        AddIfPositive("#L", () => CalculateRankByRatio("#L", totalL, data.OpaqueSamples));
+
+        // AddIfPositive("^S", () => ...) // HUE SINGLE     MONOTONE
+        // AddIfPositive("^M", () => ...) // HUE MANY       MULTI TONE
+
         // GRAYSCALE
 
-        var white = data.Grayscale.Where(x => x.Key.Y > Y_WHITE);
-        var black = data.Grayscale.Where(x => x.Key.Y < Y_BLACK);
+        var white = grayscale.Where(x => x.Key.Y > Y_WHITE);
+        var black = grayscale.Where(x => x.Key.Y < Y_BLACK);
 
-        var y4 = data.Grayscale.Where(x => x.Key is { Y: >= Y_BLACK and < 27 });
-        var y3 = data.Grayscale.Where(x => x.Key is { Y: >= 27 and < 50 });
-        var y2 = data.Grayscale.Where(x => x.Key is { Y: >= 50 and < 73 });
-        var y1 = data.Grayscale.Where(x => x.Key is { Y: >= 73 and < Y_WHITE });
+        var y4 = grayscale.Where(x => x.Key is { Y: >= Y_BLACK and < 25 });
+        var y3 = grayscale.Where(x => x.Key is { Y: >= 25 and < 50 });
+        var y2 = grayscale.Where(x => x.Key is { Y: >= 50 and < 75 });
+        var y1 = grayscale.Where(x => x.Key is { Y: >= 75 and < Y_WHITE });
 
         var codes = colorSearchProfile.ColorsGrayscale.Keys.ToArray();
         var index = 0;
@@ -238,71 +287,40 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
 
         // FUNNY
 
-        for (var i = 0; i < data.Funny.Length; i++)
+        // todo treat WEAK-PALE more like GRAYSCALE if #Y is high enough
+
+        var peaks = GetPeakLimits();
+
+        for (var hue = 0; hue < ColorSearchProfile.HUE_COUNT; hue++)
         {
             // * D - dark, L - light
 
-            var samples = data.Funny[i];
-            if (samples.Count == 0) continue;
+            var vivid = funny.GetFunny(hue, Shade.Vivid);
+            var vividD = vivid.Where(x => x.Key.Y <  50);
+            var vividL = vivid.Where(x => x.Key.Y >= 50);
 
-            var paleD = samples.Where(x => x.Key is { X: >= X_GRAY and < X_PALE, Y: >= Y_DIM_D and < 50 });
-            var paleL = samples.Where(x => x.Key is { X: >= X_GRAY and < X_PALE, Y: >= 50 and < Y_DIM_L });
+            var strongPale = funny.GetFunny(hue, Shade.StrongPale);
+            var strongPaleD = strongPale.Where(x => x.Key.Y <  50 && x.Key.X <  peaks[x.Key.Y]);
+            var strongPeakD = strongPale.Where(x => x.Key.Y <  50 && x.Key.X >= peaks[x.Key.Y]);
+            var strongPaleL = strongPale.Where(x => x.Key.Y >= 50 && x.Key.X <  peaks[x.Key.Y]);
+            var strongPeakL = strongPale.Where(x => x.Key.Y >= 50 && x.Key.X >= peaks[x.Key.Y]);
 
-            var vibrantD = samples.Where(x => x.Key is { X: >= X_PALE, Y: <  50 and >= Y_VIB_D });
-            var vibrantL = samples.Where(x => x.Key is { X: >= X_PALE, Y: >= 50 and <= Y_VIB_L });
+            var weakPale = funny.GetFunny(hue, Shade.WeakPale);
+            var weakPaleD = weakPale.Where(x => x.Key.Y <  50 && x.Key.X <  peaks[x.Key.Y]);
+            var weakPeakD = weakPale.Where(x => x.Key.Y <  50 && x.Key.X >= peaks[x.Key.Y]);
+            var weakPaleL = weakPale.Where(x => x.Key.Y >= 50 && x.Key.X <  peaks[x.Key.Y]);
+            var weakPeakL = weakPale.Where(x => x.Key.Y >= 50 && x.Key.X >= peaks[x.Key.Y]);
 
-            var veryD = samples.Where(x => x.Key is { X: >= X_GRAY, Y: >= Y_BLACK and < Y_VIB_D } and not { X: < X_PALE, Y: >= Y_DIM_D });
-            var veryL = samples.Where(x => x.Key is { X: >= X_GRAY, Y: <= Y_WHITE and > Y_VIB_L } and not { X: < X_PALE, Y: <  Y_DIM_L });
-
-            var tones = colorSearchProfile.GetShadesByHue(i);
+            var shades = colorSearchProfile.GetShadesByHue(hue);
             var x = 0;
 
-            AddIfPositiveFromSamples(tones[x++], veryL);
-            AddIfPositiveFromSamples(tones[x++], vibrantL);
-            AddIfPositiveFromSamples(tones[x++], vibrantD);
-            AddIfPositiveFromSamples(tones[x++], veryD);
-            AddIfPositiveFromSamples(tones[x++], paleD);
-            AddIfPositiveFromSamples(tones[x  ], paleL);
+            AddIfPositive(shades[x++], () => CalculateRankPale(weakPeakL, strongPeakL));
+            AddIfPositive(shades[x++], () => CalculateRank(vividL));
+            AddIfPositive(shades[x++], () => CalculateRank(vividD));
+            AddIfPositive(shades[x++], () => CalculateRankPale(weakPeakD, strongPeakD));
+            AddIfPositive(shades[x++], () => CalculateRankPale(weakPaleD, strongPaleD));
+            AddIfPositive(shades[x  ], () => CalculateRankPale(weakPaleL, strongPaleL));
         }
-
-        // OTHER
-
-        AddIfPositive(colorSearchProfile.CodeTransparent, () => CalculateTransparencyRank(data.Transparency));
-
-        var funnySamples = data.Funny
-            .SelectMany(x => x)
-            .GroupBy(x => x.Key)
-            .ToDictionary(g => g.Key, g => (ushort)Math.Min(g.Sum(x => x.Value), ushort.MaxValue));
-        var allSamples = funnySamples
-            .Concat(data.Grayscale)
-            .GroupBy(x => x.Key)
-            .ToDictionary(g => g.Key, g => g.Sum(x => x.Value));
-
-        var funnyTotal =   funnySamples.Sum(x => x.Value);
-        var  grayTotal = data.Grayscale.Sum(x => x.Value);
-
-        var grayRange = grayTotal == 0 ? 0 : (data.Grayscale.Max(x => x.Key.Y) - data.Grayscale.Min(x => x.Key.Y)) / 100D;
-        var grayAdjusted = (grayTotal * grayRange).RoundToInt();
-
-        var pale    = funnySamples.Where(x => x.Key.X <  X_PALE);
-        var vibrant = funnySamples.Where(x => x.Key.X >= X_PALE);
-        var dark    = allSamples.Where(x => x.Key.Y <  50);
-        var light   = allSamples.Where(x => x.Key.Y >= 50);
-
-        var paleRatioBase = grayTotal > funnyTotal ? data.TotalSamples : funnyTotal;
-
-        AddIfPositive("#Y", () => CalculateRankByRatio(grayAdjusted, data.OpaqueSamples));
-        AddIfPositive("#P", () => CalculateRankByRatio(pale   .Sum(x => x.Value), paleRatioBase));
-        AddIfPositive("#S", () => CalculateRankByRatio(vibrant.Sum(x => x.Value), funnyTotal));
-        AddIfPositive("#D", () => CalculateRankByRatio(dark   .Sum(x => x.Value), data.OpaqueSamples));
-        AddIfPositive("#L", () => CalculateRankByRatio(light  .Sum(x => x.Value), data.OpaqueSamples));
-
-        //
-
-        // AddIfPositive("^S", () => ...) // HUE SINGLE     MONOTONE
-        // AddIfPositive("^M", () => ...) // HUE MANY       MULTI TONE
-        
-        // TODO CHANGE COLOR SCHEMA
 
         return result;
 
@@ -328,6 +346,20 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
             return (int)Math.Round(ratio * Tag.MAX_RANK);
         }
 
+        int CalculateRankPale
+        (
+            IEnumerable<KeyValuePair<BytePoint, ushort>> samplesW,
+            IEnumerable<KeyValuePair<BytePoint, ushort>> samplesS
+        )
+        {
+            var sumS = samplesS.Sum(x => x.Value);
+            var sumW = samplesW.Sum(x => x.Value);
+            if (sumS <= threshold && sumW <= threshold * 4) return 0;
+
+            var ratio = (sumS + sumW) / samplesTotal;
+            return (int)Math.Round(ratio * Tag.MAX_RANK);
+        }
+
         int CalculateTransparencyRank(int value)
         {
             if (value == 0) return 0;
@@ -336,11 +368,13 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
             return (int)Math.Round(ratio * Tag.MAX_RANK);
         }
 
-        int CalculateRankByRatio(int value, int total)
+        int CalculateRankByRatio(string key, int value, int total)
         {
             if (value == 0 || total == 0) return 0;
 
             var ratio = value / (double)total;
+            var color = ratio < 0.25 ? ConsoleColor.Red : ConsoleColor.Yellow;
+            Logger.Log(color, $"\t\t{key}\t{ratio:P2}");
             return ratio < 0.25 ? 0 : (Math.Pow(0.0001, 1 - ratio) * Tag.MAX_RANK).RoundToInt();
 
             // 100% -> 10_000, 75% -> 1000, 50% -> 100, 25% -> 10
@@ -353,8 +387,52 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         int OpaqueSamples,
         int Transparency,
         ColorFrequency Grayscale,
-        ColorFrequency[] Funny
+        ColorFrequencyFunny Funny
     );
+}
+
+internal class ColorFrequencyFunny
+{
+    private readonly ColorFrequency[] _samples = GetEmptyTable();
+
+    private static ColorFrequency[] GetEmptyTable()
+    {
+        const int length = ColorSearchProfile.HUE_COUNT * 3;
+        return Enumerable.Range(0, length).Select(_ => new ColorFrequency()).ToArray();
+    }
+
+    public ColorFrequency GetFunny(int hue, Shade shade)
+    {
+        return _samples[ColorSearchProfile.HUE_COUNT * (int)shade + hue];
+    }
+
+    public int SumByShade(Shade shade) => _samples
+        .Skip(ColorSearchProfile.HUE_COUNT * (int)shade)
+        .Take(ColorSearchProfile.HUE_COUNT)
+        .Sum(samples => samples.Sum(x => x.Value));
+
+    public int SumByDarkness(Darkness darkness) => _samples
+        .Sum(samples =>
+        {
+            return samples
+                .Where(x => darkness == Darkness.Dark == x.Key.Y < 50)
+                .Sum(x => x.Value);
+        });
+
+    public int Sum() => _samples.Sum(samples => samples.Sum(x => x.Value));
+}
+
+internal enum Shade
+{
+    WeakPale,
+    StrongPale,
+    Vivid
+}
+
+internal enum Darkness
+{
+    Dark,
+    Light
 }
 
 internal class ColorFrequency : Dictionary<BytePoint, ushort>
