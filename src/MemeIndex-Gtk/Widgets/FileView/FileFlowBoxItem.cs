@@ -28,8 +28,6 @@ public class FileFlowBoxItem : Box
 
         Margin = 5;
         Valign = Align.Start;
-
-        Show();
     }
 
     public bool HasIcon => _icon.Pixbuf is not null;

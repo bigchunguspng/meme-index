@@ -20,7 +20,7 @@ public class FileFlowView : FlowBox, IFileView
         set => _menu.SelectedFile = value;
     }
 
-    private readonly List<FileFlowBoxItem> _items = new();
+    private readonly List<FileFlowBoxItem> _items = [];
 
     private App App { get; }
 
@@ -70,7 +70,9 @@ public class FileFlowView : FlowBox, IFileView
     }
 
 
-    private readonly StoppableProcessMonopoly iconsUpdate = new();
+    private readonly StoppableProcessMonopoly _iconsUpdate = new();
+
+    private long _ticks;
 
     public async Task ShowFiles(List<File> files)
     {
@@ -79,24 +81,56 @@ public class FileFlowView : FlowBox, IFileView
             SelectedFile = null;
             AllocationSize = Size.Empty; // <-- to trigger icons update
 
-            await iconsUpdate.StopExternally();
+            await _iconsUpdate.StopExternally();
 
-            foreach (var item in _items) item.Parent.Destroy();
+            foreach (var item in _items) item.Parent?.Destroy();
 
             _items.Clear();
 
-            foreach (var file in files) _items.Add(new FileFlowBoxItem(file));
-            foreach (var item in _items) Add(item);
+            var ticks  = DateTime.UtcNow.Ticks;
+            _ticks = ticks;
+
+            var max = GetMaxItemsOnScreen();
+            Console.WriteLine(max.ToString());
+            foreach (var file in files.Take(max))
+            {
+                var item = new FileFlowBoxItem(file);
+                _items.Add(item);
+                Add(item);
+            }
 
             foreach (var child in Children) child.Valign = Align.Start;
 
             ShowAll();
+
+            var last = Children.LastOrDefault();
+            if (last is null) return;
+
+            Children.Last().SizeAllocated += async (_, _) =>
+            {
+                await WaitForMouseToStop();
+
+                if (_ticks != ticks) return;
+
+                foreach (var file in files.Skip(max))
+                {
+                    if (_ticks != ticks) return;
+
+                    var item = new FileFlowBoxItem(file);
+                    _items.Add(item);
+                    Add(item);
+                }
+
+                foreach (var child in Children) child.Valign = Align.Start;
+                
+                ShowAll();
+            };
         }
         finally
         {
             _iconsLoaded = false;
 
-            iconsUpdate.AllowExternally();
+            _iconsUpdate.AllowExternally();
         }
     }
 
@@ -106,7 +140,7 @@ public class FileFlowView : FlowBox, IFileView
         {
             if (Parent is null) return; // if widget is not mounted
 
-            await iconsUpdate.TakeRights();
+            await _iconsUpdate.TakeRights();
 
             var (skip, take) = GetRangeForIconsUpdate() ?? (0, 0);
 
@@ -114,7 +148,7 @@ public class FileFlowView : FlowBox, IFileView
 
             var tasks = _items.Skip(skip).Take(take).Select(async item =>
             {
-                if (iconsUpdate.ExecutionDisallowed || item.HasIcon) return;
+                if (_iconsUpdate.ExecutionDisallowed || item.HasIcon) return;
 
                 var pixbuf = await _utils.GetImageIcon(item.File.GetFullPath(), 96);
                 if (pixbuf is not null) item.SetIcon(pixbuf);
@@ -129,7 +163,7 @@ public class FileFlowView : FlowBox, IFileView
         }
         finally
         {
-            iconsUpdate.ReleaseRights();
+            _iconsUpdate.ReleaseRights();
         }
     }
 
@@ -140,7 +174,7 @@ public class FileFlowView : FlowBox, IFileView
         var skip = lastWithIcon + 1;
         if (skip == _items.Count) return null;
 
-        var bottom = _scroll.Vadjustment.Value + _scroll.Vadjustment.PageSize;
+        var bottom = GetScrollBottom();
         var last = _items.FindLastIndex(x => x.Allocation.Top <= bottom);
         if (last < skip) return null;
 
@@ -152,6 +186,31 @@ public class FileFlowView : FlowBox, IFileView
 #endif
 
         return (skip, take);
+    }
+
+    private int GetMaxItemsOnScreen()
+    {
+        var w = AllocatedWidth;
+        var h = _scroll.Vadjustment.PageSize.RoundToInt();
+        var cols = (w + 5) / 117;
+        var rows = (h + 5) / 137 + 1;
+        return cols * rows;
+    }
+
+    private double GetScrollBottom() => _scroll.Vadjustment.Value + _scroll.Vadjustment.PageSize;
+
+    private int _mouseX, _mouseY;
+    private async Task WaitForMouseToStop()
+    {
+        while (true)
+        {
+            Window.GetDevicePosition(Display.DefaultSeat.Pointer, out var x, out var y, out _);
+            if (_mouseX == x && _mouseY == y) return;
+
+            await Task.Delay(750);
+            _mouseX = x;
+            _mouseY = y;
+        }
     }
 
     public Widget AsWidget() => this;
