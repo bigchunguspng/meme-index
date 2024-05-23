@@ -40,11 +40,12 @@ public class ColorSearchPanel : Frame
         _box.Add(tb);
         
         AddOption("X", "Transparent");
-        AddOption("#Y", "Mostly grayscale");
-        AddOption("#P", "Mostly pale");
-        AddOption("#S", "Mostly saturated");
-        AddOption("#D", "Mostly dark");
-        AddOption("#L", "Mostly light");
+        AddOption("#Y", "Grayscale");
+        AddOption("#P", "Pale");
+        AddOption("#S", "Saturated");
+        AddOption("#D", "Dark");
+        AddOption("#L", "Light");
+        AddOption("#A", "Arts");
 
         _funnyColors = new FunnyColorSelector(App);
         _grayColors = new GrayscaleColorSelector(App);

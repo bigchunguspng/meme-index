@@ -322,6 +322,18 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
             AddIfPositive(shades[x  ], () => CalculateRankPale(weakPaleL, strongPaleL));
         }
 
+        // OTHER
+
+        var dominantColor = result
+            .Where(x => x.Rank >= 2000)
+            .OrderByDescending(x => x.Rank)
+            .FirstOrDefault(x => !x.Word.StartsWith('#'));
+        if (dominantColor is not null)
+        {
+            var ratio = (dominantColor.Rank - 1984) / (double)(Tag.MAX_RANK - 1984);
+            AddIfPositive("#A", () => (ratio * Tag.MAX_RANK).RoundToInt());
+        }
+
         return result;
 
         // == FUN ==
