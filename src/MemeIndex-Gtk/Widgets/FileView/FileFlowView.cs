@@ -20,6 +20,7 @@ public class FileFlowView : FlowBox, IFileView
         set => _menu.SelectedFile = value;
     }
 
+    private List<File> _files = [];
     private readonly List<FileFlowBoxItem> _items = [];
 
     private App App { get; }
@@ -42,6 +43,7 @@ public class FileFlowView : FlowBox, IFileView
         _scroll = scroll;
         _scroll.Vadjustment.ValueChanged += (_, _) => UpdateFileIcons();
 
+        SizeAllocated += (_, _) => ShowHiddenFilesOnResize();
         SizeAllocated += UpdateIcons_OnSizeAllocated;
         SelectedChildrenChanged += OnSelectionChanged;
         ChildActivated += (sender, _) => _menu.OpenFile(sender, EventArgs.Empty);
@@ -72,12 +74,13 @@ public class FileFlowView : FlowBox, IFileView
 
     private readonly StoppableProcessMonopoly _iconsUpdate = new();
 
-    private long _ticks;
+    private long _requestId;
 
     public async Task ShowFiles(List<File> files)
     {
         try
         {
+            _maxItems = 0;
             SelectedFile = null;
             AllocationSize = Size.Empty; // <-- to trigger icons update
 
@@ -85,23 +88,15 @@ public class FileFlowView : FlowBox, IFileView
 
             foreach (var item in _items) item.Parent?.Destroy();
 
+            _files = files;
             _items.Clear();
 
-            var ticks  = DateTime.UtcNow.Ticks;
-            _ticks = ticks;
+            var requestId  = DateTime.UtcNow.Ticks;
+            _requestId = requestId;
 
             var max = GetMaxItemsOnScreen();
             Console.WriteLine(max.ToString());
-            foreach (var file in files.Take(max))
-            {
-                var item = new FileFlowBoxItem(file);
-                _items.Add(item);
-                Add(item);
-            }
-
-            foreach (var child in Children) child.Valign = Align.Start;
-
-            ShowAll();
+            ShowTheseFiles(requestId, take: max);
 
             var last = Children.LastOrDefault();
             if (last is null) return;
@@ -110,20 +105,9 @@ public class FileFlowView : FlowBox, IFileView
             {
                 await WaitForMouseToStop();
 
-                if (_ticks != ticks) return;
+                if (_requestId != requestId) return;
 
-                foreach (var file in files.Skip(max))
-                {
-                    if (_ticks != ticks) return;
-
-                    var item = new FileFlowBoxItem(file);
-                    _items.Add(item);
-                    Add(item);
-                }
-
-                foreach (var child in Children) child.Valign = Align.Start;
-                
-                ShowAll();
+                ShowTheseFiles(requestId, skip: GetMaxItemsOnScreen());
             };
         }
         finally
@@ -132,6 +116,38 @@ public class FileFlowView : FlowBox, IFileView
 
             _iconsUpdate.AllowExternally();
         }
+    }
+
+    private int _maxItems;
+
+    private void ShowHiddenFilesOnResize()
+    {
+        var max = GetMaxItemsOnScreen();
+        var diff = max - _maxItems;
+
+        if (diff > 0)
+        {
+            _maxItems += diff;
+            ShowTheseFiles(_requestId, skip: GetMaxItemsOnScreen(), take: diff);
+        }
+
+        UpdateFileIcons();
+    }
+
+    private void ShowTheseFiles(long requestId, int skip = 0, int take = 0)
+    {
+        foreach (var file in _files.Skip(skip).Take(take == 0 ? _files.Count : take))
+        {
+            if (_requestId != requestId) return;
+
+            var item = new FileFlowBoxItem(file);
+            _items.Add(item);
+            Add(item);
+        }
+
+        foreach (var child in Children) child.Valign = Align.Start;
+                
+        ShowAll();
     }
 
     private async void UpdateFileIcons()
