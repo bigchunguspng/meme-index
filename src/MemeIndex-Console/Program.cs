@@ -33,6 +33,10 @@ internal static class Program
 
         Logger.StatusChanged += (_, message) => Logger.Log(message ?? string.Empty);
 
+        args.ForEachTry(Demo.ColorTagService_GetTextRepresentation);
+        Console.ReadKey();
+        return;
+
         var builder = Host.CreateApplicationBuilder(args);
 
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
