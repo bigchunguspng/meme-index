@@ -17,14 +17,10 @@ public class FileFlowBoxItem : Box
 
         _icon = new Image { HeightRequest = 96, WidthRequest = 96 };
 
+        var name = file.Name;
+        var text = name.Length > 17 ? name[..14] + '…' : name;
         Add(_icon);
-        Add(new Label(file.Name)
-        {
-            Justify = Justification.Center,
-            MaxWidthChars = 15,
-            SingleLineMode = true,
-            Ellipsize = EllipsizeMode.End
-        });
+        Add(new Label(text));
 
         Margin = 5;
         Valign = Align.Start;
