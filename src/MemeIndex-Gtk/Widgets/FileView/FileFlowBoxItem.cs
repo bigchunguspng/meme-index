@@ -1,6 +1,6 @@
 using Gdk;
 using Gtk;
-using Pango;
+using MemeIndex_Gtk.Utils;
 using File = MemeIndex_Core.Data.Entities.File;
 
 namespace MemeIndex_Gtk.Widgets.FileView;
@@ -17,10 +17,8 @@ public class FileFlowBoxItem : Box
 
         _icon = new Image { HeightRequest = 96, WidthRequest = 96 };
 
-        var name = file.Name;
-        var text = name.Length > 17 ? name[..14] + '…' : name;
         Add(_icon);
-        Add(new Label(text));
+        Add(new Label(TextTrimmer.MakeTextFit(file.Name, 96)));
 
         Margin = 5;
         Valign = Align.Start;
