@@ -13,7 +13,7 @@ public class FileFlowView : FlowBox, IFileView
     private readonly ScrolledWindow _scroll;
 
     private bool _iconsLoaded;
-    private Size AllocationSize;
+    private Size _allocationSize;
 
     private File? SelectedFile
     {
@@ -47,14 +47,14 @@ public class FileFlowView : FlowBox, IFileView
         SizeAllocated += UpdateIcons_OnSizeAllocated;
         SelectedChildrenChanged += OnSelectionChanged;
         ChildActivated += (sender, _) => _menu.OpenFile(sender, EventArgs.Empty);
-        ButtonPressEvent += OnButtonPress;
+        ButtonPressEvent += OnButtonPress_SelectItem;
     }
 
     private void UpdateIcons_OnSizeAllocated(object o, SizeAllocatedArgs sizeAllocatedArgs)
     {
-        if (_iconsLoaded || Allocation.Size == AllocationSize) return;
+        if (_iconsLoaded || Allocation.Size == _allocationSize) return;
 
-        AllocationSize = Allocation.Size;
+        _allocationSize = Allocation.Size;
         UpdateFileIcons();
     }
 
@@ -64,7 +64,7 @@ public class FileFlowView : FlowBox, IFileView
         SelectedFile = selectedItem is FileFlowBoxItem item ? item.File : null;
     }
 
-    private void OnButtonPress(object o, ButtonPressEventArgs args)
+    private void OnButtonPress_SelectItem(object o, ButtonPressEventArgs args)
     {
         var child = GetChildAtPos((int)args.Event.X, (int)args.Event.Y);
         if (child is null) UnselectAll();
@@ -73,45 +73,29 @@ public class FileFlowView : FlowBox, IFileView
 
 
     private readonly StoppableProcessMonopoly _iconsUpdate = new();
-
     private long _requestId;
-
-    private int _maxItems;
-
-    private Dictionary<int, bool> _visibilitiesByFileId = new();
+    private Dictionary<int, bool> _fileIsVisible = new();
 
     public async Task ShowFiles(List<File> files)
     {
         try
         {
-            _maxItems = 0;
             SelectedFile = null;
-            AllocationSize = Size.Empty; // <-- to trigger icons update
+            _allocationSize = Size.Empty; // <-- to trigger icons update
 
             await _iconsUpdate.StopExternally();
 
             var requestId = UpdateData(files);
 
-            var max = GetMaxItemsOnScreen();
-            ShowTheseFiles(requestId, take: max);
+            ShowFileRange(requestId, take: GetMaxItemsOnScreen());
 
             ShowRestFilesAsync(requestId);
         }
         finally
         {
             _iconsLoaded = false;
-
             _iconsUpdate.AllowExternally();
         }
-    }
-
-    private async void ShowRestFilesAsync(long requestId)
-    {
-        await Task.Delay(2 * _files.Count); // 500 files -> 1 second
-
-        if (_requestId != requestId) return;
-
-        ShowTheseFiles(requestId, skip: GetMaxItemsOnScreen());
     }
 
     /// <returns>Id of the current files show request.</returns>
@@ -124,41 +108,50 @@ public class FileFlowView : FlowBox, IFileView
         }
 
         _files = files;
-        _visibilitiesByFileId = files.ToDictionary(x => x.Id, _ => false);
+        _fileIsVisible = files.ToDictionary(x => x.Id, _ => false);
 
         _items.Clear();
 
         return _requestId = DateTime.UtcNow.Ticks;
     }
 
+    private async void ShowRestFilesAsync(long requestId)
+    {
+        await Task.Delay(2 * _files.Count); // 500 files -> 1 second
+
+        if (_requestId != requestId) return;
+
+        ShowFileRange(requestId, skip: GetMaxItemsOnScreen());
+    }
+
     private void ShowHiddenFilesOnResize()
     {
-        var max = GetMaxItemsOnScreen();
-        var diff = max - _maxItems;
-
-        if (diff > 0)
+        var firstHidden = _files.FindIndex(x => _fileIsVisible.TryGetValue(x.Id, out var visible) && !visible);
+        if (firstHidden >= 0)
         {
-            _maxItems += diff;
-            ShowTheseFiles(_requestId, skip: GetMaxItemsOnScreen(), take: diff);
+            var difference = GetMaxItemsOnScreen() - firstHidden;
+            if (difference > 0)
+            {
+                ShowFileRange(_requestId, skip: firstHidden, take: difference);
+            }
         }
 
         UpdateFileIcons();
     }
 
-    private void ShowTheseFiles(long requestId, int skip = 0, int take = 0)
+    private void ShowFileRange(long requestId, int skip = 0, int take = 0)
     {
         foreach (var file in _files.Skip(skip).Take(take == 0 ? _files.Count : take))
         {
             if (_requestId != requestId) return;
-            if (_visibilitiesByFileId.TryGetValue(file.Id, out var visible) && visible) continue;
+            if (_fileIsVisible.TryGetValue(file.Id, out var visible) && visible) continue;
 
             var item = new FileFlowBoxItem(file);
             _items.Add(item);
             Add(item);
-            _visibilitiesByFileId[file.Id] = true;
+            if (item.Parent is not null) item.Parent.Valign = Align.Start;
+            _fileIsVisible[file.Id] = true;
         }
-
-        foreach (var child in Children) child.Valign = Align.Start;
 
         ShowAll();
     }
@@ -227,20 +220,6 @@ public class FileFlowView : FlowBox, IFileView
     }
 
     private double GetScrollBottom() => _scroll.Vadjustment.Value + _scroll.Vadjustment.PageSize;
-
-    private int _mouseX, _mouseY;
-    private async Task WaitForMouseToStop(int milliseconds)
-    {
-        while (true)
-        {
-            Window.GetDevicePosition(Display.DefaultSeat.Pointer, out var x, out var y, out _);
-            if (_mouseX == x && _mouseY == y) return;
-
-            await Task.Delay(milliseconds);
-            _mouseX = x;
-            _mouseY = y;
-        }
-    }
 
     public Widget AsWidget() => this;
 }
