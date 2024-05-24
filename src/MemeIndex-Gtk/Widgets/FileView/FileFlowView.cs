@@ -48,6 +48,12 @@ public class FileFlowView : FlowBox, IFileView
         SelectedChildrenChanged += OnSelectionChanged;
         ChildActivated += (sender, _) => _menu.OpenFile(sender, EventArgs.Empty);
         ButtonPressEvent += OnButtonPress_SelectItem;
+
+        Task.Run(async () =>
+        {
+            await Task.Delay(1000);
+            TextTrimmer.TriggerCreationAsync();
+        });
     }
 
     private void UpdateIcons_OnSizeAllocated(object o, SizeAllocatedArgs sizeAllocatedArgs)

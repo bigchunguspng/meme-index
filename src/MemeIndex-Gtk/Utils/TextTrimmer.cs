@@ -1,7 +1,6 @@
 using System.Text;
 using Gdk;
 using Gtk;
-using MemeIndex_Core.Utils;
 using SixLabors.Fonts;
 
 namespace MemeIndex_Gtk.Utils;
@@ -10,11 +9,8 @@ public static class TextTrimmer
 {
     private static readonly TextOptions _options;
 
-    // todo text this mf on linux
-
     static TextTrimmer()
     {
-        var sw = Helpers.GetStartedStopwatch();
         var fontName = Settings.Default.FontName;
         var dpi = (float)Display.Default.DefaultScreen.Resolution;
         var separator = fontName.LastIndexOf(' ');
@@ -22,7 +18,10 @@ public static class TextTrimmer
         var size = int.Parse(fontName[(separator + 1)..]);
         var font = new Font(SystemFonts.Get(family), size, FontStyle.Regular);
         _options = new TextOptions(font) { Dpi = dpi };
-        sw.Log("Text trimmer");
+    }
+
+    public static void TriggerCreationAsync()
+    {
     }
 
     public static string MakeTextFit(string text, float wantedWidth)
