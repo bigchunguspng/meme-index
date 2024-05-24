@@ -76,6 +76,10 @@ public class FileFlowView : FlowBox, IFileView
 
     private long _requestId;
 
+    private int _maxItems;
+
+    private Dictionary<int, bool> _visibilitiesByFileId = new();
+
     public async Task ShowFiles(List<File> files)
     {
         try
@@ -86,29 +90,12 @@ public class FileFlowView : FlowBox, IFileView
 
             await _iconsUpdate.StopExternally();
 
-            foreach (var item in _items) item.Parent?.Destroy();
-
-            _files = files;
-            _items.Clear();
-
-            var requestId  = DateTime.UtcNow.Ticks;
-            _requestId = requestId;
+            var requestId = UpdateData(files);
 
             var max = GetMaxItemsOnScreen();
-            Console.WriteLine(max.ToString());
             ShowTheseFiles(requestId, take: max);
 
-            var last = Children.LastOrDefault();
-            if (last is null) return;
-
-            Children.Last().SizeAllocated += async (_, _) =>
-            {
-                await WaitForMouseToStop();
-
-                if (_requestId != requestId) return;
-
-                ShowTheseFiles(requestId, skip: GetMaxItemsOnScreen());
-            };
+            ShowRestFilesAsync(requestId);
         }
         finally
         {
@@ -118,7 +105,31 @@ public class FileFlowView : FlowBox, IFileView
         }
     }
 
-    private int _maxItems;
+    private async void ShowRestFilesAsync(long requestId)
+    {
+        await Task.Delay(2 * _files.Count); // 500 files -> 1 second
+
+        if (_requestId != requestId) return;
+
+        ShowTheseFiles(requestId, skip: GetMaxItemsOnScreen());
+    }
+
+    /// <returns>Id of the current files show request.</returns>
+    private long UpdateData(List<File> files)
+    {
+        foreach (var item in _items)
+        {
+            item.Parent?.Destroy();
+            item.Destroy();
+        }
+
+        _files = files;
+        _visibilitiesByFileId = files.ToDictionary(x => x.Id, _ => false);
+
+        _items.Clear();
+
+        return _requestId = DateTime.UtcNow.Ticks;
+    }
 
     private void ShowHiddenFilesOnResize()
     {
@@ -139,14 +150,16 @@ public class FileFlowView : FlowBox, IFileView
         foreach (var file in _files.Skip(skip).Take(take == 0 ? _files.Count : take))
         {
             if (_requestId != requestId) return;
+            if (_visibilitiesByFileId.TryGetValue(file.Id, out var visible) && visible) continue;
 
             var item = new FileFlowBoxItem(file);
             _items.Add(item);
             Add(item);
+            _visibilitiesByFileId[file.Id] = true;
         }
 
         foreach (var child in Children) child.Valign = Align.Start;
-                
+
         ShowAll();
     }
 
@@ -216,14 +229,14 @@ public class FileFlowView : FlowBox, IFileView
     private double GetScrollBottom() => _scroll.Vadjustment.Value + _scroll.Vadjustment.PageSize;
 
     private int _mouseX, _mouseY;
-    private async Task WaitForMouseToStop()
+    private async Task WaitForMouseToStop(int milliseconds)
     {
         while (true)
         {
             Window.GetDevicePosition(Display.DefaultSeat.Pointer, out var x, out var y, out _);
             if (_mouseX == x && _mouseY == y) return;
 
-            await Task.Delay(750);
+            await Task.Delay(milliseconds);
             _mouseX = x;
             _mouseY = y;
         }
