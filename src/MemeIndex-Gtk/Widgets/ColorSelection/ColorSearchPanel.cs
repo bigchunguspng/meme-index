@@ -12,6 +12,8 @@ public class ColorSearchPanel : Frame
     private readonly     FunnyColorSelector _funnyColors;
     private readonly GrayscaleColorSelector  _grayColors;
 
+    private readonly List<CheckButton> _checkButtons = [];
+
     private readonly Button _clearSelection;
 
     private bool _buttonsBeingManaged;
@@ -60,6 +62,7 @@ public class ColorSearchPanel : Frame
         void AddOption(string key, string label)
         {
             var cb = new ColorCheckButton(key);
+            _checkButtons.Add(cb);
             tb.Add(cb);
             tb.Add(new Label(label));
             cb.Toggled += CheckButtonOnToggled;
@@ -105,7 +108,8 @@ public class ColorSearchPanel : Frame
         _buttonsBeingManaged = true;
 
         var active = _grayColors.CheckButtons.GetActive()
-            .Concat(_funnyColors.CheckButtons.GetActive());
+            .Concat(_funnyColors.CheckButtons.GetActive())
+            .Concat(_checkButtons);
         foreach (var checkButton in active) checkButton.Active = false;
 
         _buttonsBeingManaged = false;
