@@ -1,3 +1,4 @@
+using MemeIndex_Core.Data;
 using MemeIndex_Core.Objects;
 using MemeIndex_Core.Services.Data;
 using MemeIndex_Core.Services.Data.Contracts;
@@ -8,6 +9,7 @@ namespace MemeIndex_Core.Controllers;
 
 public class IndexController
 {
+    private readonly MemeDbContext _context;
     private readonly IMonitoringService _monitoringService;
     private readonly IFileService _fileService;
     private readonly TagService _tagService;
@@ -17,13 +19,16 @@ public class IndexController
 
     public IndexController
     (
+        MemeDbContext context,
         IMonitoringService monitoringService,
         IFileService fileService,
         IndexingService indexingService,
         FileWatchService fileWatchService,
-        OvertakingService overtakingService, TagService tagService
+        OvertakingService overtakingService,
+        TagService tagService
     )
     {
+        _context = context;
         _monitoringService = monitoringService;
         _fileService = fileService;
         _indexingService = indexingService;
@@ -31,7 +36,7 @@ public class IndexController
         _overtakingService = overtakingService;
         _tagService = tagService;
 
-        _fileWatchService.UpdateFileSystemKnowledge += UpdateFileSystemKnowledge;
+        _fileWatchService.UpdateFileSystemKnowledge += UpdateFileSystemKnowledgeSafe;
     }
 
     public async Task<List<MonitoringOption>> GetMonitoringOptions()
@@ -110,7 +115,14 @@ public class IndexController
         return _tagService.RemoveTagsByMean(meanId);
     }
 
-    public async Task UpdateFileSystemKnowledge()
+    public async Task UpdateFileSystemKnowledgeSafe()
+    {
+        await _context.Access.Take();
+        await UpdateFileSystemKnowledge();
+        _context.Access.Release();
+    }
+
+    private async Task UpdateFileSystemKnowledge()
     {
         await _overtakingService.UpdateFileSystemKnowledge();
         await _indexingService.ProcessPendingFiles();

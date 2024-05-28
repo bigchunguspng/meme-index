@@ -90,9 +90,10 @@ public class OvertakingService
         Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} missing files located", locatedMissingFiles.Count);
         Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} new files added", c0);
 
-        var lostFiles = missingFiles.Except(locatedMissingFiles);
+        var lostFiles = missingFiles.Except(locatedMissingFiles).ToArray();
 
-        var c1 = await _fileService.RemoveRange(lostFiles);
+        await _fileService.RemoveRange(lostFiles);
+        var c1 = lostFiles.Length;
 
         Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} missing files removed", c1);
 

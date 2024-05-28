@@ -95,10 +95,10 @@ public class FileService : IFileService
         return entity.Id;
     }
 
-    public async Task<int> RemoveRange(IEnumerable<File> files)
+    public async Task RemoveRange(IEnumerable<File> files)
     {
         _context.Files.RemoveRange(files);
-        return await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
     }
 
     private async Task<Directory> GetOrAddDirectory(string path)

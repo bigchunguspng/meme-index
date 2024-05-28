@@ -15,6 +15,5 @@ public interface IFileService
 
     Task<int> UpdateFile(File entity, FileInfo file);
 
-    /// <returns>Number of files removed.</returns>
-    Task<int> RemoveRange(IEnumerable<File> files);
+    Task RemoveRange(IEnumerable<File> files);
 }

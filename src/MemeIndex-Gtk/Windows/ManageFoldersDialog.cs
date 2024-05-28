@@ -70,7 +70,7 @@ public class ManageFoldersDialog : Dialog
 
         Logger.Status("Watching list updated.");
 
-        await App.IndexController.UpdateFileSystemKnowledge();
+        await App.IndexController.UpdateFileSystemKnowledgeSafe();
     }
 
     private IEnumerable<MonitoringOption> GetSelectedOptions()
