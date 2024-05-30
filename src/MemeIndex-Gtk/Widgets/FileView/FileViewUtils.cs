@@ -2,6 +2,8 @@ using Gdk;
 using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
+using Size = SixLabors.ImageSharp.Size;
 using Task = System.Threading.Tasks.Task;
 
 namespace MemeIndex_Gtk.Widgets.FileView;
@@ -14,19 +16,19 @@ public class FileViewUtils
     {
         try
         {
-            var value = IconCache.TryGetValue(path);
-            if (value is not null) return value;
+            var cached = IconCache.TryGetValue(path);
+            if (cached is not null) return cached;
 
             var info = await Image.IdentifyAsync(path);
             await using var stream = File.OpenRead(path);
 
             var wide = info.Width > info.Height;
-
             var aspectRatio = info.Width / (double)info.Height;
             var w = wide ? sizeLimit : sizeLimit * aspectRatio;
             var h = wide ? sizeLimit / aspectRatio : sizeLimit;
 
-            var icon = await LoadPixbufAsync(stream, (int)w, (int)h);
+            var loader = path.EndsWith(".webp").Switch(LoadPixbufAsyncWebp, LoadPixbufAsync);
+            var icon = await loader.Invoke(path, (int)w, (int)h);
             if (icon is not null)
             {
                 IconCache.Add(path, icon);
@@ -41,11 +43,28 @@ public class FileViewUtils
         }
     }
 
-    private static Task<Pixbuf?> LoadPixbufAsync(Stream stream, int width, int height) => Task.Run(() =>
+    private static Task<Pixbuf?> LoadPixbufAsync(string path, int width, int height) => Task.Run(() =>
     {
         try
         {
+            using var stream = File.OpenRead(path);
             return new Pixbuf(stream, width, height);
+        }
+        catch
+        {
+            return null;
+        }
+    });
+
+    private static Task<Pixbuf?> LoadPixbufAsyncWebp(string path, int width, int height) => Task.Run(() =>
+    {
+        try
+        {
+            var options = new DecoderOptions { TargetSize = new Size(width, height) };
+            using var image = Image.Load(options, path);
+            using var stream = new MemoryStream();
+            image.SaveAsPng(stream);
+            return new Pixbuf(stream.ToArray());
         }
         catch
         {

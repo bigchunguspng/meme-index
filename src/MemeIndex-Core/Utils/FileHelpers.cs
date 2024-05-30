@@ -23,7 +23,7 @@ public static class FileHelpers
 
     public static List<string> GetImageExtensions()
     {
-        return _imageExtensions ??= [".png", ".jpg", ".jpeg", ".tif", ".bmp"];
+        return _imageExtensions ??= [".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"];
     }
 
     public static IEnumerable<Directory> GetExisting(this IEnumerable<Directory> directories)
