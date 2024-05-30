@@ -27,8 +27,7 @@ public class FileViewUtils
             var w = wide ? sizeLimit : sizeLimit * aspectRatio;
             var h = wide ? sizeLimit / aspectRatio : sizeLimit;
 
-            var loader = path.EndsWith(".webp").Switch(LoadPixbufAsyncWebp, LoadPixbufAsync);
-            var icon = await loader.Invoke(path, (int)w, (int)h);
+            var icon = await LoadPixbufAsync(path, (int)w, (int)h);
             if (icon is not null)
             {
                 IconCache.Add(path, icon);
@@ -47,8 +46,8 @@ public class FileViewUtils
     {
         try
         {
-            using var stream = File.OpenRead(path);
-            return new Pixbuf(stream, width, height);
+            var loader = path.EndsWith(".webp").Switch(LoadPixbufWebp, LoadPixbufGeneral);
+            return loader.Invoke(path, width, height);
         }
         catch
         {
@@ -56,19 +55,18 @@ public class FileViewUtils
         }
     });
 
-    private static Task<Pixbuf?> LoadPixbufAsyncWebp(string path, int width, int height) => Task.Run(() =>
+    private static Pixbuf LoadPixbufGeneral(string path, int width, int height)
     {
-        try
-        {
-            var options = new DecoderOptions { TargetSize = new Size(width, height) };
-            using var image = Image.Load(options, path);
-            using var stream = new MemoryStream();
-            image.SaveAsPng(stream);
-            return new Pixbuf(stream.ToArray());
-        }
-        catch
-        {
-            return null;
-        }
-    });
+        using var stream = File.OpenRead(path);
+        return new Pixbuf(stream, width, height);
+    }
+
+    private static Pixbuf LoadPixbufWebp(string path, int width, int height)
+    {
+        var options = new DecoderOptions { TargetSize = new Size(width, height) };
+        using var image = Image.Load(options, path);
+        using var stream = new MemoryStream();
+        image.SaveAsPng(stream);
+        return new Pixbuf(stream.ToArray());
+    }
 }
