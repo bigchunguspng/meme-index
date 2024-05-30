@@ -2,7 +2,9 @@ using Gdk;
 using Gtk;
 using MemeIndex_Core.Utils;
 using MemeIndex_Gtk.Utils;
+using DateTime = System.DateTime;
 using File = MemeIndex_Core.Data.Entities.File;
+using Task = System.Threading.Tasks.Task;
 
 namespace MemeIndex_Gtk.Widgets.FileView;
 
@@ -41,10 +43,9 @@ public class FileFlowView : FlowBox, IFileView
         ActivateOnSingleClick = false;
 
         _scroll = scroll;
-        _scroll.Vadjustment.ValueChanged += (_, _) => UpdateFileIcons();
+        _scroll.Vadjustment.ValueChanged += OnScroll;
 
-        SizeAllocated += (_, _) => ShowHiddenFilesOnResize();
-        SizeAllocated += UpdateIcons_OnSizeAllocated;
+        SizeAllocated += OnSizeAllocated;
         SelectedChildrenChanged += OnSelectionChanged;
         ChildActivated += (sender, _) => _menu.OpenFile(sender, EventArgs.Empty);
         ButtonPressEvent += OnButtonPress_SelectItem;
@@ -56,11 +57,20 @@ public class FileFlowView : FlowBox, IFileView
         });
     }
 
-    private void UpdateIcons_OnSizeAllocated(object o, SizeAllocatedArgs sizeAllocatedArgs)
+    private void OnScroll(object? o, EventArgs eventArgs)
     {
-        if (_iconsLoaded || Allocation.Size == _allocationSize) return;
+        if (_files.Count == 0 || _iconsLoaded) return;
+
+        UpdateFileIcons();
+    }
+
+    private void OnSizeAllocated(object o, SizeAllocatedArgs sizeAllocatedArgs)
+    {
+        if (!IsRealized || _files.Count == 0 || _iconsLoaded || Allocation.Size == _allocationSize) return;
 
         _allocationSize = Allocation.Size;
+
+        ShowHiddenFilesOnResize();
         UpdateFileIcons();
     }
 
@@ -141,8 +151,6 @@ public class FileFlowView : FlowBox, IFileView
                 ShowFileRange(_requestId, skip: firstHidden, take: difference);
             }
         }
-
-        UpdateFileIcons();
     }
 
     private void ShowFileRange(long requestId, int skip = 0, int take = 0)
@@ -183,7 +191,7 @@ public class FileFlowView : FlowBox, IFileView
             });
             await Task.WhenAll(tasks);
 
-            _iconsLoaded = _items.All(x => x.HasIcon);
+            _iconsLoaded = _files.Count == _items.Count && _items.All(x => x.HasIcon);
         }
         catch (Exception e)
         {
