@@ -132,8 +132,8 @@ public class IndexController
     {
         // todo ask to locate missing dirs (another method, called by ui before this one)
 
-        await UpdateFileSystemKnowledge();
         await _fileWatchService.Start();
+        await UpdateFileSystemKnowledge();
     }
 
     public void StopIndexing()
