@@ -115,7 +115,7 @@ public class IndexingService
 
     private async Task UpdateDatabase(IEnumerable<ImageContent> results)
     {
-        await _context.Access.Take();
+        await _context.Access.WaitAsync();
 
         await _tagService.AddRange(results);
 

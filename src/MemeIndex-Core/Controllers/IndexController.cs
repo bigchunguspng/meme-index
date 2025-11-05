@@ -117,7 +117,7 @@ public class IndexController
 
     public async Task UpdateFileSystemKnowledgeSafe()
     {
-        await _context.Access.Take();
+        await _context.Access.WaitAsync();
         await UpdateFileSystemKnowledge();
         _context.Access.Release();
     }

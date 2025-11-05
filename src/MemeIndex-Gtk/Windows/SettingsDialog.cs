@@ -36,7 +36,9 @@ public class SettingsDialog : Dialog
     {
         _entryApiKey.Text = App.ConfigProvider.GetConfig().OrcApiKey;
 
+        App.Context.Access.Wait();
         var means = App.Context.Means.AsNoTracking().ToArray();
+        App.Context.Access.Release();
         foreach (var mean in means)
         {
             var button = new Button { Label = $"Delete all \"{mean.Title}\" search tags" };

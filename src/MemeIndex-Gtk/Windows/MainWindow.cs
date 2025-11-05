@@ -130,7 +130,7 @@ public class MainWindow : Window
 
     private async void Search()
     {
-        await App.Context.Access.Take();
+        await App.Context.Access.WaitAsync();
 
         _files = App.SearchController.Search(_queries, LogicalOperator.AND).Result.ToList();
 
@@ -149,7 +149,7 @@ public class MainWindow : Window
 
     private async void OpenManageFoldersDialog(object? sender, EventArgs e)
     {
-        await App.Context.Access.Take();
+        await App.Context.Access.WaitAsync();
         var builder = new WindowBuilder(nameof(ManageFoldersDialog));
         var window = new ManageFoldersDialog(App, builder);
         App.Context.Access.Release();

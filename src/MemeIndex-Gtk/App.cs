@@ -65,7 +65,7 @@ public class App : IDisposable
         Task.Run(() =>
         {
             SetStatus("Loading database...");
-            Context.Access.Take().Wait();
+            Context.Access.Wait();
             Context.EnsureCreated();
             IndexController.StartIndexing();
             Context.Access.Release();

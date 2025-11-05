@@ -1,5 +1,4 @@
 using MemeIndex_Core.Data.Entities;
-using MemeIndex_Core.Utils.Access;
 using Microsoft.EntityFrameworkCore;
 using Directory = MemeIndex_Core.Data.Entities.Directory;
 using File = MemeIndex_Core.Data.Entities.File;
@@ -20,7 +19,7 @@ public class MemeDbContext : DbContext
         _configProvider = configProvider;
     }
 
-    public AccessGate Access { get; } = new();
+    public SemaphoreSlim Access = new(1);
 
     public DbSet<Tag>  Tags  { get; set; } = default!;
     public DbSet<File> Files { get; set; } = default!;
