@@ -1,4 +1,3 @@
-using GLib;
 using Gtk;
 using MemeIndex_Core;
 using MemeIndex_Core.Controllers;
