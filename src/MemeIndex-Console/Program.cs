@@ -5,7 +5,6 @@ using MemeIndex_Core.Controllers;
 using MemeIndex_Core.Data;
 using MemeIndex_Core.Data.Entities;
 using MemeIndex_Core.Services.Data;
-using MemeIndex_Core.Services.Data.Contracts;
 using MemeIndex_Core.Services.ImageAnalysis;
 using MemeIndex_Core.Services.ImageAnalysis.Color;
 using MemeIndex_Core.Services.ImageAnalysis.OCR;
@@ -45,9 +44,9 @@ internal static class Program
 
         builder.Services.AddDbContext<MemeDbContext>(ServiceLifetime.Singleton, ServiceLifetime.Singleton);
 
-        builder.Services.AddSingleton<IMonitoringService, MonitoringService>();
-        builder.Services.AddSingleton<IDirectoryService, DirectoryService>();
-        builder.Services.AddSingleton<IFileService, FileService>();
+        builder.Services.AddSingleton<MonitoringService>();
+        builder.Services.AddSingleton<DirectoryService>();
+        builder.Services.AddSingleton<FileService>();
         builder.Services.AddSingleton<TagService>();
 
         builder.Services.AddSingleton<FileWatchService>();

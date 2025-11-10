@@ -1,10 +1,9 @@
 using MemeIndex_Core.Data;
-using MemeIndex_Core.Services.Data.Contracts;
 using Directory = MemeIndex_Core.Data.Entities.Directory;
 
 namespace MemeIndex_Core.Services.Data;
 
-public class DirectoryService : IDirectoryService
+public class DirectoryService
 {
     private readonly MemeDbContext _context;
 
@@ -13,11 +12,13 @@ public class DirectoryService : IDirectoryService
         _context = context;
     }
 
+    /// Returns all directories from the database.
     public IEnumerable<Directory> GetAll()
     {
         return _context.Directories;
     }
 
+    /// Updates directory location.
     public async Task Update(string oldPath, string newPath)
     {
         foreach (var directory in GetDirectoryBranch(oldPath))
@@ -28,6 +29,8 @@ public class DirectoryService : IDirectoryService
         await _context.SaveChangesAsync();
     }
 
+    /// Removes all directories that has no file records.
+    /// <returns>Number of directories removed.</returns>
     public async Task<int> ClearEmpty()
     {
         var emptyDirectories = _context.Directories.Where

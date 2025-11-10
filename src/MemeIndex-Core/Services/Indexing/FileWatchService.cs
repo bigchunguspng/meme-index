@@ -1,4 +1,4 @@
-using MemeIndex_Core.Services.Data.Contracts;
+using MemeIndex_Core.Services.Data;
 using MemeIndex_Core.Utils;
 using MemeIndex_Core.Utils.Access;
 
@@ -6,17 +6,17 @@ namespace MemeIndex_Core.Services.Indexing;
 
 public class FileWatchService
 {
-    private readonly IDirectoryService _directoryService;
-    private readonly IFileService _fileService;
-    private readonly IMonitoringService _monitoringService;
+    private readonly DirectoryService _directoryService;
+    private readonly FileService _fileService;
+    private readonly MonitoringService _monitoringService;
     private readonly List<DirectoryMonitor> _watchers;
     private readonly DebounceTimer _debounce;
 
     public FileWatchService
     (
-        IDirectoryService directoryService,
-        IFileService fileService,
-        IMonitoringService monitoringService
+        DirectoryService directoryService,
+        FileService fileService,
+        MonitoringService monitoringService
     )
     {
         _directoryService = directoryService;

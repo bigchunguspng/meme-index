@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Text;
 using MemeIndex_Core.Services.Data;
-using MemeIndex_Core.Services.Data.Contracts;
 using MemeIndex_Core.Utils;
 using Directory = MemeIndex_Core.Data.Entities.Directory;
 using File = MemeIndex_Core.Data.Entities.File;
@@ -10,16 +9,16 @@ namespace MemeIndex_Core.Services.Indexing;
 
 public class OvertakingService
 {
-    private readonly IFileService _fileService;
-    private readonly IDirectoryService _directoryService;
-    private readonly IMonitoringService _monitoringService;
+    private readonly FileService _fileService;
+    private readonly DirectoryService _directoryService;
+    private readonly MonitoringService _monitoringService;
     private readonly TagService _tagService;
 
     public OvertakingService
     (
-        IFileService fileService,
-        IDirectoryService directoryService,
-        IMonitoringService monitoringService,
+        FileService fileService,
+        DirectoryService directoryService,
+        MonitoringService monitoringService,
         TagService tagService
     )
     {

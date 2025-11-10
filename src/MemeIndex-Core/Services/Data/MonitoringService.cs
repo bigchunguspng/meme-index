@@ -1,13 +1,12 @@
 using MemeIndex_Core.Data;
 using MemeIndex_Core.Data.Entities;
 using MemeIndex_Core.Objects;
-using MemeIndex_Core.Services.Data.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Directory = MemeIndex_Core.Data.Entities.Directory;
 
 namespace MemeIndex_Core.Services.Data;
 
-public class MonitoringService : IMonitoringService
+public class MonitoringService
 {
     private readonly MemeDbContext _context;
 
@@ -16,6 +15,9 @@ public class MonitoringService : IMonitoringService
         _context = context;
     }
 
+    /// Returns a list of monitored directories, including
+    /// <see cref="MonitoredDirectory.Directory"/> and
+    /// <see cref="MonitoredDirectory.IndexingOptions"/> properties.
     public Task<List<MonitoredDirectory>> GetDirectories()
     {
         return _context.MonitoredDirectories
@@ -26,6 +28,10 @@ public class MonitoringService : IMonitoringService
             .ToListAsync();
     }
 
+    /// Returns a list of monitored directories, [including
+    /// <see cref="MonitoredDirectory.Directory"/> and
+    /// <see cref="MonitoredDirectory.IndexingOptions"/> properties],
+    /// which should be indexed by a <see cref="Mean"/> with given id.
     public IQueryable<MonitoredDirectory> GetDirectories(int meanId)
     {
         return _context.MonitoredDirectories
@@ -35,6 +41,7 @@ public class MonitoringService : IMonitoringService
             .Where(x => x.IndexingOptions.Any(io => io.MeanId == meanId));
     }
 
+    /// Adds a directory to monitoring list according to provided options.
     public async Task<MonitoredDirectory> AddDirectory(MonitoringOption option)
     {
         // todo handle recursion and nested directories
@@ -66,6 +73,9 @@ public class MonitoringService : IMonitoringService
         return monitored;
     }
 
+    /// Removes directory from monitoring list.
+    /// It also removes all of its files if the directory isn't located
+    /// inside of another directory, that is <b>recursively</b> monitored.
     public async Task RemoveDirectory(string path)
     {
         var directory = await GetDirectoryByPath(path);
@@ -80,6 +90,8 @@ public class MonitoringService : IMonitoringService
         await _context.SaveChangesAsync();
     }
 
+    /// Updates monitoring options of the directory.
+    /// <returns> The value indicating whether the recursion option was altered. </returns>
     public async Task<bool> UpdateDirectory(MonitoringOption option)
     {
         var directory = await GetDirectoryByPath(option.Path);

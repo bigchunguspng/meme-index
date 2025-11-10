@@ -1,7 +1,6 @@
 using MemeIndex_Core.Data;
 using MemeIndex_Core.Data.Entities;
 using MemeIndex_Core.Services.Data;
-using MemeIndex_Core.Services.Data.Contracts;
 using MemeIndex_Core.Services.ImageAnalysis;
 using MemeIndex_Core.Utils;
 using Microsoft.EntityFrameworkCore;
@@ -12,16 +11,16 @@ namespace MemeIndex_Core.Services.Indexing;
 
 public class IndexingService
 {
-    private readonly IDirectoryService _directoryService;
-    private readonly IMonitoringService _monitoringService;
+    private readonly DirectoryService _directoryService;
+    private readonly MonitoringService _monitoringService;
     private readonly MemeDbContext _context;
     private readonly TagService _tagService;
     private readonly ImageToTextServiceResolver _imageToTextServiceResolver;
 
     public IndexingService
     (
-        IDirectoryService directoryService,
-        IMonitoringService monitoringService,
+        DirectoryService directoryService,
+        MonitoringService monitoringService,
         MemeDbContext context,
         TagService tagService,
         ImageToTextServiceResolver imageToTextServiceResolver

@@ -1,7 +1,6 @@
 using MemeIndex_Core.Data;
 using MemeIndex_Core.Objects;
 using MemeIndex_Core.Services.Data;
-using MemeIndex_Core.Services.Data.Contracts;
 using MemeIndex_Core.Services.Indexing;
 using MemeIndex_Core.Utils;
 
@@ -10,8 +9,8 @@ namespace MemeIndex_Core.Controllers;
 public class IndexController
 {
     private readonly MemeDbContext _context;
-    private readonly IMonitoringService _monitoringService;
-    private readonly IFileService _fileService;
+    private readonly MonitoringService _monitoringService;
+    private readonly FileService _fileService;
     private readonly TagService _tagService;
     private readonly IndexingService _indexingService;
     private readonly FileWatchService _fileWatchService;
@@ -20,8 +19,8 @@ public class IndexController
     public IndexController
     (
         MemeDbContext context,
-        IMonitoringService monitoringService,
-        IFileService fileService,
+        MonitoringService monitoringService,
+        FileService fileService,
         IndexingService indexingService,
         FileWatchService fileWatchService,
         OvertakingService overtakingService,
