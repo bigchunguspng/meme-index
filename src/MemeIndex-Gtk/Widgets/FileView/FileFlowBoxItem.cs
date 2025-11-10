@@ -18,7 +18,7 @@ public class FileFlowBoxItem : Box
         _icon = new Image { HeightRequest = 96, WidthRequest = 96 };
 
         Add(_icon);
-        Add(new Label(TextTrimmer.MakeTextFit(file.Name, 96)));
+        Add(new Label(TextTrimmer.MakeTextFit(file.Name, chars: 15)));
 
         Margin = 5;
         Valign = Align.Start;

@@ -49,12 +49,6 @@ public class FileFlowView : FlowBox, IFileView
         SelectedChildrenChanged += OnSelectionChanged;
         ChildActivated += (sender, _) => _menu.OpenFile(sender, EventArgs.Empty);
         ButtonPressEvent += OnButtonPress_SelectItem;
-
-        Task.Run(async () =>
-        {
-            await Task.Delay(1000);
-            TextTrimmer.TriggerCreationAsync();
-        });
     }
 
     private void OnScroll(object? o, EventArgs eventArgs)
@@ -70,7 +64,6 @@ public class FileFlowView : FlowBox, IFileView
 
         _allocationSize = Allocation.Size;
 
-        ShowHiddenFilesOnResize();
         UpdateFileIcons();
     }
 
@@ -103,9 +96,7 @@ public class FileFlowView : FlowBox, IFileView
 
             var requestId = UpdateData(files);
 
-            ShowFileRange(requestId, take: GetMaxItemsOnScreen());
-
-            ShowRestFilesAsync(requestId);
+            ShowFileRange(requestId);
         }
         finally
         {
@@ -129,28 +120,6 @@ public class FileFlowView : FlowBox, IFileView
         _items.Clear();
 
         return _requestId = DateTime.UtcNow.Ticks;
-    }
-
-    private async void ShowRestFilesAsync(long requestId)
-    {
-        await Task.Delay(2 * _files.Count); // 500 files -> 1 second
-
-        if (_requestId != requestId) return;
-
-        ShowFileRange(requestId, skip: GetMaxItemsOnScreen());
-    }
-
-    private void ShowHiddenFilesOnResize()
-    {
-        var firstHidden = _files.FindIndex(x => _fileIsVisible.TryGetValue(x.Id, out var visible) && !visible);
-        if (firstHidden >= 0)
-        {
-            var difference = GetMaxItemsOnScreen() - firstHidden;
-            if (difference > 0)
-            {
-                ShowFileRange(_requestId, skip: firstHidden, take: difference);
-            }
-        }
     }
 
     private void ShowFileRange(long requestId, int skip = 0, int take = 0)
@@ -222,15 +191,6 @@ public class FileFlowView : FlowBox, IFileView
 #endif
 
         return (skip, take);
-    }
-
-    private int GetMaxItemsOnScreen()
-    {
-        var w = AllocatedWidth;
-        var h = _scroll.Vadjustment.PageSize.RoundToInt();
-        var cols = (w + 5) / 117;
-        var rows = (h + 5) / 137 + 1;
-        return cols * rows;
     }
 
     private double GetScrollBottom() => _scroll.Vadjustment.Value + _scroll.Vadjustment.PageSize;

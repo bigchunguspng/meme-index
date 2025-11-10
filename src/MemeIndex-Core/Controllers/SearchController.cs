@@ -16,7 +16,6 @@ public class SearchController
 
     public async Task<HashSet<File>> Search(IEnumerable<SearchQuery> queries, LogicalOperator @operator)
     {
-        var sw = Helpers.GetStartedStopwatch();
         var files = new Dictionary<File, double>();
         foreach (var query in queries)
         {
@@ -34,6 +33,7 @@ public class SearchController
         var result = files
             .OrderByDescending(x => x.Value)
             .Select(g => g.Key)
+            .Take(100)
             .ToHashSet();
 
         return result;
