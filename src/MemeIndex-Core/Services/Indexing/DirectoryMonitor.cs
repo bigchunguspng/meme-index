@@ -1,10 +1,12 @@
 namespace MemeIndex_Core.Services.Indexing;
 
 /// Detects changes in specific directory in real time.
-public class DirectoryMonitor
+public class DirectoryMonitor(FileWatchService service, string path, bool recursive)
 {
-    private readonly FileWatchService _service;
-    private readonly FileSystemWatcher _watcher;
+    private readonly FileSystemWatcher _watcher = new (path)
+    {
+        IncludeSubdirectories = recursive
+    };
 
     public string Path => _watcher.Path;
 
@@ -14,15 +16,6 @@ public class DirectoryMonitor
         set => _watcher.IncludeSubdirectories = value;
     }
 
-    public DirectoryMonitor(FileWatchService service, string path, bool recursive)
-    {
-        _service = service;
-        _watcher = new FileSystemWatcher(path)
-        {
-            IncludeSubdirectories = recursive
-        };
-    }
-
     public void Start()
     {
         _watcher.NotifyFilter = NotifyFilters.FileName
@@ -30,19 +23,19 @@ public class DirectoryMonitor
                               | NotifyFilters.LastWrite
                               | NotifyFilters.CreationTime;
         _watcher.Filter = "*.*";
-        _watcher.Created += _service.OnCreated;
-        _watcher.Changed += _service.OnChanged;
-        _watcher.Renamed += _service.OnRenamed;
-        _watcher.Deleted += _service.OnDeleted;
+        _watcher.Created += service.OnCreated;
+        _watcher.Changed += service.OnChanged;
+        _watcher.Renamed += service.OnRenamed;
+        _watcher.Deleted += service.OnDeleted;
         _watcher.EnableRaisingEvents = true;
     }
 
     public void Stop()
     {
-        _watcher.Created -= _service.OnCreated;
-        _watcher.Changed -= _service.OnChanged;
-        _watcher.Renamed -= _service.OnRenamed;
-        _watcher.Deleted -= _service.OnDeleted;
+        _watcher.Created -= service.OnCreated;
+        _watcher.Changed -= service.OnChanged;
+        _watcher.Renamed -= service.OnRenamed;
+        _watcher.Deleted -= service.OnDeleted;
         _watcher.Dispose();
     }
 }

@@ -4,7 +4,7 @@ namespace MemeIndex_Core.Objects;
 
 public record MonitoringOption(string Path, bool Recursive, HashSet<int> Means)
 {
-    public static HashSet<int> DefaultMeans => new() { 1, 2 };
+    public static HashSet<int> DefaultMeans => [1, 2];
 
     public bool IsTheSameAs(MonitoringOption other)
     {
@@ -17,7 +17,7 @@ public record MonitoringOption(string Path, bool Recursive, HashSet<int> Means)
 
     public class MeansBuilder
     {
-        private readonly HashSet<int> _means = new();
+        private readonly HashSet<int> _means = [];
 
         public MeansBuilder WithRgb(bool condition = true)
         {

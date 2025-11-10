@@ -5,15 +5,8 @@ using File = MemeIndex_Core.Data.Entities.File;
 
 namespace MemeIndex_Core.Controllers;
 
-public class SearchController
+public class SearchController(SearchService searchService)
 {
-    private readonly SearchService _searchService;
-
-    public SearchController(SearchService searchService)
-    {
-        _searchService = searchService;
-    }
-
     public async Task<HashSet<File>> Search(IEnumerable<SearchQuery> queries, LogicalOperator @operator)
     {
         var files = new Dictionary<File, double>();
@@ -23,7 +16,7 @@ public class SearchController
             foreach (var word in query.Words)
             {
                 var item = new SearchRequestItem(query.MeanId, word, SearchStrategyByMeanId(query.MeanId));
-                var results = await _searchService.FindAll(item);
+                var results = await searchService.FindAll(item);
                 JoinResults(filesByQuery, results, query.Operator);
             }
 

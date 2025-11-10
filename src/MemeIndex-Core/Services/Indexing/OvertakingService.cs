@@ -8,26 +8,13 @@ using File = MemeIndex_Core.Data.Entities.File;
 namespace MemeIndex_Core.Services.Indexing;
 
 public class OvertakingService
+(
+    FileService fileService,
+    DirectoryService directoryService,
+    MonitoringService monitoringService,
+    TagService tagService
+)
 {
-    private readonly FileService _fileService;
-    private readonly DirectoryService _directoryService;
-    private readonly MonitoringService _monitoringService;
-    private readonly TagService _tagService;
-
-    public OvertakingService
-    (
-        FileService fileService,
-        DirectoryService directoryService,
-        MonitoringService monitoringService,
-        TagService tagService
-    )
-    {
-        _fileService = fileService;
-        _directoryService = directoryService;
-        _monitoringService = monitoringService;
-        _tagService = tagService;
-    }
-
     /// Overtakes the changes in file system, and updates the database
     /// to represent the real state of file system.
     public async Task UpdateFileSystemKnowledge()
@@ -44,11 +31,11 @@ public class OvertakingService
         Logger.Log(ConsoleColor.Yellow, "Overtaking: start");
         Logger.Status("Updating database...");
 
-        var existingDirectoriesAll = _directoryService.GetAll().GetExisting().ToList();
-        var existingDirectoriesTracked = await _monitoringService.GetDirectories();
+        var existingDirectoriesAll = directoryService.GetAll().GetExisting().ToList();
+        var existingDirectoriesTracked = await monitoringService.GetDirectories();
 
         var files = existingDirectoriesTracked.SelectMany(x => FileHelpers.GetImageFiles(x.Directory.Path, x.Recursive)).ToList();
-        var fileRecords = await _fileService.GetAllFilesWithPath();
+        var fileRecords = await fileService.GetAllFilesWithPath();
 
         Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} files loaded", files.Count);
         Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} files records available", fileRecords.Count);
@@ -74,12 +61,12 @@ public class OvertakingService
             var equivalent = missingFiles.FirstOrDefault(x => FilesAreEquivalent(unknownFile, x));
             if (equivalent != null)
             {
-                await _fileService.UpdateFile(equivalent, unknownFile);
+                await fileService.UpdateFile(equivalent, unknownFile);
                 locatedMissingFiles.Add(equivalent);
             }
             else
             {
-                await _fileService.AddFile(unknownFile);
+                await fileService.AddFile(unknownFile);
                 c0++;
             }
         }
@@ -89,12 +76,12 @@ public class OvertakingService
 
         var lostFiles = missingFiles.Except(locatedMissingFiles).ToArray();
 
-        await _fileService.RemoveRange(lostFiles);
+        await fileService.RemoveRange(lostFiles);
         var c1 = lostFiles.Length;
 
         Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} missing files removed", c1);
 
-        var c2 = await _directoryService.ClearEmpty();
+        var c2 = await directoryService.ClearEmpty();
 
         Logger.Log(ConsoleColor.Yellow, "Overtaking: {0} empty directories removed", c2);
         
@@ -134,7 +121,7 @@ public class OvertakingService
     /// <returns> The number of updated files. </returns>
     private async Task<int> UnindexUpdatedFiles()
     {
-        var fileRecords = await _fileService.GetAllFilesWithPath();
+        var fileRecords = await fileService.GetAllFilesWithPath();
         var updated = fileRecords
             .Select(x => new
             {
@@ -146,11 +133,11 @@ public class OvertakingService
 
         foreach (var file in updated)
         {
-            await _fileService.UpdateFile(file.File, file.FileInfo);
+            await fileService.UpdateFile(file.File, file.FileInfo);
         }
 
         var fileIds = updated.Select(x => x.File.Id);
-        await _tagService.RemoveTagsFromFiles(fileIds);
+        await tagService.RemoveTagsFromFiles(fileIds);
 
         return updated.Count;
     }

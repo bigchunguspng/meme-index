@@ -8,21 +8,14 @@ using File = MemeIndex_Core.Data.Entities.File;
 
 namespace MemeIndex_Core.Services.Data;
 
-public class FileService
+public class FileService(MemeDbContext context)
 {
-    private readonly MemeDbContext _context;
-
-    public FileService(MemeDbContext context)
-    {
-        _context = context;
-    }
-
     public async Task<IList<File>> GetAllFilesWithPath()
     {
-        return await _context.Files.Include(x => x.Directory).ToListAsync();
+        return await context.Files.Include(x => x.Directory).ToListAsync();
     }
 
-    public Task<File?> TryGet(FileInfo file, string name) => _context.Files.FirstOrDefaultAsync
+    public Task<File?> TryGet(FileInfo file, string name) => context.Files.FirstOrDefaultAsync
     (
         x => x.Name == name
           && x.Size == file.Length
@@ -43,8 +36,8 @@ public class FileService
             Modified = file.LastWriteTimeUtc
         };
 
-        await _context.Files.AddAsync(entity);
-        await _context.SaveChangesAsync();
+        await context.Files.AddAsync(entity);
+        await context.SaveChangesAsync();
 
         return entity.Id;
     }
@@ -70,8 +63,8 @@ public class FileService
 
         var results = await Task.WhenAll(tasks);
 
-        await _context.Files.AddRangeAsync(results);
-        await _context.SaveChangesAsync();
+        await context.Files.AddRangeAsync(results);
+        await context.SaveChangesAsync();
 
         // todo check if file exists in db before adding
 
@@ -89,21 +82,21 @@ public class FileService
         entity.Created = file.CreationTimeUtc;
         entity.Modified = file.LastWriteTimeUtc;
 
-        _context.Files.Update(entity);
-        await _context.SaveChangesAsync();
+        context.Files.Update(entity);
+        await context.SaveChangesAsync();
 
         return entity.Id;
     }
 
     public async Task RemoveRange(IEnumerable<File> files)
     {
-        _context.Files.RemoveRange(files);
-        await _context.SaveChangesAsync();
+        context.Files.RemoveRange(files);
+        await context.SaveChangesAsync();
     }
 
     private async Task<Directory> GetOrAddDirectory(string path)
     {
-        var existing = _context.Directories.FirstOrDefault(x => x.Path == path);
+        var existing = context.Directories.FirstOrDefault(x => x.Path == path);
         if (existing != null)
         {
             return existing;
@@ -111,8 +104,8 @@ public class FileService
 
         var entity = new Directory { Path = path };
 
-        await _context.Directories.AddAsync(entity);
-        await _context.SaveChangesAsync();
+        await context.Directories.AddAsync(entity);
+        await context.SaveChangesAsync();
 
         return entity;
     }

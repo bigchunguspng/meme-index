@@ -5,32 +5,20 @@ using MemeIndex_Core.Utils.Access;
 namespace MemeIndex_Core.Services.Indexing;
 
 public class FileWatchService
+(
+    DirectoryService directoryService,
+    FileService fileService,
+    MonitoringService monitoringService
+)
 {
-    private readonly DirectoryService _directoryService;
-    private readonly FileService _fileService;
-    private readonly MonitoringService _monitoringService;
-    private readonly List<DirectoryMonitor> _watchers;
-    private readonly DebounceTimer _debounce;
-
-    public FileWatchService
-    (
-        DirectoryService directoryService,
-        FileService fileService,
-        MonitoringService monitoringService
-    )
-    {
-        _directoryService = directoryService;
-        _fileService = fileService;
-        _monitoringService = monitoringService;
-        _watchers = new List<DirectoryMonitor>();
-        _debounce = new DebounceTimer();
-    }
+    private readonly List<DirectoryMonitor> _watchers = [];
+    private readonly DebounceTimer _debounce = new ();
 
     #region WATCHING
 
     public async Task Start()
     {
-        var monitored = await _monitoringService.GetDirectories();
+        var monitored = await monitoringService.GetDirectories();
         var watchers = monitored
             .Where(x => Directory.Exists(x.Directory.Path))
             .Select(x => new DirectoryMonitor(this, x.Directory.Path, x.Recursive));
@@ -90,17 +78,17 @@ public class FileWatchService
             var file = new FileInfo(e.FullPath);
             if (file.IsImage())
             {
-                var entity = await _fileService.TryGet(file, e.OldName);
+                var entity = await fileService.TryGet(file, e.OldName);
                 if (entity != null)
                 {
-                    await _fileService.UpdateFile(entity, file);
+                    await fileService.UpdateFile(entity, file);
                     Logger.Log("Renamed file", ConsoleColor.Yellow);
                 }
             }
         }
         else if (e.FullPath.DirectoryExists())
         {
-            await _directoryService.Update(e.OldFullPath, e.FullPath);
+            await directoryService.Update(e.OldFullPath, e.FullPath);
             Logger.Log("Renamed directory", ConsoleColor.Yellow);
         }
     }

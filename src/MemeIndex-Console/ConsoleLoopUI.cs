@@ -6,28 +6,19 @@ using Microsoft.Extensions.Hosting;
 
 namespace MemeIndex_Console;
 
-public class ConsoleLoopUI : IHostedService
+public class ConsoleLoopUI (IndexController indexController, SearchController searchController) : IHostedService
 {
-    private readonly IndexController _indexController;
-    private readonly SearchController _searchController;
-
-    public ConsoleLoopUI(IndexController indexController, SearchController searchController)
-    {
-        _indexController = indexController;
-        _searchController = searchController;
-    }
-
     public Task StartAsync(CancellationToken cancellationToken)
     {
         Task.Run(Cycle, cancellationToken);
-        _indexController.StartIndexing();
+        indexController.StartIndexing();
 
         return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        _indexController.StopIndexing();
+        indexController.StopIndexing();
         return Task.CompletedTask;
     }
 
@@ -50,12 +41,12 @@ public class ConsoleLoopUI : IHostedService
                         ? new MonitoringOption.MeansBuilder().WithRgb(rgb).WithEng(eng).Build()
                         : MonitoringOption.DefaultMeans;
                     var op = new MonitoringOption(path, recursive, means);
-                    _indexController.AddDirectory(op).Wait();
+                    indexController.AddDirectory(op).Wait();
                     continue;
                 }
                 if (input.StartsWith("/rem "))
                 {
-                    _indexController.RemoveDirectory(input[5..].Trim('"')).Wait();
+                    indexController.RemoveDirectory(input[5..].Trim('"')).Wait();
                     continue;
                 }
                 if (input.StartsWith("/upd "))
@@ -69,7 +60,7 @@ public class ConsoleLoopUI : IHostedService
                         ? new MonitoringOption.MeansBuilder().WithRgb(rgb).WithEng(eng).Build()
                         : MonitoringOption.DefaultMeans;
                     var op = new MonitoringOption(path, recursive, means);
-                    _indexController.UpdateDirectory(op).Wait();
+                    indexController.UpdateDirectory(op).Wait();
                     continue;
                 }
 
@@ -85,7 +76,7 @@ public class ConsoleLoopUI : IHostedService
                         var op = x[1] == '&' ? LogicalOperator.AND : LogicalOperator.OR;
                         return new SearchQuery(meanId, words, op);
                     });
-                    var files = _searchController.Search(queries, LogicalOperator.AND).Result;
+                    var files = searchController.Search(queries, LogicalOperator.AND).Result;
                     if (files.Count == 0) continue;
 
                     foreach (var file in files)

@@ -5,15 +5,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MemeIndex_Core.Services.Data;
 
-public class TagService
+public class TagService(MemeDbContext context)
 {
-    private readonly MemeDbContext _context;
-
-    public TagService(MemeDbContext context)
-    {
-        _context = context;
-    }
-
     public async Task AddRange(IEnumerable<ImageContent> contents)
     {
         foreach (var content in contents)
@@ -32,14 +25,14 @@ public class TagService
                 MeanId = content.MeanId,
                 Rank = x.Rank,
             });
-            await _context.Tags.AddRangeAsync(tags);
-            await _context.SaveChangesAsync();
+            await context.Tags.AddRangeAsync(tags);
+            await context.SaveChangesAsync();
         }
     }
 
     private async Task<Word> GetOrCreateWordEntity(string word)
     {
-        var existing = _context.Words.FirstOrDefault(x => x.Text == word);
+        var existing = context.Words.FirstOrDefault(x => x.Text == word);
         if (existing != null)
         {
             return existing;
@@ -47,21 +40,21 @@ public class TagService
 
         var entity = new Word { Text = word };
 
-        await _context.Words.AddAsync(entity);
-        await _context.SaveChangesAsync();
+        await context.Words.AddAsync(entity);
+        await context.SaveChangesAsync();
 
         return entity;
     }
 
     public async Task RemoveTagsFromFiles(IEnumerable<int> fileIds)
     {
-        var tags = _context.Tags.Where(x => fileIds.Contains(x.FileId));
-        _context.Tags.RemoveRange(tags);
-        await _context.SaveChangesAsync();
+        var tags = context.Tags.Where(x => fileIds.Contains(x.FileId));
+        context.Tags.RemoveRange(tags);
+        await context.SaveChangesAsync();
     }
 
     public Task<int> RemoveTagsByMean(int meanId)
     {
-        return _context.Tags.Where(x => x.MeanId == meanId).ExecuteDeleteAsync();
+        return context.Tags.Where(x => x.MeanId == meanId).ExecuteDeleteAsync();
     }
 }

@@ -3,19 +3,12 @@ using Directory = MemeIndex_Core.Data.Entities.Directory;
 
 namespace MemeIndex_Core.Services.Data;
 
-public class DirectoryService
+public class DirectoryService(MemeDbContext context)
 {
-    private readonly MemeDbContext _context;
-
-    public DirectoryService(MemeDbContext context)
-    {
-        _context = context;
-    }
-
     /// Returns all directories from the database.
     public IEnumerable<Directory> GetAll()
     {
-        return _context.Directories;
+        return context.Directories;
     }
 
     /// Updates directory location.
@@ -26,30 +19,30 @@ public class DirectoryService
             directory.Path = directory.Path.Replace(oldPath, newPath);
         }
 
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
     }
 
     /// Removes all directories that has no file records.
     /// <returns>Number of directories removed.</returns>
     public async Task<int> ClearEmpty()
     {
-        var emptyDirectories = _context.Directories.Where
+        var emptyDirectories = context.Directories.Where
         (
             directory =>
-                !_context.MonitoredDirectories.Any(x => x.DirectoryId == directory.Id) &&
-                !_context.Files
+                !context.MonitoredDirectories.Any(x => x.DirectoryId == directory.Id) &&
+                !context.Files
                     .Select(file => file.DirectoryId)
                     .Distinct()
                     .Contains(directory.Id)
         );
 
-        _context.Directories.RemoveRange(emptyDirectories);
-        return await _context.SaveChangesAsync();
+        context.Directories.RemoveRange(emptyDirectories);
+        return await context.SaveChangesAsync();
     }
 
 
     private IEnumerable<Directory> GetDirectoryBranch(string path)
     {
-        return _context.Directories.Where(x => x.Path.StartsWith(path));
+        return context.Directories.Where(x => x.Path.StartsWith(path));
     }
 }

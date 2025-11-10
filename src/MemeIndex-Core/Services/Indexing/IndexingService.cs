@@ -10,34 +10,19 @@ using File = MemeIndex_Core.Data.Entities.File;
 namespace MemeIndex_Core.Services.Indexing;
 
 public class IndexingService
+(
+    DirectoryService directoryService,
+    MonitoringService monitoringService,
+    MemeDbContext context,
+    TagService tagService,
+    ImageToTextServiceResolver imageToTextServiceResolver
+)
 {
-    private readonly DirectoryService _directoryService;
-    private readonly MonitoringService _monitoringService;
-    private readonly MemeDbContext _context;
-    private readonly TagService _tagService;
-    private readonly ImageToTextServiceResolver _imageToTextServiceResolver;
-
-    public IndexingService
-    (
-        DirectoryService directoryService,
-        MonitoringService monitoringService,
-        MemeDbContext context,
-        TagService tagService,
-        ImageToTextServiceResolver imageToTextServiceResolver
-    )
-    {
-        _directoryService = directoryService;
-        _monitoringService = monitoringService;
-        _context = context;
-        _tagService = tagService;
-        _imageToTextServiceResolver = imageToTextServiceResolver;
-    }
-
     public async Task ProcessPendingFiles()
     {
         Logger.Log(ConsoleColor.Magenta, "Processing files: start");
 
-        var means = await _context.Means.ToListAsync();
+        var means = await context.Means.ToListAsync();
 
         var processing = new ProcessingResults();
 
@@ -77,7 +62,7 @@ public class IndexingService
         Logger.Status(processing.ToString());
 
         var filesByPath = files.ToDictionary(x => x.GetFullPath(), x => x);
-        var imageToTextService = _imageToTextServiceResolver(mean.Id);
+        var imageToTextService = imageToTextServiceResolver(mean.Id);
 
         imageToTextService.ImageProcessed += async dictionary =>
         {
@@ -97,32 +82,32 @@ public class IndexingService
     /// that have no related search tags.
     private Task<List<File>> GetPendingFiles(int meanId)
     {
-        var monitored = _monitoringService.GetDirectories(meanId);
+        var monitored = monitoringService.GetDirectories(meanId);
         var dirs1 = monitored
             .Where(x => x.Recursive == false)
             .Select(x => x.Directory.Id);
-        var dirs2 = _context.Directories
+        var dirs2 = context.Directories
             .Where(x => monitored.Any(m => m.Recursive && x.Path.StartsWith(m.Directory.Path)))
             .Select(x => x.Id);
-        return _context.Files
+        return context.Files
             .Where(x => dirs1.Contains(x.DirectoryId) || dirs2.Contains(x.DirectoryId))
-            .Where(x => !_context.Tags.Any(t => t.MeanId == meanId && t.FileId == x.Id))
+            .Where(x => !context.Tags.Any(t => t.MeanId == meanId && t.FileId == x.Id))
             .ToListAsync();
     }
 
     private async Task UpdateDatabase(IEnumerable<ImageContent> results)
     {
-        await _context.Access.WaitAsync();
+        await context.Access.WaitAsync();
 
-        await _tagService.AddRange(results);
+        await tagService.AddRange(results);
 
-        _context.Access.Release();
+        context.Access.Release();
     }
 
 
     public async Task<IEnumerable<MonitoredDirectory>> GetMissingDirectories()
     {
-        var monitored = await _monitoringService.GetDirectories();
+        var monitored = await monitoringService.GetDirectories();
         return monitored.Where(x => !Directory.Exists(x.Directory.Path));
     }
 
@@ -130,7 +115,7 @@ public class IndexingService
     {
         if (newPath.DirectoryExists())
         {
-            _directoryService.Update(oldPath, newPath);
+            directoryService.Update(oldPath, newPath);
         }
     }
 }

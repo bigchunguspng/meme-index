@@ -95,16 +95,10 @@ public class ImageGroupingService
         return collages;
     }
 
-    private class ColumnRequest
+    private class ColumnRequest(Size size, List<FileImageInfo> images)
     {
-        public ColumnRequest(Size size, List<FileImageInfo> images)
-        {
-            Size = size;
-            Images = images;
-        }
-
-        public Size Size { get; private set; }
-        public List<FileImageInfo> Images { get; }
+        public Size Size { get; private set; } = size;
+        public List<FileImageInfo> Images { get; } = images;
 
         public void AddHeight(int height)
         {
@@ -112,16 +106,10 @@ public class ImageGroupingService
         }
     }
 
-    private class CollageRequest
+    private class CollageRequest(Size size, List<ColumnRequest> columns)
     {
-        public CollageRequest(Size size, List<ColumnRequest> columns)
-        {
-            Size = size;
-            Columns = columns;
-        }
-
-        public Size Size { get; private set; }
-        public List<ColumnRequest> Columns { get; }
+        public Size Size { get; private set; } = size;
+        public List<ColumnRequest> Columns { get; } = columns;
 
         public void AddWidth(int width)
         {

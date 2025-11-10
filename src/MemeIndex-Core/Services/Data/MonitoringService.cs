@@ -6,21 +6,14 @@ using Directory = MemeIndex_Core.Data.Entities.Directory;
 
 namespace MemeIndex_Core.Services.Data;
 
-public class MonitoringService
+public class MonitoringService(MemeDbContext context)
 {
-    private readonly MemeDbContext _context;
-
-    public MonitoringService(MemeDbContext context)
-    {
-        _context = context;
-    }
-
     /// Returns a list of monitored directories, including
     /// <see cref="MonitoredDirectory.Directory"/> and
     /// <see cref="MonitoredDirectory.IndexingOptions"/> properties.
     public Task<List<MonitoredDirectory>> GetDirectories()
     {
-        return _context.MonitoredDirectories
+        return context.MonitoredDirectories
             .Include(x => x.Directory)
             .Include(x => x.IndexingOptions)
             .AsSplitQuery()
@@ -34,7 +27,7 @@ public class MonitoringService
     /// which should be indexed by a <see cref="Mean"/> with given id.
     public IQueryable<MonitoredDirectory> GetDirectories(int meanId)
     {
-        return _context.MonitoredDirectories
+        return context.MonitoredDirectories
             .Include(x => x.Directory)
             .Include(x => x.IndexingOptions)
             .AsSplitQuery()
@@ -55,8 +48,8 @@ public class MonitoringService
             DirectoryId = directory.Id,
             Recursive = option.Recursive
         };
-        await _context.MonitoredDirectories.AddAsync(monitored);
-        await _context.SaveChangesAsync();
+        await context.MonitoredDirectories.AddAsync(monitored);
+        await context.SaveChangesAsync();
 
         foreach (var mean in option.Means)
         {
@@ -65,10 +58,10 @@ public class MonitoringService
                 MonitoredDirectoryId = monitored.Id,
                 MeanId = mean
             };
-            await _context.IndexingOptions.AddAsync(indexingOption);
+            await context.IndexingOptions.AddAsync(indexingOption);
         }
 
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
 
         return monitored;
     }
@@ -81,13 +74,13 @@ public class MonitoringService
         var directory = await GetDirectoryByPath(path);
         if (directory is null) return;
 
-        var monitored = await _context.MonitoredDirectories.FirstOrDefaultAsync(x => x.DirectoryId == directory.Id);
+        var monitored = await context.MonitoredDirectories.FirstOrDefaultAsync(x => x.DirectoryId == directory.Id);
         if (monitored is null) return;
 
-        if (monitored.Recursive) _context.Directories.RemoveRange(GetDirectoryBranch(directory.Path));
-        else /*               */ _context.Directories.Remove(directory);
+        if (monitored.Recursive) context.Directories.RemoveRange(GetDirectoryBranch(directory.Path));
+        else /*               */ context.Directories.Remove(directory);
 
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
     }
 
     /// Updates monitoring options of the directory.
@@ -97,17 +90,17 @@ public class MonitoringService
         var directory = await GetDirectoryByPath(option.Path);
         if (directory is null) return false;
 
-        var monitored = await _context.MonitoredDirectories.FirstOrDefaultAsync(x => x.DirectoryId == directory.Id);
+        var monitored = await context.MonitoredDirectories.FirstOrDefaultAsync(x => x.DirectoryId == directory.Id);
         if (monitored is null) return false;
 
         var changeRecursion = monitored.Recursive != option.Recursive;
         if (changeRecursion)
         {
             monitored.Recursive = option.Recursive;
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
         }
 
-        var means = _context.IndexingOptions
+        var means = context.IndexingOptions
             .Where(x => x.MonitoredDirectoryId == monitored.Id)
             .Select(x => x.MeanId)
             .ToHashSet();
@@ -118,18 +111,18 @@ public class MonitoringService
             {
                 // ADD
                 var io = new IndexingOption { MonitoredDirectoryId = monitored.Id, MeanId = mean };
-                await _context.IndexingOptions.AddAsync(io);
+                await context.IndexingOptions.AddAsync(io);
             }
 
             foreach (var mean in means.Where(x => !option.Means.Contains(x)))
             {
                 // REMOVE
-                var io = await _context.IndexingOptions
+                var io = await context.IndexingOptions
                     .FirstOrDefaultAsync(x => x.MonitoredDirectoryId == monitored.Id && x.MeanId == mean);
-                if (io is not null) _context.IndexingOptions.Remove(io);
+                if (io is not null) context.IndexingOptions.Remove(io);
             }
 
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
         }
 
         return changeRecursion;
@@ -138,25 +131,25 @@ public class MonitoringService
 
     private Task<Directory?> GetDirectoryByPath(string path)
     {
-        return _context.Directories.FirstOrDefaultAsync(x => x.Path == path);
+        return context.Directories.FirstOrDefaultAsync(x => x.Path == path);
     }
 
     private async Task<Directory> AddDirectory(string path)
     {
         var directory = new Directory { Path = path };
-        await _context.Directories.AddAsync(directory);
-        await _context.SaveChangesAsync();
+        await context.Directories.AddAsync(directory);
+        await context.SaveChangesAsync();
         return directory;
     }
 
     private IEnumerable<Directory> GetDirectoryBranch(string path)
     {
-        return _context.Directories.Where(x => x.Path.StartsWith(path));
+        return context.Directories.Where(x => x.Path.StartsWith(path));
     }
 
     private Task<MonitoredDirectory?> GetOuterRecursivelyMonitoredDirectory(Directory directory)
     {
-        return _context.MonitoredDirectories
+        return context.MonitoredDirectories
             .Include(x => x.Directory)
             .Where(x => x.Recursive && x.DirectoryId != directory.Id)
             .OrderBy(x => x.Directory.Path.Length)
@@ -165,7 +158,7 @@ public class MonitoringService
 
     private async Task<List<MonitoredDirectory>> GetInnerMonitoredDirectories(Directory directory)
     {
-        var directories = await _context.MonitoredDirectories
+        var directories = await context.MonitoredDirectories
             .Include(x => x.Directory)
             .Where(x => x.DirectoryId != directory.Id)
             .Where(x => x.Directory.Path.StartsWith(directory.Path))
