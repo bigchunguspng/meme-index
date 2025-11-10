@@ -29,10 +29,8 @@ public class OvertakingService
         _tagService = tagService;
     }
 
-    /// <summary>
     /// Overtakes the changes in file system, and updates the database
     /// to represent the real state of file system.
-    /// </summary>
     public async Task UpdateFileSystemKnowledge()
     {
         // ON STARTUP
@@ -133,9 +131,7 @@ public class OvertakingService
         // 4. file processed in the background
     }
 
-    /// <summary>
     /// Removes search tags for each file that was updated.
-    /// </summary>
     /// <returns> The number of updated files. </returns>
     private async Task<int> UnindexUpdatedFiles()
     {
@@ -160,10 +156,8 @@ public class OvertakingService
         return updated.Count;
     }
 
-    /// <summary>
     /// Returns a list of files that are present
     /// as files in File System, but missing as records in Database.
-    /// </summary>
     private static List<FileInfo> GetUnknownFiles
     (
         IList<File> fileRecords,
@@ -187,10 +181,8 @@ public class OvertakingService
             .ToList();
     }
 
-    /// <summary>
     /// Returns a list of files that are present
     /// as records in Database, but missing as files in File System.
-    /// </summary>
     private static List<File> GetMissingFiles
     (
         IList<File> fileRecords,
@@ -208,9 +200,7 @@ public class OvertakingService
             .ToList();
     }
 
-    /// <summary>
     /// Returns true if both objects refers to a file with the same content.
-    /// </summary>
     private static bool FilesAreEquivalent(FileInfo fileInfo, File entity)
     {
         var similarity = 0;
@@ -223,9 +213,7 @@ public class OvertakingService
         return similarity > 1;
     }
 
-    /// <summary>
     /// Returns true if the file content was probably changed.
-    /// </summary>
     private static bool FileWasUpdated(FileInfo fileInfo, File entity)
     {
         return fileInfo.Length != entity.Size

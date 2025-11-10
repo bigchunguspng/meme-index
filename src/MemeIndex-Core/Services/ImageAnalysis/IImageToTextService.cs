@@ -2,16 +2,12 @@ namespace MemeIndex_Core.Services.ImageAnalysis;
 
 public interface IImageToTextService
 {
-    /// <summary>
     /// Processes image files.
     /// Subscribe to <see cref="ImageProcessed"/> event to obtain the results.
-    /// </summary>
     /// <param name="paths"> Paths to the image files. </param>
     Task ProcessFiles(IEnumerable<string> paths);
 
-    /// <summary>
     /// Returns a text representation of an image.
-    /// </summary>
     /// <param name="path"> Path to the image. </param>
     Task<List<RankedWord>?> GetTextRepresentation(string path);
 

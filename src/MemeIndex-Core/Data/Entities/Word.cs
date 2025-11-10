@@ -3,9 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MemeIndex_Core.Data.Entities;
 
-/// <summary>
 /// A <b>word</b> (text w/o spaces) that can be used as image search tag.
-/// </summary>
 [Index(nameof(Text), IsUnique = true)]
 public class Word : AbstractEntity
 {

@@ -19,10 +19,8 @@ public class Config
         }
     }
 
-    /// <summary>
     /// Use <see cref="GetDbConnectionString"/> method
     /// to get actual connection string.
-    /// </summary>
     [DefaultValue(@"Data Source=[data][/]meme-index.db")]
     public string? DbConnectionString { get; set; }
 
@@ -33,9 +31,7 @@ public class Config
             .Replace("[/]", Path.DirectorySeparatorChar.ToString());
     }
 
-    /// <summary>
     /// You can get one here: https://ocr.space/ocrapi/freekey
-    /// </summary>
     [DefaultValue("helloworld")]
     public string? OrcApiKey { get; set; }
 }

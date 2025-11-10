@@ -1,8 +1,6 @@
 namespace MemeIndex_Core.Services.Indexing;
 
-/// <summary>
 /// Detects changes in specific directory in real time.
-/// </summary>
 public class DirectoryMonitor
 {
     private readonly FileWatchService _service;

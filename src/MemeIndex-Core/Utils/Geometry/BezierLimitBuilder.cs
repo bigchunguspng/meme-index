@@ -6,10 +6,8 @@ public class BezierLimitBuilder
 {
     private int[]? _limits;
 
-    /// <summary>
     /// Returns <b>saturation</b> values which separate color groups.
     /// Array indexes represent <b>lightness</b> values.
-    /// </summary>
     /// <param name="points">
     /// An array of 8 points:
     /// <li>First 4 defines Bezier curve for darker part.</li>

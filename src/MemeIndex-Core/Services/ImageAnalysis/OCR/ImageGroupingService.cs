@@ -6,10 +6,8 @@ using SixLabors.ImageSharp.Processing;
 
 namespace MemeIndex_Core.Services.ImageAnalysis.OCR;
 
-/// <summary>
 /// Is used to bypass OCR API rate limit
 /// by grouping images into collages before sending them to the service.
-/// </summary>
 public class ImageGroupingService
 {
     private readonly JpegEncoder _defaultJpegEncoder = new()

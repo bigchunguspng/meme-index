@@ -93,11 +93,9 @@ public class IndexingService
         await imageToTextService.ProcessFiles(filesByPath.Keys);
     }
 
-    /// <summary>
     /// Returns a list of <b>files</b>, located in directories,
     /// monitored by a <see cref="Mean"/> with the specified id,
     /// that have no related search tags.
-    /// </summary>
     private Task<List<File>> GetPendingFiles(int meanId)
     {
         var monitored = _monitoringService.GetDirectories(meanId);

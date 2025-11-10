@@ -3,9 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MemeIndex_Core.Data.Entities;
 
-/// <summary>
 /// An <b>image file</b>.
-/// </summary>
 [Index(nameof(DirectoryId), nameof(Name), IsUnique = true)]
 public class File : AbstractEntity
 {
@@ -21,22 +19,16 @@ public class File : AbstractEntity
     [Required] public DateTime Modified { get; set; }
 
     /*
-    /// <summary>
     /// Directory that defines indexing options for this file.
     /// It can be different from the <see cref="Directory"/> property
     /// if the directory is monitored recursively.
-    /// </summary>
     public MonitoredDirectory MonitoredDirectory { get; set; } = default!;
     */
 
-    /// <summary>
     /// Direct parent directory of this file.
-    /// </summary>
     public Directory   Directory { get; set; } = default!;
     public ICollection<Tag> Tags { get; set; } = default!;
 
-    /// <summary>
     /// Make sure <see cref="Directory"/> is not null when calling this!
-    /// </summary>
     public string GetFullPath() => Path.Combine(Directory.Path, Name);
 }

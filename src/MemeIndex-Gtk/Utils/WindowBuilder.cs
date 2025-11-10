@@ -2,9 +2,7 @@ using Gtk;
 
 namespace MemeIndex_Gtk.Utils;
 
-/// <summary>
 /// Use this to easily create <see cref="Window"/> from a <b>.glade file</b>.
-/// </summary>
 public class WindowBuilder
 {
     public Builder Builder { get; }

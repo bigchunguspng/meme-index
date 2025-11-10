@@ -3,9 +3,7 @@ using SixLabors.ImageSharp;
 
 namespace MemeIndex_Core.Utils.Geometry;
 
-/// <summary>
 /// Iterates a <see cref="Size"/> object via 45° dot grid.
-/// </summary>
 /// <param name="size">Object for iterating.</param>
 /// <param name="step">Vertical and horizontal distance between dots on the grid.</param>
 public class SizeIterator(Size size, int step) : IEnumerable<Point>
