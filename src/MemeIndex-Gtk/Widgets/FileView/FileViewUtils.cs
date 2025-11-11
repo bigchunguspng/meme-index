@@ -46,27 +46,23 @@ public class FileViewUtils
     {
         try
         {
-            var loader = path.EndsWith(".webp").Switch(LoadPixbufWebp, LoadPixbufGeneral);
-            return loader.Invoke(path, width, height);
+            if (path.EndsWith(".webp"))
+            {
+                var options = new DecoderOptions { TargetSize = new Size(width, height) };
+                using var image = Image.Load(options, path);
+                using var stream = new MemoryStream();
+                image.SaveAsPng(stream);
+                return new Pixbuf(stream.ToArray());
+            }
+            else
+            {
+                using var stream = File.OpenRead(path);
+                return new Pixbuf(stream, width, height);
+            }
         }
         catch
         {
             return null;
         }
     });
-
-    private static Pixbuf LoadPixbufGeneral(string path, int width, int height)
-    {
-        using var stream = File.OpenRead(path);
-        return new Pixbuf(stream, width, height);
-    }
-
-    private static Pixbuf LoadPixbufWebp(string path, int width, int height)
-    {
-        var options = new DecoderOptions { TargetSize = new Size(width, height) };
-        using var image = Image.Load(options, path);
-        using var stream = new MemoryStream();
-        image.SaveAsPng(stream);
-        return new Pixbuf(stream.ToArray());
-    }
 }
