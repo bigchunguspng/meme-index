@@ -3,7 +3,9 @@ using MemeIndex_Core.Data.Entities;
 using MemeIndex_Core.Utils;
 using MemeIndex_Core.Utils.Geometry;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
+using Directory = System.IO.Directory;
 
 namespace MemeIndex_Core.Services.ImageAnalysis.Color;
 
