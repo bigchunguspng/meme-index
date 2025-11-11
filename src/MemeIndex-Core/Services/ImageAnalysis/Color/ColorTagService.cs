@@ -106,7 +106,7 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
 
             opaqueSamplesTaken++;
 
-            var hsl = ColorConverter.RgbToHsl(sample.ToRGB());
+            var hsl = sample.Rgb.ToHsl();
             var s = hsl.S; // saturation = x
             var l = hsl.L; // lightness  = y
 
