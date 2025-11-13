@@ -55,6 +55,10 @@ public class MainWindow : Window
             Move(p.X, p.Y);
             Resize(p.Width, p.Height);
         }
+        else
+        {
+            Resize(720, 645);
+        }
 
         _colorSearchPanel = new ColorSearchPanel(app);
         _colorSearch.PackStart(_colorSearchPanel, true, true, 0);
