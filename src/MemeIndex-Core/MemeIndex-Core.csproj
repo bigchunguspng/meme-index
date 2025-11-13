@@ -2,9 +2,10 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
-        <RootNamespace>MemeIndex_Core</RootNamespace>
+        <RollForward>LatestMajor</RollForward>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <RootNamespace>MemeIndex_Core</RootNamespace>
     </PropertyGroup>
 
     <PropertyGroup>
