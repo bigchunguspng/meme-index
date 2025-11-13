@@ -1,3 +1,4 @@
+using Gdk;
 using Gtk;
 using MemeIndex_Core.Controllers;
 using MemeIndex_Core.Objects;
@@ -21,6 +22,7 @@ public class MainWindow : Window
     [UI] private readonly MenuItem _menuFileQuit = default!;
     [UI] private readonly MenuItem _menuFileFolders = default!;
     [UI] private readonly MenuItem _menuFileSettings = default!;
+    [UI] private readonly MenuItem _menuHelpAbout = default!;
 
     [UI] private readonly Box _colorSearch = default!;
     [UI] private readonly ScrolledWindow _scroll = default!;
@@ -74,6 +76,7 @@ public class MainWindow : Window
         _menuFileQuit.Activated += Window_DeleteEvent;
         _menuFileFolders .Activated += OpenManageFoldersDialog;
         _menuFileSettings.Activated += OpenSettingsDialog;
+        _menuHelpAbout.Activated += OpenAboutDialog;
 
         _search.SearchChanged += OnSearchChanged;
         _colorSearchPanel.SelectionChanged += OnColorSelectionChanged;
@@ -160,6 +163,38 @@ public class MainWindow : Window
     {
         var builder = new WindowBuilder(nameof(SettingsDialog));
         new SettingsDialog(App, builder).Show();
+    }
+
+    private void OpenAboutDialog(object? sender, EventArgs e)
+    {
+        var version = GetType().Assembly.GetName().Version;
+        var about = new AboutDialog
+        {
+            WindowPosition = WindowPosition.Center,
+            Logo = Pixbuf.LoadFromResource("Logo.png"),
+            ProgramName = "Meme Index",
+            Version = version?.ToString(3),
+            Comments =
+                "This piece of software can be used "
+              + "to find meme material on your computer "
+              + "if you remember colors or text of the picture.",
+            WebsiteLabel = "GitHub",
+            Website = "https://github.com/bigchunguspng/meme-index",
+            Authors = ["bigchunguspng"],
+        };
+        try
+        {
+            var box0 =       (Box)about.Children[0];
+            var box1 =       (Box) box0.Children[1];
+            var bbox = (ButtonBox)box1.Children[0];
+            var butt = (Button)   bbox.Children[2];
+            butt.Clicked += (_, _) => about.Destroy();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(nameof(OpenAboutDialog), ex);
+        }
+        about.Show();
     }
 
     private void OnSearchChanged(object? sender, EventArgs e)

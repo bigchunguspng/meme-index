@@ -8,4 +8,14 @@ public static class Extensions
     {
         return checkButtons.Where(x => x.Active);
     }
+
+    public static void PrintChildren(this Container container, string tabs = "")
+    {
+        var i = 0;
+        foreach (var widget in container.Children)
+        {
+            Console.WriteLine($"{tabs}[{i++}] -> {widget.GetType().Name}");
+            if (widget is Container con) con.PrintChildren(tabs+"\t");
+        }
+    }
 }
