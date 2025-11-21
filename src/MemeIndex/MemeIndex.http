@@ -1,0 +1,21 @@
+@Host = http://localhost:7373
+
+GET {{Host}}/todos/
+Accept: application/json
+
+###
+
+GET {{Host}}/todos/0
+Accept: application/json
+
+###
+
+POST {{Host}}/todos/
+Content-Type: application/json
+
+{
+  "title": "Buy used Honda Civic",
+  "isComplete": false
+}
+
+###
