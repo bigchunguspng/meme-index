@@ -80,9 +80,11 @@ public class IndexingService
     /// Returns a list of <b>files</b>, located in directories,
     /// monitored by a <see cref="Mean"/> with the specified id,
     /// that have no related search tags.
-    private Task<List<File>> GetPendingFiles(int meanId)
+    private async Task<List<File>> GetPendingFiles(int meanId)
     {
-        var monitored = monitoringService.GetDirectories(meanId);
+        await Task.Delay(100);
+        return [];
+        /*var monitored = monitoringService.GetDirectories(meanId);
         var dirs1 = monitored
             .Where(x => x.Recursive == false)
             .Select(x => x.Directory.Id);
@@ -92,7 +94,7 @@ public class IndexingService
         return context.Files
             .Where(x => dirs1.Contains(x.DirectoryId) || dirs2.Contains(x.DirectoryId))
             .Where(x => !context.Tags.Any(t => t.MeanId == meanId && t.FileId == x.Id))
-            .ToListAsync();
+            .ToListAsync();*/
     }
 
     private async Task UpdateDatabase(IEnumerable<ImageContent> results)

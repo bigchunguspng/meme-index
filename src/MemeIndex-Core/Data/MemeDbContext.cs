@@ -1,5 +1,6 @@
 using MemeIndex_Core.Data.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Directory = MemeIndex_Core.Data.Entities.Directory;
 using File = MemeIndex_Core.Data.Entities.File;
 
@@ -37,6 +38,8 @@ public class MemeDbContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         var connectionString = _configProvider.GetConfig().GetDbConnectionString()!;
-        optionsBuilder.UseSqlite(connectionString);
+        optionsBuilder
+            .UseSqlite(connectionString)
+            .LogTo(Console.WriteLine, LogLevel.Information);
     }
 }
