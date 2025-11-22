@@ -1,6 +1,8 @@
 using Dapper;
 using Microsoft.Data.Sqlite;
 
+[module: DapperAot] // https://aot.dapperlib.dev/rules/DAP005
+
 namespace MemeIndex.DB;
 
 public static class DB
@@ -46,12 +48,6 @@ public static class DB
         var connection = new SqliteConnection($"Data Source={db_path}");
         await connection.OpenAsync();
         return connection;
-    }
-
-    public static async Task Test_Insert
-        (this SqliteConnection connection)
-    {
-        await connection.ExecuteAsync(_SQL_INSERT_file);
     }
 
     private const string
@@ -109,13 +105,5 @@ public static class DB
                 file_id INTEGER NOT NULL UNIQUE,
                 data    TEXT    NOT NULL
             );
-            """,
-        _SQL_INSERT_file =
-            """
-            INSERT INTO dirs (path) VALUES ("D:\Desktop\...\dump");
-            INSERT INTO files (dir_id, name, size, cdate, mdate)
-            VALUES
-                (1, "Osaka.png", 1613, 1763797829244, 1763797866011),
-                (1, "fgsfds.jpg", 844, 1763797829244, 1763797866011);
             """;
 }
