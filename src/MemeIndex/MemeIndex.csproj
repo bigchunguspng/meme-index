@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <RollForward>LatestMajor</RollForward>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <InvariantGlobalization>true</InvariantGlobalization>
@@ -10,9 +11,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="ColorHelper" Version="1.8.1" />
     <PackageReference Include="Dapper" Version="2.1.66" />
     <PackageReference Include="Dapper.AOT" Version="1.0.48" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.22" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.7" />
+    <PackageReference Include="Spectre.Console" Version="0.53.0" />
   </ItemGroup>
 
 </Project>

@@ -1,4 +1,4 @@
-using MemeIndex.DB;
+using MemeIndex.Core.Analysis.Color;
 using MemeIndex.Utils;
 
 Log("[Start]", color: ConsoleColor.Magenta);
@@ -8,6 +8,18 @@ AppDomain.CurrentDomain.UnhandledException += (_, e) =>
     LogError($"UNHANDLED EXCEPTION! {e.ExceptionObject}");
     Environment.Exit(1);
 };
+
+// BRANCH
+
+switch (args.Length)
+{
+    case > 0 when args[0] is "-?" or "--help":
+        Print(Texts.HELP);
+        return;
+    case > 1 when args[0] is "-d" or "--demo":
+        args.Skip(1).ForEachTry(Demo.ColorTagService_GetTextRepresentation);
+        return;
+}
 
 // BUILDER
 
