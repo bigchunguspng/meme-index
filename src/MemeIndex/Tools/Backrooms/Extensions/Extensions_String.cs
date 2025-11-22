@@ -1,0 +1,146 @@
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace MemeIndex.Tools.Backrooms.Extensions;
+
+public static class Extensions_String
+{
+    // The NULL The SPACE and The EMPTY
+
+    public static bool IsNull_OrEmpty
+        ([NotNullWhen(false)] this string? text) => string.IsNullOrEmpty(text);
+
+    public static bool IsNotNull_NorEmpty
+        ([NotNullWhen(true )] this string? text) => string.IsNullOrEmpty(text) == false;
+
+    public static bool IsNull_OrWhiteSpace
+        ([NotNullWhen(false)] this string? text) => string.IsNullOrWhiteSpace(text);
+
+    public static bool IsNotNull_NorWhiteSpace
+        ([NotNullWhen(true )] this string? text) => string.IsNullOrWhiteSpace(text) == false;
+
+    public static string? MakeNull_IfEmpty
+        (this string? text) => string.IsNullOrEmpty     (text) ? null : text;
+
+    public static string? MakeNull_IfWhiteSpace
+        (this string? text) => string.IsNullOrWhiteSpace(text) ? null : text;
+
+    // OTHER
+
+    public static string Format
+        ([StringSyntax("CompositeFormat")] this string text, string arg) 
+        => string.Format(text, arg);
+
+    public static string Format
+        ([StringSyntax("CompositeFormat")] this string text, string arg0, string arg1) 
+        => string.Format(text, arg0, arg1);
+
+    public static string Format
+        ([StringSyntax("CompositeFormat")] this string text, string arg0, string arg1, string arg2) 
+        => string.Format(text, arg0, arg1, arg2);
+
+    public static string Format
+        ([StringSyntax("CompositeFormat")] this string text, params object?[] args)
+        => string.Format(text, args);
+
+    public static byte[] GetBytes_UTF8
+        (this string text) =>
+        System.Text.Encoding.UTF8.GetBytes(text);
+
+    public static string Quote
+        (this string text) => $"\"{text}\"";
+
+    public static string Truncate
+        (this string text, int length) => text.Length > length ? text[..(length - 1)] + "…" : text;
+
+    public static int GetLineCount
+        (this string text) => 1 + text.Count(x => x == '\n');
+
+    public static ReadOnlySpan<char> SubstringTill
+        (this string text, char c)
+    {
+        var index = text.IndexOf(c);
+        return index >= 0 
+            ? text.AsSpan(0, index)
+            : text.AsSpan();
+    }
+
+    /// Returns an index of EXACTLY N-th occurence
+    /// of given char in the string. Or -1
+    /// if string contains less than N given chars.
+    public static int IndexOfNth
+        (this string text, char c, int N)
+    {
+        var index = -1;
+
+        for (var i = 0; i < N; i++)
+        {
+            index = text.IndexOf(c, index + 1);
+            if (index < 0) break;
+        }
+
+        return index;
+    }
+
+    // PATH
+    
+    public static string RemoveExtension
+        (this string path) => path.Remove(path.LastIndexOf('.'));
+
+    public static string GetExtension_Or
+        (this string? path, string fallback) => path != null ? Path.GetExtension(path) : fallback;
+
+    public static void CreateDirectory
+        (this string? directory)
+    {
+        if (directory.IsNotNull_NorWhiteSpace())
+            Directory.CreateDirectory(directory);
+    }
+
+    public static string ValidFileName(this string text, char x = '_')
+    {
+        var chars = Path.GetInvalidFileNameChars();
+        return chars.Aggregate(text, (current, c) => current.Replace(c, x));
+    }
+
+    public static bool FileNameIsInvalid(this string text)
+    {
+        return Path.GetInvalidFileNameChars().Any(text.Contains);
+    }
+
+    // REGEX
+
+    private static readonly Regex
+        _rgx_number = new(@"\d+", RegexOptions.Compiled);
+
+    public static Match MatchNumber(this string text) => _rgx_number.Match(text);
+
+    public static Match? MatchOrNull(this Regex regex, string? text) => text == null ? null : regex.Match(text);
+    public static bool IsMatchOrNull(this Regex regex, string? text) => text != null && regex.IsMatch(text);
+
+    public static string? GroupOrNull
+        (this Match match, int group)
+    {
+        var g = match.Groups[group];
+        return g.HasValue() ? g.Value : null;
+    }
+
+    [return: NotNullIfNotNull(nameof(fallback))]
+    public static T? ExtractGroup<T>
+        (this Regex regex, int group, string input, Func<string, T> convert, T? fallback = default)
+    {
+        return ExtractGroup(regex.Match(input), group, convert, fallback);
+    }
+
+    [return: NotNullIfNotNull(nameof(fallback))]
+    public static T? ExtractGroup<T>
+        (this Match match, int group, Func<string, T> convert, T? fallback = default)
+    {
+        var g = match.Groups[group];
+        return g.HasValue() ? convert(g.Value) : fallback;
+    }
+
+    public static bool HasValue
+        (this Group group)
+        => group.Success
+        && group.Value.IsNotNull_NorEmpty();
+}

@@ -1,0 +1,121 @@
+using Dapper;
+using Microsoft.Data.Sqlite;
+
+namespace MemeIndex.DB;
+
+public static class DB
+{
+    // MAIN
+
+    private static string?  _DB_Path_Main;
+    private static string    DB_Path_Main => _DB_Path_Main ??= GetDB_Path_Main();
+    private static string GetDB_Path_Main
+        () => new FilePath("data-v2").EnsureDirectoryExist().Combine("meme-index.db");
+
+    public static Task<SqliteConnection> ConnectTo_Main
+        () => OpenConnection(DB_Path_Main);
+
+    public static async Task CreateDB_Main
+        (this SqliteConnection connection)
+    {
+        await connection.ExecuteAsync(_SQL_PRAGMAS_PER_DB);
+        await connection.ExecuteAsync(_SQL_CREATE_TABLES_MAIN);
+    }
+
+    // RAW
+
+    private static string?  _DB_Path_Raw;
+    private static string    DB_Path_Raw => _DB_Path_Raw ??= GetDB_Path_Raw();
+    private static string GetDB_Path_Raw
+        () => new FilePath("data-v2").EnsureDirectoryExist().Combine("raw.db");
+
+    public static Task<SqliteConnection> ConnectTo_Raw
+        () => OpenConnection(DB_Path_Raw);
+
+    public static async Task CreateDB_Raw
+        (this SqliteConnection connection)
+    {
+        await connection.ExecuteAsync(_SQL_PRAGMAS_PER_DB);
+        await connection.ExecuteAsync(_SQL_CREATE_TABLES_RAW);
+    }
+
+    //
+
+    private static async Task<SqliteConnection> OpenConnection(string db_path)
+    {
+        var connection = new SqliteConnection($"Data Source={db_path}");
+        await connection.OpenAsync();
+        return connection;
+    }
+
+    public static async Task Test_Insert
+        (this SqliteConnection connection)
+    {
+        await connection.ExecuteAsync(_SQL_INSERT_file);
+    }
+
+    private const string
+        _SQL_PRAGMAS_PER_DB =
+            "PRAGMA journal_mode = WAL;",
+        _SQL_CREATE_TABLES_MAIN =
+            """
+            CREATE TABLE IF NOT EXISTS dirs
+            (
+                id      INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                path    TEXT    NOT NULL UNIQUE
+            );
+            CREATE TABLE IF NOT EXISTS monitors
+            (
+                id      INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                dir_id  INTEGER NOT NULL,
+                mean    INTEGER NOT NULL,
+                recurse INTEGER NOT NULL DEFAULT 1,
+                enabled INTEGER NOT NULL DEFAULT 1,
+                UNIQUE (dir_id, mean),
+                FOREIGN KEY (dir_id)
+                REFERENCES dirs (id) ON DELETE CASCADE
+            );
+            CREATE TABLE IF NOT EXISTS files
+            (
+                id      INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                dir_id  INTEGER NOT NULL,
+                name    TEXT    NOT NULL,
+                size    INTEGER NOT NULL,
+                cdate   INTEGER NOT NULL,
+                mdate   INTEGER NOT NULL,
+                adate   INTEGER,
+                tdate   INTEGER,
+                UNIQUE (dir_id, name),
+                FOREIGN KEY (dir_id)
+                REFERENCES dirs (id) ON DELETE CASCADE
+            );
+            CREATE TABLE IF NOT EXISTS tags
+            (
+                id      INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                file_id INTEGER NOT NULL,
+                word    TEXT    NOT NULL,
+                rank    INTEGER NOT NULL,
+                UNIQUE (file_id, word),
+                FOREIGN KEY (file_id)
+                REFERENCES files (id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS ix_tags_word
+            ON tags (word);
+            """,
+        _SQL_CREATE_TABLES_RAW =
+            """
+            CREATE TABLE IF NOT EXISTS analysis
+            (
+                file_id INTEGER NOT NULL UNIQUE,
+                data    TEXT    NOT NULL
+            );
+            """,
+        _SQL_INSERT_file =
+            """
+            INSERT INTO dirs (path) VALUES ("D:\Desktop\...\dump");
+            INSERT INTO files (dir_id, name, size, cdate, mdate)
+            VALUES
+                (1, "Osaka.png", 1613, 1763797829244, 1763797866011),
+                (1, "fgsfds.jpg", 844, 1763797829244, 1763797866011);
+            """;
+}
