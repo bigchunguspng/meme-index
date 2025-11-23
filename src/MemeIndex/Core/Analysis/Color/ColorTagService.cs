@@ -1,88 +1,68 @@
-using MemeIndex.Tools;
 using MemeIndex.Tools.Geometry;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
+using FrequencySample = System.Collections.Generic.KeyValuePair<MemeIndex.Tools.Geometry.BytePoint, ushort>;
 
 namespace MemeIndex.Core.Analysis.Color;
 
-public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTextService
+public static class ColorTagService // todo rename
 {
     public const int MAX_RANK = 10_000;
 
-#if DEBUG
-    private readonly JpegEncoder _defaultJpegEncoder = new() { Quality = 80 };
-#endif
-
-    public event Action<Dictionary<string, List<RankedWord>>>? ImageProcessed;
-
-    public async Task ProcessFiles(IEnumerable<string> paths)
-    {
-        var tasks = paths.Select(async path =>
-        {
-            var rankedWords = await GetTextRepresentation(path);
-            if (rankedWords is null) return;
-
-            Log($"COLOR-TAG: words: {rankedWords.Count,4}", color: ConsoleColor.Blue);
-
-            var result = new Dictionary<string, List<RankedWord>> { { path, rankedWords } };
-            ImageProcessed?.Invoke(result);
-        });
-
-        await Task.WhenAll(tasks);
-    }
-
-    public async Task<List<RankedWord>?> GetTextRepresentation(string path)
+    // todo text -> *better term*
+    public static async Task<List<RankedWord>?> GetTextRepresentation(FilePath path)
     {
         try
         {
             // CHECK FILE
             var file = new FileInfo(path);
             if (file.Exists == false)
-            {
                 return null;
-            }
 
             var sw = Stopwatch.StartNew();
 
-            ImageScanResult scanResult;
+            using var image = await Image.LoadAsync<Rgba32>(path);
+            sw.Log("IMAGE LOADED");
 
-            using (var image = await Image.LoadAsync<Rgba32>(path))
-            {
-                sw.Log("IMAGE LOADED");
-
-                scanResult = ScanImage(image);
-
-                sw.Log($"IMAGE SCANNED ({scanResult.TotalSamples} samples collected)");
-
+            var scanResult = ScanImage(image);
+            sw.Log($"IMAGE SCANNED ({scanResult.TotalSamples} samples collected)");
 #if DEBUG
-                var ticks = DateTime.UtcNow.Ticks;
-                var name = $"baka-{Desert.GetSand(8)}-{ticks >> 32}";
-                Directory.CreateDirectory("img");
-                await image.SaveAsJpegAsync(Path.Combine("img", $"{name}-dots.jpg"), _defaultJpegEncoder);
-
-                sw.Log("DEBUG-DOTS EXPORTED");
+            var jpeg = Dir_Debug_SampleGrids
+                .EnsureDirectoryExist()
+                .Combine($"Dots-{DateTime.UtcNow.Ticks >> 32}-{Desert.GetSand(4)}.jpg");
+            await image.SaveAsJpegAsync(jpeg, DebugTools.JpegEncoder_Q80);
+            sw.Log("DEBUG-DOTS   EXPORTED");
+            DebugTools.RenderSamplePoster(path);
+            sw.Log("DEBUG-POSTER EXPORTED");
 #endif
-            }
-
             var rankedWords = AnalyzeImageSamples(scanResult);
-
             sw.Log("ANALYSIS DONE");
 
-            return rankedWords.OrderByDescending(x => x.Rank).ToList();
+            rankedWords.Sort((w1, w2) => w2.Rank - w1.Rank); // DESC
+            return rankedWords;
         }
         catch (Exception e)
         {
-            LogError(e.ToString());
+            LogError(e);
             return null;
         }
     }
 
     // SCANNING
 
-    private ImageScanResult ScanImage(Image<Rgba32> image)
+    private record ImageScanResult
+    (
+        int TotalSamples,
+        int OpaqueSamples,
+        int Transparency,
+        ColorFrequency Grayscale,
+        ColorFrequencyFunny Funny
+    );
+
+    private static ImageScanResult ScanImage(Image<Rgba32> image)
     {
         var step = CalculateStep(image.Size);
+        Log($"[step = {step}]");
 
         var samplesGrayscale = new ColorFrequency();
         var samplesFunny = new ColorFrequencyFunny();
@@ -90,15 +70,14 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         int totalOpacity = 0, samplesTaken = 0, opaqueSamplesTaken = 0;
 
         var grayscaleLimits = GetGrayscaleLimits();
-        var subPaleLimits = GetSubPaleLimits();
-        var paleLimits = GetPaleLimits();
+        var   subPaleLimits =   GetSubPaleLimits();
+        var      paleLimits =      GetPaleLimits();
 
         foreach (var (x, y) in new SizeIterator_45deg(image.Size, step))
         {
-            samplesTaken++;
-
             var sample = image[x, y];
 
+            samplesTaken++;
             totalOpacity += sample.A;
 
             if (sample.A < 8) continue; // discard almost invisible pixels
@@ -109,24 +88,17 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
             var s = hsl.S; // saturation = x
             var l = hsl.L; // lightness  = y
 
-            var hue = (hsl.H + 15) % 360 / 30; // 0..11 => 12 hues
-
+            var hue_index = (hsl.H + 15) % 360 / 30; // 0..11 => 12 hues
 #if DEBUG
-            image[x, y] = new Rgba32(255, 0, 0);
+            image[x, y] = new Rgba32(255, 0, 0); // mark sample coords
 #endif
+            var sampleTable
+                = s < grayscaleLimits[l] ? samplesGrayscale
+                : s <   subPaleLimits[l] ? samplesFunny.GetFunny(hue_index, Shade.WeakPale)
+                : s <      paleLimits[l] ? samplesFunny.GetFunny(hue_index, Shade.StrongPale)
+                :                          samplesFunny.GetFunny(hue_index, Shade.Vivid);
 
-            var point = new BytePoint(s, l);
-
-            var sampleTable =
-                s < grayscaleLimits[l]
-                    ? samplesGrayscale
-                    : s < subPaleLimits[l]
-                        ? samplesFunny.GetFunny(hue, Shade.WeakPale)
-                        : s < paleLimits[l]
-                            ? samplesFunny.GetFunny(hue, Shade.StrongPale)
-                            : samplesFunny.GetFunny(hue, Shade.Vivid);
-
-            sampleTable.AddOrIncrement(point);
+            sampleTable.AddOrIncrement(new BytePoint(s, l));
         }
 
         var transparency = samplesTaken * byte.MaxValue - totalOpacity;
@@ -134,86 +106,73 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         return new ImageScanResult(samplesTaken, opaqueSamplesTaken, transparency, samplesGrayscale, samplesFunny);
     }
 
+    /// Result: 4..32, even number. Which gives 5-10k samples per image.
     public static int CalculateStep(Size size)
     {
         var area = size.Width * size.Height;
-        var value = Math.Sqrt(area / 4050D).RoundInt();
-        var step = Math.Clamp(value.EvenFloor(), 4, 32);
-
-        Log($"[step = {step}]");
-
-        return step;
+        var v1 = Math.Sqrt(area / 4000.0);
+        var v2 = v1.RoundInt().EvenFloor();
+        return Math.Clamp(v2, 4, 32);
     }
 
     // LIMITS
 
-    private static readonly BezierLimitBuilder[] _limits =
-        Enumerable.Range(0, 4).Select(_ => new BezierLimitBuilder()).ToArray();
+    private const int
+        X_GRAY  =  5,
+        Y_BLACK =  4,
+        Y_WHITE = 96;
 
-    public static int[] GetGrayscaleLimits() => _limits[0].GetLimits
-    ([
-        new PointF(101, Y_BLACK - 0.5F),
-        new PointF(X_GRAY, Y_BLACK), new PointF(X_GRAY, Y_BLACK),
-        new PointF(X_GRAY,      50), new PointF(X_GRAY,      50),
-        new PointF(X_GRAY, Y_WHITE), new PointF(X_GRAY, Y_WHITE),
-        new PointF(101, Y_WHITE + 0.5F),
-    ]);
+    private static readonly BezierLimitBuilder[] _limits
+        = 4.Times(() => new BezierLimitBuilder());
 
-    public static int[] GetSubPaleLimits() => _limits[1].GetLimits
-    ([
-        new PointF(101, Y_BLACK + 3.5F),
-        new PointF( 15, 12), new PointF(15, 12),
-        new PointF( 10, 50), new PointF(10, 50),
-        new PointF( 15, 88), new PointF(15, 88),
-        new PointF(101, Y_WHITE - 3.5F),
-    ]);
+    public static int[] GetGrayscaleLimits() => _limits[0].GetLimits(GrayscaleLimits);
+    public static int[]   GetSubPaleLimits() => _limits[1].GetLimits  (SubPaleLimits);
+    public static int[]      GetPaleLimits() => _limits[2].GetLimits     (PaleLimits);
+    public static int[]      GetPeakLimits() => _limits[3].GetLimits     (PeakLimits);
 
-    public static int[] GetPaleLimits() => _limits[2].GetLimits
-    ([
-        new PointF(101, 20),
-        new PointF( 40, 20),
-        new PointF( 20, 40),
-        new PointF( 20, 50),
-        new PointF( 20, 50),
-        new PointF( 20, 60),
-        new PointF( 40, 80),
-        new PointF(101, 80),
-    ]);
-
-    public static int[] GetPeakLimits() => _limits[3].GetLimits
-    ([
-        new PointF(  0,   0 - 1),
-        new PointF(  0,  10 - 1),
-        new PointF( 50,  30 - 1),
-        new PointF(101,  30 - 1),
-        new PointF(101,  70 + 1),
-        new PointF( 50,  70 + 1),
-        new PointF(  0,  90 + 1),
-        new PointF(  0, 100 + 1),
-    ]);
-
-    /*
-        0   5       40             100
-        +---+--------+---------------+  0
-        |              WHITE / BLACK |
-        +---+--------+---------------+  4 / 96
-        | G |                        |
-        | R +--------+  DARK / LIGHT | 12 / 88      <-- [ TO BE DEPRECATED ]
-        | A |        |               |
-        | Y |        +---------------+ 20 / 80
-        |   |  PALE  |               |
-        |   |        |    VIBRANT    |
-        |   |        |               |
-        +---+--------+---------------+ 50
-        saturation -->
-     */
+    private static readonly PointF[]
+        GrayscaleLimits =
+        [
+            new(101, Y_BLACK - 0.5F),
+            new(X_GRAY, Y_BLACK), new(X_GRAY, Y_BLACK),
+            new(X_GRAY,      50), new(X_GRAY,      50),
+            new(X_GRAY, Y_WHITE), new(X_GRAY, Y_WHITE),
+            new(101, Y_WHITE + 0.5F),
+        ],
+        SubPaleLimits =
+        [
+            new(101, Y_BLACK + 3.5F),
+            new( 15, 12), new(15, 12),
+            new( 10, 50), new(10, 50),
+            new( 15, 88), new(15, 88),
+            new(101, Y_WHITE - 3.5F),
+        ],
+        PaleLimits =
+        [
+            new(101, 20),
+            new( 40, 20),
+            new( 20, 40),
+            new( 20, 50),
+            new( 20, 50),
+            new( 20, 60),
+            new( 40, 80),
+            new(101, 80),
+        ],
+        PeakLimits =
+        [
+            new(  0,   0 - 1),
+            new(  0,  10 - 1),
+            new( 50,  30 - 1),
+            new(101,  30 - 1),
+            new(101,  70 + 1),
+            new( 50,  70 + 1),
+            new(  0,  90 + 1),
+            new(  0, 100 + 1),
+        ];
 
     // ANALYZING
 
-    private const int X_GRAY = 5;
-    private const int Y_BLACK = 04, Y_WHITE = 96;
-
-    private List<RankedWord> AnalyzeImageSamples(ImageScanResult data)
+    private static List<RankedWord> AnalyzeImageSamples(ImageScanResult data)
     {
         var samplesTotal = (double)data.TotalSamples;
         var threshold = (int)Math.Round(Math.Log2(samplesTotal / 1000));
@@ -223,15 +182,15 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
 
         // GENERAL
 
-        AddIfPositive(colorSearchProfile.CodeTransparent, () => CalculateTransparencyRank(data.Transparency));
+        AddIfPositive(ColorSearchProfile.CodeTransparent, () => CalculateTransparencyRank(data.Transparency));
 
         var grayscale = data.Grayscale;
-        var funny = data.Funny;
+        var funny     = data.Funny;
 
-        var funnyTotal = funny.Sum();
-        var grayTotal = grayscale.Sum(x => x.Value);
+        var  grayTotal = grayscale.Sum(x => x.Value);
+        var funnyTotal =     funny.Sum();
 
-        var grayRangeRatio = grayTotal == 0 ? 0 : (grayscale.Max(x => x.Key.Y) - grayscale.Min(x => x.Key.Y)) / 100D;
+        var grayRangeRatio = grayTotal == 0 ? 0 : (grayscale.Max(x => x.Key.Y) - grayscale.Min(x => x.Key.Y)) / 100.0;
         var grayRange = (grayTotal * grayRangeRatio).RoundInt();
 
         var totalPaleW = funny.SumByShade(Shade.WeakPale);
@@ -249,7 +208,7 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         Log(color: ConsoleColor.Green, message: $"\ttotalL    \t{totalL,7}");
 
         var almostGrayscale = totalPaleW > 8 * totalPaleS && totalPaleS > 8 * totalVivid;
-        var paleGrayness = Math.Clamp(Math.Sqrt(totalPaleW / (double)totalPaleS / 40D), 0, 1);
+        var paleGrayness = Math.Clamp(Math.Sqrt(totalPaleW / (double)totalPaleS / 40.0), 0, 1);
         var grayPart = almostGrayscale ? grayRange + (totalPaleW * paleGrayness).RoundInt() : grayRange;
 
         var palePart = almostGrayscale ? totalPaleS : totalPaleS + totalPaleW;
@@ -274,15 +233,14 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
         var y2 = grayscale.Where(x => x.Key is { Y: >= 50 and < 75 });
         var y1 = grayscale.Where(x => x.Key is { Y: >= 75 and < Y_WHITE });
 
-        var codes = colorSearchProfile.ColorsGrayscale.Keys.ToArray();
-        var index = 0;
+        var codes = ColorSearchProfile.ColorsGrayscale.Keys.ToArray();
 
-        AddIfPositiveFromSamples(codes[index++], white);
-        AddIfPositiveFromSamples(codes[index++], y1);
-        AddIfPositiveFromSamples(codes[index++], y2);
-        AddIfPositiveFromSamples(codes[index++], y3);
-        AddIfPositiveFromSamples(codes[index++], y4);
-        AddIfPositiveFromSamples(codes[index  ], black);
+        AddIfPositiveFromSamples(codes[0], white);
+        AddIfPositiveFromSamples(codes[1], y1);
+        AddIfPositiveFromSamples(codes[2], y2);
+        AddIfPositiveFromSamples(codes[3], y3);
+        AddIfPositiveFromSamples(codes[4], y4);
+        AddIfPositiveFromSamples(codes[5], black);
 
         // FUNNY
 
@@ -310,15 +268,14 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
             var weakPaleL = weakPale.Where(x => x.Key.Y >= 50 && x.Key.X <  peaks[x.Key.Y]);
             var weakPeakL = weakPale.Where(x => x.Key.Y >= 50 && x.Key.X >= peaks[x.Key.Y]);
 
-            var shades = colorSearchProfile.GetShadesByHue(hue);
-            var x = 0;
+            var shades = ColorSearchProfile.GetShadesByHue(hue);
 
-            AddIfPositive(shades[x++], () => CalculateRankPale(weakPeakL, strongPeakL));
-            AddIfPositive(shades[x++], () => CalculateRank(vividL));
-            AddIfPositive(shades[x++], () => CalculateRank(vividD));
-            AddIfPositive(shades[x++], () => CalculateRankPale(weakPeakD, strongPeakD));
-            AddIfPositive(shades[x++], () => CalculateRankPale(weakPaleD, strongPaleD));
-            AddIfPositive(shades[x  ], () => CalculateRankPale(weakPaleL, strongPaleL));
+            AddIfPositive(shades[0], () => CalculateRankPale(weakPeakL, strongPeakL));
+            AddIfPositive(shades[1], () => CalculateRank(vividL));
+            AddIfPositive(shades[2], () => CalculateRank(vividD));
+            AddIfPositive(shades[3], () => CalculateRankPale(weakPeakD, strongPeakD));
+            AddIfPositive(shades[4], () => CalculateRankPale(weakPaleD, strongPaleD));
+            AddIfPositive(shades[5], () => CalculateRankPale(weakPaleL, strongPaleL));
         }
 
         // OTHER
@@ -337,7 +294,7 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
 
         // == FUN ==
 
-        void AddIfPositiveFromSamples(string key, IEnumerable<KeyValuePair<BytePoint, ushort>> samples)
+        void AddIfPositiveFromSamples(string key, IEnumerable<FrequencySample> samples)
         {
             AddIfPositive(key, () => CalculateRank(samples));
         }
@@ -348,7 +305,7 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
             if (rank > 0) result.Add(new RankedWord(key, rank));
         }
 
-        int CalculateRank(IEnumerable<KeyValuePair<BytePoint, ushort>> samples)
+        int CalculateRank(IEnumerable<FrequencySample> samples)
         {
             var sum = samples.Sum(x => x.Value);
             if (sum <= threshold) return 0;
@@ -359,8 +316,8 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
 
         int CalculateRankPale
         (
-            IEnumerable<KeyValuePair<BytePoint, ushort>> samplesW,
-            IEnumerable<KeyValuePair<BytePoint, ushort>> samplesS
+            IEnumerable<FrequencySample> samplesW,
+            IEnumerable<FrequencySample> samplesS
         )
         {
             var sumS = samplesS.Sum(x => x.Value);
@@ -391,66 +348,56 @@ public class ColorTagService(ColorSearchProfile colorSearchProfile) : IImageToTe
             // 100% -> 10_000, 75% -> 1000, 50% -> 100, 25% -> 10
         }
     }
+}
 
-    private record ImageScanResult
-    (
-        int TotalSamples,
-        int OpaqueSamples,
-        int Transparency,
-        ColorFrequency Grayscale,
-        ColorFrequencyFunny Funny
-    );
+/// Square 256×256 px where some pixels hold frequency value (0-64k).
+internal class ColorFrequency : Dictionary<BytePoint, ushort>
+{
+    public void AddOrIncrement(BytePoint point)
+    {
+        if (ContainsKey(point)) this[point]++; // todo handle overflow
+        else /*               */ Add(point, 1);
+    }
 }
 
 internal class ColorFrequencyFunny
 {
-    private readonly ColorFrequency[] _samples = GetEmptyTable();
+    /// 3 rows - shades, 12 columns - hues.
+    private readonly ColorFrequency[] _samples_byShadeAndHue =
+        (3 * ColorSearchProfile.HUE_COUNT).Times(() => new ColorFrequency());
 
-    private static ColorFrequency[] GetEmptyTable()
+    public ColorFrequency GetFunny(int hue_index, Shade shade)
     {
-        const int length = ColorSearchProfile.HUE_COUNT * 3;
-        return Enumerable.Range(0, length).Select(_ => new ColorFrequency()).ToArray();
+        var row = ColorSearchProfile.HUE_COUNT * (int)shade;
+        return _samples_byShadeAndHue[row + hue_index];
     }
 
-    public ColorFrequency GetFunny(int hue, Shade shade)
-    {
-        return _samples[ColorSearchProfile.HUE_COUNT * (int)shade + hue];
-    }
+    public int SumByShade(Shade shade)
+        => _samples_byShadeAndHue
+            .Skip(ColorSearchProfile.HUE_COUNT * (int)shade)
+            .Take(ColorSearchProfile.HUE_COUNT)
+            .Sum(samples => samples.Sum(x => x.Value));
 
-    public int SumByShade(Shade shade) => _samples
-        .Skip(ColorSearchProfile.HUE_COUNT * (int)shade)
-        .Take(ColorSearchProfile.HUE_COUNT)
-        .Sum(samples => samples.Sum(x => x.Value));
-
-    public int SumByDarkness(Darkness darkness) => _samples
-        .Sum(samples =>
-        {
-            return samples
+    public int SumByDarkness(Darkness darkness)
+        => _samples_byShadeAndHue
+            .Sum(samples => samples
                 .Where(x => darkness == Darkness.Dark == x.Key.Y < 50)
-                .Sum(x => x.Value);
-        });
+                .Sum(x => x.Value));
 
-    public int Sum() => _samples.Sum(samples => samples.Sum(x => x.Value));
+    public int Sum()
+        => _samples_byShadeAndHue
+            .Sum(samples => samples.Sum(x => x.Value));
 }
 
 internal enum Shade
 {
     WeakPale,
     StrongPale,
-    Vivid
+    Vivid,
 }
 
 internal enum Darkness
 {
     Dark,
-    Light
-}
-
-internal class ColorFrequency : Dictionary<BytePoint, ushort>
-{
-    public void AddOrIncrement(BytePoint point)
-    {
-        if (ContainsKey(point)) this[point]++;
-        else /*               */ Add(point, 1);
-    }
+    Light,
 }

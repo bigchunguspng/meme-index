@@ -60,6 +60,10 @@ public static class ConsoleLogger
     //
 
     public static void LogError
+        (Exception ex,   ConsoleColor color = ConsoleColor.DarkRed)
+        => Log($"{ex}", LogLevel.Error, color);
+
+    public static void LogError
         (string message, ConsoleColor color = ConsoleColor.DarkRed)
         => Log(message, LogLevel.Error, color);
 

@@ -1,5 +1,6 @@
 namespace MemeIndex.Tools.Geometry;
 
+/// Point from a square 256×256 px. Size: 2B (16b).
 internal readonly struct BytePoint(byte x, byte y)
 {
     public byte X { get; } = x;

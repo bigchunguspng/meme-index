@@ -17,7 +17,7 @@ switch (args.Length)
         Print(Texts.HELP);
         return;
     case > 1 when args[0] is "-d" or "--demo":
-        args.Skip(1).ForEachTry(Demo.ColorTagService_GetTextRepresentation);
+        args.Skip(1).ForEachTry(ColorTagService_Demo.Run);
         return;
 }
 

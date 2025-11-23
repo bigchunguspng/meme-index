@@ -3,58 +3,53 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace MemeIndex.Core.Analysis.Color;
 
-public class ColorSearchProfile
+public static class ColorSearchProfile
 {
-    public ColorSearchProfile() => Init();
+    private const int HUE_RANGE_deg = 30;
+    public  const int HUE_COUNT     = 12; // 360 / 30
 
-    private const int HUE_RANGE = 30;
-    public  const int HUE_COUNT = 12;
+    public static Dictionary<char, ColorPalette> ColorsFunny     { get; } = new();
+    public static                  ColorPalette  ColorsGrayscale { get; } = new();
 
-    public Dictionary<char, ColorPalette> ColorsFunny     { get; } = new();
-    public                  ColorPalette  ColorsGrayscale { get; } = new();
+    public static char[] Hues { get; } = HUE_COUNT.Times(i => (char)('A' + i));
 
-    public List<char> Hues { get; } = Enumerable.Range(65, 12).Select(x => (char)x).ToList();
+    public static string CodeTransparent => "X";
 
-    public string CodeTransparent => "X";
+    public static string[] GetShadesByHue(int i) => ColorsFunny[Hues[i]].Keys.ToArray();
 
-    public string[] GetShadesByHue(int i)
+    static ColorSearchProfile()
     {
-        var key = Hues[i];
-        return ColorsFunny[key].Keys.ToArray();
-    }
+        char[] saturatedCodes = [ 'L', '1', '2', 'D' ];
+        byte[] grayscale =
+            [
+                255,
+                16 + 30 + 60 * 3,
+                16 + 30 + 60 * 2,
+                16 + 30 + 60,
+                16 + 30,
+                0,
+            ],
+            saturated =
+            [
+                100 - 12, // LIGHT
+                100 - 40,
+                000 + 40,
+                000 + 16, // DARK
+            ];
 
-    private void Init()
-    {
-        var grayscale = new byte[]
+        for (var i = 0; i < grayscale.Length; i++)
         {
-            255,
-            16 + 30 + 60 * 3,
-            16 + 30 + 60 * 2,
-            16 + 30 + 60,
-            16 + 30,
-            0,
-        };
-        for (var i = 0; i < grayscale.Length; i++) // WHITE & BLACK
-        {
+            // WHITE & BLACK
+
             var value = grayscale[i];
             ColorsGrayscale.Add($"Y{i}", new Rgb24(value, value, value));
         }
 
-        var saturated = new byte[]
-        {
-            100 - 12, // LIGHT
-            100 - 40,
-            000 + 40,
-            000 + 16, // DARK
-        };
-
-        var saturatedCodes = new[] { 'L', '1', '2', 'D' };
-
-        for (var h = 0; h < 360; h += HUE_RANGE)
+        for (var h = 0; h < 360; h += HUE_RANGE_deg)
         {
             // SATURATED
 
-            var key = Hues[h / HUE_RANGE];
+            var key = Hues[h / HUE_RANGE_deg];
             ColorsFunny[key] = new ColorPalette();
 
             for (var i = 0; i < saturated.Length; i++)

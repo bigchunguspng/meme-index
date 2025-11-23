@@ -1,8 +1,8 @@
 using ColorHelper;
-using MemeIndex.Tools;
 using MemeIndex.Tools.Geometry;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
@@ -10,14 +10,9 @@ namespace MemeIndex.Core.Analysis.Color;
 
 public static class DebugTools
 {
-    private const string DIR = "debug";
     private const int SIDE = 101;
 
-    private static string InDebugDirectory(this string path)
-    {
-        Directory.CreateDirectory(DIR);
-        return Path.Combine(DIR, path);
-    }
+    public static readonly JpegEncoder JpegEncoder_Q80 = new() { Quality = 80 };
 
     public static void LoopHSL(int step)
     {
@@ -44,12 +39,76 @@ public static class DebugTools
 
         sw.Log("hue filled");
 
-        image.SaveAsPng($"{nameof(HSL)}-{hue}.png".InDebugDirectory());
+        var path = Dir_Debug_HSL
+            .EnsureDirectoryExist()
+            .Combine($"{nameof(HSL)}-{hue}.png");
+        image.SaveAsPng(path);
         sw.Log("image rendered");
     }
 
-    public static void RenderHSL_Profile(string[] args) => args.ForEachTry(RenderHSL_Profile);
-    public static void RenderHSL_Profile(string path)
+    public static void RenderSamplePoster(FilePath path)
+    {
+        var sw = Stopwatch.StartNew();
+
+        using var source = Image.Load<Rgb24>(path);
+        sw.Log("image is loaded");
+
+        var step = ColorTagService.CalculateStep(source.Size);
+        var halfStep = step / 2;
+        Log($"using step - {step}");
+
+        var w = source.Width;
+        var h = source.Height;
+        var image_actual = new Image<Rgb24>(w, h);
+        var image_poster = new Image<Rgb24>(w, h);
+
+        string[] keys = ["SL", "S1", "S2", "SD", "PD", "PL"];
+
+        foreach (var (x, y) in new SizeIterator_45deg(source.Size, step))
+        {
+            var sample = source[x, y];
+
+            var hsl = ColorConverter.RgbToHsl(sample.ToRGB());
+            var l = hsl.L;
+            var s = hsl.S;
+
+            var hue_index = (hsl.H + 15) % 360 / 30; // 0..11 => 12 hues
+
+            var key = (char)('A' + hue_index);
+            var posterized = s < 5
+                ? l < 20 ? 0.ToRgb24() : l > 80 ? 255.ToRgb24() : 128.ToRgb24()
+                : ColorSearchProfile.ColorsFunny[key][$"{key}{keys[s > 50 ? l > 50 ? 1 : 2 : l > 50 ? 5 : 4]}"];
+
+            for (var y0 = y - halfStep; y0 < y + halfStep; y0++)
+            for (var x0 = x - halfStep; x0 < x + halfStep; x0++)
+            {
+                if (x0 < 0 || y0 < 0 || x0 >= w || y0 >= h)
+                    continue;
+
+                var xd = Math.Abs(x - x0);
+                var yd = Math.Abs(y - y0);
+                if (xd + yd > halfStep)
+                    continue;
+
+                image_actual[x0, y0] = sample;
+                image_poster[x0, y0] = posterized;
+            }
+        }
+
+        var ticks = DateTime.UtcNow.Ticks >> 32;
+        var sand = Desert.GetSand();
+        var jpeg1 = Dir_Debug_SampleGrids
+            .EnsureDirectoryExist()
+            .Combine($"Samples-{ticks}-{sand}.jpg");
+        var jpeg2 = Dir_Debug_SampleGrids
+            .EnsureDirectoryExist()
+            .Combine($"Poster-{ticks}-{sand}.jpg");
+        image_actual.SaveAsJpeg(jpeg1, JpegEncoder_Q80);
+        image_poster.SaveAsJpeg(jpeg2, JpegEncoder_Q80);
+    }
+
+    public static void RenderHSL_Profile(string[] args) => args.ForEachTry(arg => RenderHSL_Profile(arg));
+    public static void RenderHSL_Profile(FilePath path)
     {
         var sw = Stopwatch.StartNew();
 
@@ -96,10 +155,12 @@ public static class DebugTools
 
         sw.Log("samples collected");
 
-        var suffix = Path.GetFileName(Path.GetDirectoryName(path));
-        var export = $"HSL-Profile-{Desert.GetSand(8)}-{suffix}.png";
-        report.SaveAsPng(export.InDebugDirectory());
-        sw.Log($"report was saved as \"{export}\"");
+        var name =  $"HSL-Profile-{Desert.GetSand(8)}.png";
+        var save = Dir_Debug_HSL_Profiles
+            .EnsureDirectoryExist()
+            .Combine(name);
+        report.SaveAsPng(save);
+        sw.Log($"report was saved as \"{name}\"");
     }
 
     private static void PutLines(this Image<Rgb24> image, int offsetX = 0, int offsetY = 0)
