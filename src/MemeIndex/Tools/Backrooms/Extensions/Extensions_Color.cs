@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using ColorHelper;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -28,13 +30,13 @@ public static class Extensions_Color
 
     public static string ToCss(this Rgb24 color) => $"rgb({color.R},{color.G},{color.B})";
 
-    public static HSL ToHsl(this Rgb24 rgb) // todo fix (somehow incorrect)
+    public static HSL ToHsl(this Rgb24 rgb)
     {
         var r = rgb.R / 255.0;
         var g = rgb.G / 255.0;
         var b = rgb.B / 255.0;
-        var min = r < g ? r : g < b ? g : b;
-        var max = r > g ? r : g > b ? g : b;
+        var min = Math.Min(Math.Min(r, g), b);
+        var max = Math.Max(Math.Max(r, g), b);
         var range = max - min;
         var avg =  (min + max) / 2.0;
 
@@ -104,44 +106,67 @@ public static class Extensions_Color
     );
 
     //
+    [MethodImpl(AggressiveInlining)]
     private static double Channel_RgbToLinearRGB
         (double c) => Math.Abs(c) <= 0.04045
         ? c / 12.92
         : Sign(c) * Math.Pow((Math.Abs(c) + 0.055) / 1.055, 2.4);
 
+    [MethodImpl(AggressiveInlining)]
     private static double Channel_LinearRGBToRgb
         (double c) => Math.Abs(c) > 0.0031308
         ? Sign(c) * (1.055 * Math.Pow(Math.Abs(c), 1 / 2.4) - 0.055)
         : 12.92 * c;
 
+    [MethodImpl(AggressiveInlining)]
     private static int Sign(double c) => c < 0 ? -1 : 1;
     //
 
     public static   XYZ ToXYZ(this Oklab color)
     {
-        var lms = MultiplyMatrices_9x3_3(M0, color.ToArray()).Select(x => Math.Pow(x, 3));
-        return new XYZ(MultiplyMatrices_9x3_3(M1, lms.ToArray()));
+        Span<double> vec3 = stackalloc double[3];
+        color.CopyTo(vec3);
+        MultiplyMatrices_9x3_3(M0, vec3);
+        for (var i = 0; i < 3; i++) vec3[i] = Math.Pow(vec3[i], 3);
+        MultiplyMatrices_9x3_3(M1, vec3);
+        return new XYZ(vec3);
     }
 
     public static Oklab ToOklab(this XYZ color)
     {
-        var lms = MultiplyMatrices_9x3_3(M2, color.ToArray()).Select(Math.Cbrt);
-        return new Oklab(MultiplyMatrices_9x3_3(M3, lms.ToArray()));
+        Span<double> vec3 = stackalloc double[3];
+        color.CopyTo(vec3);
+        MultiplyMatrices_9x3_3(M2, vec3);
+        for (var i = 0; i < 3; i++) vec3[i] = Math.Cbrt(vec3[i]);
+        MultiplyMatrices_9x3_3(M3, vec3);
+        return new Oklab(vec3);
     }
 
-    public static  sRGB To_sRGB
-        (this  XYZ color) => new(MultiplyMatrices_9x3_3(M4, color.ToArray()));
+    public static  sRGB To_sRGB(this  XYZ color)
+    {
+        Span<double> vec3 = stackalloc double[3];
+        color.CopyTo(vec3);
+        MultiplyMatrices_9x3_3(M4, vec3);
+        return new sRGB(vec3);
+    }
 
-    public static   XYZ ToXYZ
-        (this sRGB color) => new(MultiplyMatrices_9x3_3(M5, color.ToArray()));
+    public static  XYZ ToXYZ(this sRGB color)
+    {
+        Span<double> vec3 = stackalloc double[3];
+        color.CopyTo(vec3);
+        MultiplyMatrices_9x3_3(M5, vec3);
+        return new XYZ(vec3);
+    }
 
-    //
-    private static double[] MultiplyMatrices_9x3_3(Span<double> A9, Span<double> B3) =>
-    [
-        A9[0] * B3[0] + A9[1] * B3[1] + A9[2] * B3[2],
-        A9[3] * B3[0] + A9[4] * B3[1] + A9[5] * B3[2],
-        A9[6] * B3[0] + A9[7] * B3[1] + A9[8] * B3[2],
-    ];
+    /// Result is stored in the second argument.
+    private static void MultiplyMatrices_9x3_3(Span<double> A9, Span<double> B3)
+    {
+        Span<double> res = stackalloc double[3];
+        res[0] = A9[0] * B3[0] + A9[1] * B3[1] + A9[2] * B3[2];
+        res[1] = A9[3] * B3[0] + A9[4] * B3[1] + A9[5] * B3[2];
+        res[2] = A9[6] * B3[0] + A9[7] * B3[1] + A9[8] * B3[2];
+        res.CopyTo(B3);
+    }
 
     private static Span<double> M0 => M.AsSpan(0 * 9, 9);
     private static Span<double> M1 => M.AsSpan(1 * 9, 9);
@@ -178,18 +203,18 @@ public static class Extensions_Color
 public readonly record struct Oklch(double L, double C, double H);
 public readonly record struct Oklab(double L, double A, double B)
 {
-    public Oklab(double[] a) : this(a[0], a[1], a[2]) { }
-    public double[] ToArray() => [L, A, B]; // todo - to spans
+    public Oklab(Span<double> s) : this(s[0], s[1], s[2]) { }
+    public void CopyTo(Span<double> span) => MemoryMarshal.Write(MemoryMarshal.AsBytes(span), in this);
 }
 
 public readonly record struct   XYZ(double X, double Y, double Z)
 {
-    public   XYZ(double[] a) : this(a[0], a[1], a[2]) { }
-    public double[] ToArray() => [X, Y, Z];
+    public   XYZ(Span<double> s) : this(s[0], s[1], s[2]) { }
+    public void CopyTo(Span<double> span) => MemoryMarshal.Write(MemoryMarshal.AsBytes(span), in this);
 }
 
 public readonly record struct  sRGB(double R, double G, double B)
 {
-    public  sRGB(double[] a) : this(a[0], a[1], a[2]) { }
-    public double[] ToArray() => [R, G, B];
+    public  sRGB(Span<double> s) : this(s[0], s[1], s[2]) { }
+    public void CopyTo(Span<double> span) => MemoryMarshal.Write(MemoryMarshal.AsBytes(span), in this);
 }
