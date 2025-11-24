@@ -7,9 +7,16 @@ public static class ColorTagService_Demo
     public static void Run(string path)
     {
         var sw = Stopwatch.StartNew();
-        DebugTools.RenderHSL_Profile(path);
-        sw.Log("\tDebugTools.RenderHSL_Profile(path);");
+        DebugTools.RenderProfile_HSL(path);
+        sw.Log("\tDebugTools.RenderProfile_HSL(path);");
 
+        DebugTools.RenderProfile_Oklch(path);
+        sw.Log("\tDebugTools.RenderProfile_Oklch(path);");
+
+        DebugTools.RenderProfile_Oklch_HxL(path);
+        sw.Log("\tDebugTools.RenderProfile_Oklch_HxL(path);");
+
+        return;
         var words = ColorTagService.GetTextRepresentation(path).Result;
         sw.Log("\tGetTextRepresentation(path)");
 

@@ -111,12 +111,12 @@ public static class ConsoleLogger
     (
         this Stopwatch sw,
         string message,
-        ConsoleColor color = ConsoleColor.Magenta
+        ConsoleColor color = ConsoleColor.Blue
     )
     {
         sw.Stop();
         Console.ForegroundColor = ConsoleColor.DarkGray;
-        Console.Write("              [TIME] ");
+        Console.Write($"0x{sw.GetHashCode():X8}    [TIME] ");
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.Write("T ");
         Console.ForegroundColor = ConsoleColor.DarkGray;
