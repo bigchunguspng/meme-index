@@ -1,5 +1,6 @@
 using ColorHelper;
 using MemeIndex.Core.Analysis.Color.v1;
+using MemeIndex.Core.Analysis.Color.v2;
 using MemeIndex.Tools.Geometry;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
@@ -123,14 +124,14 @@ public static class DebugTools
     {
         var sw = Stopwatch.StartNew();
 
-        RenderProfile_HSL(path);
-        sw.LogCM(ConsoleColor.Yellow, "\tProfile - HSL");
+        /*RenderProfile_HSL(path);
+        sw.LogCM(ConsoleColor.Yellow, "\tProfile - HSL");*/
 
         RenderProfile_Oklch(path);
         sw.LogCM(ConsoleColor.Yellow, "\tProfile - Oklch");
 
-        RenderProfile_Oklch_HxL(path);
-        sw.LogCM(ConsoleColor.Yellow, "\tProfile - Oklch HxL");
+        /*RenderProfile_Oklch_HxL(path);
+        sw.LogCM(ConsoleColor.Yellow, "\tProfile - Oklch HxL");*/
     }
 
     public static void RenderSamplePoster(string path)
@@ -205,17 +206,18 @@ public static class DebugTools
     });
 
     public static void RenderProfile_Oklch
-        (string path) => RenderProfile(path, GetReportBackground_HSL, "Oklch", (report, sample) =>
+        (string path) => RenderProfile(path, GetReportBackground_Oklch, "Oklch", (report, sample) =>
     {
         var oklch = sample.ToOklch();
-        var ly = (oklch.L * 100  ).RoundInt().Clamp(0, 100);
-        var cx = (oklch.C * 212.7).RoundInt().Clamp(0, 100); // max .c = 0.47
+        var cy = 100 - (oklch.C * 200).RoundInt().Clamp(0, 100); // ↑
+        var lx =       (oklch.L * 100).RoundInt().Clamp(0, 100); //    →
 
-        var hue_ix = (oklch.H.RoundInt() + 15) % 360 / 30; // 0..11 => 12 hues
-        var offsetX = hue_ix / 4 * SIDE;
-        var offsetY = hue_ix % 2 == 0 ? 0 : SIDE;
+        var hue_ix = ColorProfile.GetHueIndex(oklch.H);
 
-        report[offsetX + cx, offsetY + ly] = sample;
+        var row = hue_ix  & 1; // 0 2 | 4 6 | 8 A
+        var col = hue_ix >> 2; // 1 3 | 5 7 | 9
+
+        report[col * SIDE + lx, row * SIDE + cy] = sample;
     });
 
     public static void RenderProfile_HSL
@@ -289,6 +291,31 @@ public static class DebugTools
         return report;
     }
 
+    private static Image<Rgb24> GetReportBackground_Oklch()
+    {
+        Rgb24 
+            c1 = 50.ToRgb24(), c2 = 40.ToRgb24(),
+            c3 = 60.ToRgb24(), c4 = 30.ToRgb24();
+        var report = new Image<Rgb24>(SIDE * 3, SIDE * 2, c1);
+
+        for (var i = 1; i < 6; i += 2)
+        {
+            var row = i / 3;
+            var col = i % 3;
+            var rect = new RectangleF(col * SIDE, row * SIDE, SIDE, SIDE);
+            report.Mutate(ctx => ctx.Fill(c2, rect));
+        }
+
+        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X1, c4, new Point(0 * SIDE + 2, 0 * SIDE + 2));
+        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X2, c3, new Point(0 * SIDE + 2, 1 * SIDE + 2));
+        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X3, c3, new Point(1 * SIDE + 2, 0 * SIDE + 2));
+        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X4, c4, new Point(1 * SIDE + 2, 1 * SIDE + 2));
+        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X5, c4, new Point(2 * SIDE + 2, 0 * SIDE + 2));
+        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X6, c3, new Point(2 * SIDE + 2, 1 * SIDE + 2));
+
+        return report;
+    }
+
     private static Image<Rgb24> GetReportBackground_HSL()
     {
         var report = new Image<Rgb24>(SIDE * 3, SIDE * 2, 50.ToRgb24());
@@ -300,6 +327,23 @@ public static class DebugTools
         }
 
         return report;
+    }
+
+    /// Paints '#' chars with given color.
+    private static void DrawText_FromASCII
+        (this Image<Rgb24> image, string ascii, Rgb24 color, Point point)
+    {
+        var y = 0;
+        using var reader = new StringReader(ascii);
+        while (reader.ReadLine() is { } line)
+        {
+            for (var i = 0; i < line.Length; i++)
+            {
+                if (line[i] == '#') image[point.X + i, point.Y + y] = color;
+            }
+
+            y++;
+        }
     }
 
     private static void PutLines(this Image<Rgb24> image, int offsetX = 0, int offsetY = 0)

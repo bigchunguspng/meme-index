@@ -26,7 +26,7 @@ switch (args.Length)
             .ForEachTry(DebugTools.RenderAllProfiles);
         return;
     case > 1 when args[0] is "-P" or "--profile-list":
-        File.ReadAllLines(args[1]).Select(s => s.Trim('"'))
+        ArgsFromFile(args[1])
             .ForEachTry(DebugTools.RenderAllProfiles);
         return;
     case > 1 when args[0] is "-d" or "--demo":
@@ -34,10 +34,15 @@ switch (args.Length)
             .ForEachTry(ColorTagService_Demo.Run);
         return;
     case > 1 when args[0] is "-D" or "--demo-list":
-        File.ReadAllLines(args[1]).Select(s => s.Trim('"'))
+        ArgsFromFile(args[1])
             .ForEachTry(ColorTagService_Demo.Run);
         return;
 }
+
+IEnumerable<string> ArgsFromFile
+    (string path) => File.ReadAllLines(path)
+    .Where (s => s.StartsWith('#').Janai())
+    .Select(s => s.Trim('"'));
 
 // BUILDER
 

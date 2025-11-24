@@ -128,9 +128,9 @@ public static class Extensions_Generic
             {
                 action(item);
             }
-            catch
+            catch (Exception e)
             {
-                /* xd */
+                LogError(e);
             }
         }
     }
