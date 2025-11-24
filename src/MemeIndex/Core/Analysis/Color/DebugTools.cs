@@ -209,7 +209,7 @@ public static class DebugTools
         (string path) => RenderProfile(path, GetReportBackground_Oklch, "Oklch", (report, sample) =>
     {
         var oklch = sample.ToOklch();
-        var cy = 100 - (oklch.C * 200).RoundInt().Clamp(0, 100); // ↑
+        var cy = 100 - (oklch.C * 300).RoundInt().Clamp(0, 100); // ↑
         var lx =       (oklch.L * 100).RoundInt().Clamp(0, 100); //    →
 
         var hue_ix = ColorProfile.GetHueIndex(oklch.H);
@@ -306,12 +306,17 @@ public static class DebugTools
             report.Mutate(ctx => ctx.Fill(c2, rect));
         }
 
-        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X1, c4, new Point(0 * SIDE + 2, 0 * SIDE + 2));
-        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X2, c3, new Point(0 * SIDE + 2, 1 * SIDE + 2));
-        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X3, c3, new Point(1 * SIDE + 2, 0 * SIDE + 2));
-        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X4, c4, new Point(1 * SIDE + 2, 1 * SIDE + 2));
-        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X5, c4, new Point(2 * SIDE + 2, 0 * SIDE + 2));
-        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X6, c3, new Point(2 * SIDE + 2, 1 * SIDE + 2));
+        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X1 , c4, new Point(0 * SIDE + 2, 0 * SIDE + 2));
+        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X1B, c4, new Point(0 * SIDE + 2, 0 * SIDE + 9));
+        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X2 , c3, new Point(0 * SIDE + 2, 1 * SIDE + 2));
+        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X2B, c3, new Point(0 * SIDE + 2, 1 * SIDE + 9));
+        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X3 , c3, new Point(1 * SIDE + 2, 0 * SIDE + 2));
+        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X3B, c3, new Point(1 * SIDE + 2, 0 * SIDE + 9));
+        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X4 , c4, new Point(1 * SIDE + 2, 1 * SIDE + 2));
+        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X4B, c4, new Point(1 * SIDE + 2, 1 * SIDE + 9));
+        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X5 , c4, new Point(2 * SIDE + 2, 0 * SIDE + 2));
+        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X5B, c4, new Point(2 * SIDE + 2, 0 * SIDE + 9));
+        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X6 , c3, new Point(2 * SIDE + 2, 1 * SIDE + 2));
 
         return report;
     }
