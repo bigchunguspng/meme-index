@@ -3,9 +3,8 @@ namespace MemeIndex.Core;
 public static class Paths
 {
     public static readonly FilePath
-        Dir_Debug                   = new("Debug-Artifacts"),
-        Dir_Debug_Oklch             = Dir_Debug.Combine("Oklch"),
-        Dir_Debug_HSL               = Dir_Debug.Combine("HSL"),
-        Dir_Debug_HSL_Profiles      = Dir_Debug.Combine("HSL-Profiles"),
-        Dir_Debug_SampleGrids       = Dir_Debug.Combine("Sample-Grids");
+        Dir_Debug           = new("Debug-Artifacts"),
+        Dir_Debug_Color     = Dir_Debug.Combine("Color"),    // Color model visualizations.
+        Dir_Debug_Profiles  = Dir_Debug.Combine("Profiles"), // Image -> plot  + data.
+        Dir_Debug_Image     = Dir_Debug.Combine("Image");    // Image -> image + data.
 }

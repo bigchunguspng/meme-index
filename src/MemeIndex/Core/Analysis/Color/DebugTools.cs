@@ -10,8 +10,6 @@ namespace MemeIndex.Core.Analysis.Color;
 
 public static class DebugTools
 {
-    private const int SIDE = 101;
-
     public static readonly JpegEncoder JpegEncoder_Q80 = new() { Quality = 80 };
 
     public static void Test()
@@ -42,25 +40,23 @@ public static class DebugTools
             
         var name_1 = $"Test-{DateTime.UtcNow.Ticks}-H-Full.png";
         var name_2 = $"Test-{DateTime.UtcNow.Ticks}-O-Full.png";
-        var save_1 = Dir_Debug_Oklch
+        var save_1 = Dir_Debug_Color
             .EnsureDirectoryExist()
             .Combine(name_1);
-        var save_2 = Dir_Debug_Oklch
+        var save_2 = Dir_Debug_Color
             .Combine(name_2);
 
         report_1.SaveAsPng(save_1);
         report_2.SaveAsPng(save_2);
     }
 
+    // COLOR VISUALIZATION
+
     public static void LoopHSL(int step)
-    {
-        for (var hue = 0; hue < 360; hue += step) HSL(hue);
-    }
+        => 0.LoopTill(360, step, HSL);
 
     public static void LoopOklch(double step = 0.05)
-    {
-        for (var chroma = 0.0; chroma < 1; chroma += step) Oklch_HxL(chroma);
-    }
+        => 0.0.LoopTill(1, step, Oklch_HxL);
 
     public static void Oklch_HxL(double chroma)
     {
@@ -77,7 +73,7 @@ public static class DebugTools
             var color = oklch.ToRgb24();
             image[x, y] = color;
         }
-        var path = Dir_Debug_Oklch
+        var path = Dir_Debug_Color
             .EnsureDirectoryExist()
             .Combine($"{nameof(Oklch_HxL)}-HxL-2-{chroma:F2}.png");
         image.SaveAsPng(path);
@@ -85,8 +81,6 @@ public static class DebugTools
 
     public static void Oklch(int hue)
     {
-        var sw = Stopwatch.StartNew();
-
         using var image = new Image<Rgb24>(100, 100);
 
         for (var x = 0; x < image.Width; x++)
@@ -97,19 +91,14 @@ public static class DebugTools
             image[x, y] = color;
         }
 
-        sw.Log("hue filled");
-
-        var path = Dir_Debug_Oklch
+        var path = Dir_Debug_Color
             .EnsureDirectoryExist()
             .Combine($"{nameof(Oklch)}-{hue}.png");
         image.SaveAsPng(path);
-        sw.Log("image rendered");
     }
 
     public static void HSL(int hue)
     {
-        var sw = Stopwatch.StartNew();
-
         using var image = new Image<Rgb24>(100, 100);
 
         for (var x = 0; x < image.Width; x++)
@@ -121,14 +110,13 @@ public static class DebugTools
             image[x, y] = color;
         }
 
-        sw.Log("hue filled");
-
-        var path = Dir_Debug_HSL
+        var path = Dir_Debug_Color
             .EnsureDirectoryExist()
             .Combine($"{nameof(HSL)}-{hue}.png");
         image.SaveAsPng(path);
-        sw.Log("image rendered");
     }
+
+    // IMAGE PROFILES
 
     public static void RenderSamplePoster(FilePath path)
     {
@@ -181,156 +169,122 @@ public static class DebugTools
 
         var ticks = DateTime.UtcNow.Ticks;
         var sand = Desert.GetSand();
-        var jpeg1 = Dir_Debug_SampleGrids
+        var jpeg1 = Dir_Debug_Image
             .EnsureDirectoryExist()
             .Combine($"Samples-{ticks}-{sand}.jpg");
-        var jpeg2 = Dir_Debug_SampleGrids
+        var jpeg2 = Dir_Debug_Image
             .EnsureDirectoryExist()
             .Combine($"Poster-{ticks}-{sand}.jpg");
         image_actual.SaveAsJpeg(jpeg1, JpegEncoder_Q80);
         image_poster.SaveAsJpeg(jpeg2, JpegEncoder_Q80);
     }
 
-    public static void RenderProfile_Oklch_HxL(FilePath path)
+    public static void RenderProfile_Oklch_HxL
+        (FilePath path) => RenderProfile(path, GetReportBackground_HxL, "Oklch-HxL", (report, sample) =>
     {
-        var i = 0;
+        var oklch = sample.ToOklch();
+        var ly = (oklch.L * 100).RoundInt().Clamp(0, 100);
+        var hx = (oklch.H.RoundInt() % 360).Clamp(0, 360);
+
+        report[hx, ly] = sample;
+    });
+
+    public static void RenderProfile_Oklch
+        (FilePath path) => RenderProfile(path, GetReportBackground_HSL, "Oklch", (report, sample) =>
+    {
+        var oklch = sample.ToOklch();
+        var ly = (oklch.L * 100  ).RoundInt().Clamp(0, 100);
+        var cx = (oklch.C * 212.7).RoundInt().Clamp(0, 100); // max .c = 0.47
+
+        var hue_ix = (oklch.H.RoundInt() + 15) % 360 / 30; // 0..11 => 12 hues
+        var offsetX = hue_ix / 4 * SIDE;
+        var offsetY = hue_ix % 2 == 0 ? 0 : SIDE;
+
+        report[offsetX + cx, offsetY + ly] = sample;
+    });
+
+    public static void RenderProfile_HSL
+        (FilePath path) => RenderProfile(path, GetReportBackground_HSL, "HSL", (report, sample) =>
+    {
+        var hsl = ColorConverter.RgbToHsl(sample.ToRGB());
+        var l = hsl.L;
+        var s = hsl.S;
+
+        var hue_ix = (hsl.H + 15) % 360 / 30; // 0..11 => 12 hues
+        var offsetX = hue_ix / 4 * SIDE;
+        var offsetY = hue_ix % 2 == 0 ? 0 : SIDE;
+
+        report[offsetX + s, offsetY + l] = sample;
+    });
+
+    private static void RenderProfile
+    (
+        FilePath path,
+        Func<Image<Rgb24>> getReportBg,
+        string suffix,
+        Action<Image<Rgb24>, Rgb24> useSample
+    )
+    {
         var sw = Stopwatch.StartNew();
 
         using var source = Image.Load<Rgb24>(path);
         sw.Log("1. Load image.");
 
-        using var report = new Image<Rgb24>(360, 101, new Rgb24(50, 50, 50));
+        using var report = getReportBg();
+        sw.Log("2. Draw report background.");
+
+        var step = ColorTagService.CalculateStep(source.Size);
+        var samplesTotal = 0;
+
+        foreach (var (x, y) in new SizeIterator_45deg(source.Size, step))
+        {
+            var sample = source[x, y];
+            samplesTotal++;
+
+            useSample(report, sample);
+        }
+        sw.Log("3. Collect samples.");
+
+        var name = $"Profile-{DateTime.UtcNow.Ticks:x16}-{Desert.GetSand()}-{suffix}.png";
+        var save = Dir_Debug_Profiles.EnsureDirectoryExist().Combine(name);
+        report.SaveAsPng(save);
+        sw.Log($"4. Save report >> \"{name}\"");
+
+        Log($"[step: {step,3}, samples collected: {samplesTotal,6}]");
+    }
+    
+    // PROFILE PLOTS
+
+    private const int
+        SIDE     = 101,
+        SIDE_Hue = 361;
+
+    private static Image<Rgb24> GetReportBackground_HxL()
+    {
+        var report = new Image<Rgb24>(SIDE_Hue, SIDE, 50.ToRgb24());
 
         var color = 40.ToRgb24(); 
-        for (var r_hi = 0; r_hi < 12; r_hi += 2)
+        for (var hue_ix = 0; hue_ix < 12; hue_ix += 2)
         {
-            var rect = new RectangleF(r_hi * 30, 0, 30, 360);
+            const int w = ColorSearchProfile.HUE_RANGE_deg;
+            var rect = new RectangleF(hue_ix * w, 0, w, SIDE_Hue);
             report.Mutate(x => x.Fill(color, rect));
         }
-        sw.Log("2. Draw report background.");
 
-        var step = ColorTagService.CalculateStep(source.Size);
-        Log($"[step = {step}]");
-
-        foreach (var (x, y) in new SizeIterator_45deg(source.Size, step))
-        {
-            var sample = source[x, y];
-
-            var oklch = sample.ToOklch();
-            var ly = (oklch.L * 100).RoundInt().Clamp(0, 100);
-            var hx = (oklch.H.RoundInt() % 360).Clamp(0, 360);
-
-            report[hx, ly] = sample;
-            /*if (i++ % 256 == 0 && double.IsNaN(oklch.H).Janai())
-            {
-                var hue_ix = (oklch.H.RoundInt() + 15) % 360 / 30; // 0..11 => 12 hues
-                Console.WriteLine($"[{i,3}] Hue: {oklch.H:F2} -> {hue_ix}");
-            }*/
-        }
-        sw.Log("3. Collect samples.");
-
-        var name = $"Profile-{DateTime.UtcNow.Ticks}-{Desert.GetSand()}-Oklch-HxL.png";
-        var save = Dir_Debug_HSL_Profiles
-            .EnsureDirectoryExist()
-            .Combine(name);
-        report.SaveAsPng(save);
-        sw.Log($"4. Save report >> \"{name}\"");
+        return report;
     }
 
-    public static void RenderProfile_Oklch(FilePath path)
+    private static Image<Rgb24> GetReportBackground_HSL()
     {
-        var i = 0;
-        var sw = Stopwatch.StartNew();
-
-        using var source = Image.Load<Rgb24>(path);
-        sw.Log("1. Load image.");
-
-        using var report = new Image<Rgb24>(SIDE * 3, SIDE * 2, new Rgb24(50, 50, 50));
+        var report = new Image<Rgb24>(SIDE * 3, SIDE * 2, 50.ToRgb24());
 
         for (var row = 0; row < 2; row++)
         for (var col = 0; col < 3; col++)
         {
             report.PutLines(col * SIDE, row * SIDE);
         }
-        sw.Log("2. Draw report background.");
 
-        var step = ColorTagService.CalculateStep(source.Size);
-        Log($"[step = {step}]");
-
-        foreach (var (x, y) in new SizeIterator_45deg(source.Size, step))
-        {
-            var sample = source[x, y];
-
-            var oklch = sample.ToOklch();
-            var ly = (oklch.L * 100  ).RoundInt().Clamp(0, 100);
-            var cx = (oklch.C * 212.7).RoundInt().Clamp(0, 100); // max .c = 0.47
-
-            var hue_ix = (oklch.H.RoundInt() + 15) % 360 / 30; // 0..11 => 12 hues
-            var offsetX = hue_ix / 4 * SIDE;
-            var offsetY = hue_ix % 2 == 0 ? 0 : SIDE;
-
-            report[offsetX + cx, offsetY + ly] = sample;
-            /*if (i++ % 256 == 0 && double.IsNaN(oklch.H).Janai())
-            {
-                Console.WriteLine($"[{i,3}] Hue: {oklch.H:F2} -> {hue_ix}");
-            }*/
-        }
-        sw.Log("3. Collect samples.");
-
-        var name = $"Profile-{DateTime.UtcNow.Ticks}-{Desert.GetSand()}-Oklch.png";
-        var save = Dir_Debug_HSL_Profiles
-            .EnsureDirectoryExist()
-            .Combine(name);
-        report.SaveAsPng(save);
-        sw.Log($"4. Save report >> \"{name}\"");
-    }
-
-    public static void RenderProfile_HSL(FilePath path)
-    {
-        var i = 0;
-        var sw = Stopwatch.StartNew();
-
-        using var source = Image.Load<Rgb24>(path);
-        sw.Log("1. Load image.");
-
-        using var report = new Image<Rgb24>(SIDE * 3, SIDE * 2, new Rgb24(50, 50, 50));
-
-        for (var row = 0; row < 2; row++)
-        for (var col = 0; col < 3; col++)
-        {
-            report.PutLines(col * SIDE, row * SIDE);
-        }
-        sw.Log("2. Draw report background.");
-
-        var step = ColorTagService.CalculateStep(source.Size);
-        Log($"[step = {step}]");
-
-        foreach (var (x, y) in new SizeIterator_45deg(source.Size, step))
-        {
-            var sample = source[x, y];
-
-            var hsl = ColorConverter.RgbToHsl(sample.ToRGB());
-            var l = hsl.L;
-            var s = hsl.S;
-
-            var hue_ix = (hsl.H + 15) % 360 / 30; // 0..11 => 12 hues
-            var offsetX = hue_ix / 4 * SIDE;
-            var offsetY = hue_ix % 2 == 0 ? 0 : SIDE;
-
-            report[offsetX + s, offsetY + l] = sample;
-            /*if (i++ % 256 == 0 && hsl.H != 0)
-            {
-                Console.WriteLine($"[{i,3}] Hue: {hsl.H:F2} -> {hue_ix}");
-            }*/
-        }
-        sw.Log("3. Collect samples.");
-
-        var name = $"Profile-{DateTime.UtcNow.Ticks}-{Desert.GetSand()}-HSL.png";
-        var save = Dir_Debug_HSL_Profiles
-            .EnsureDirectoryExist()
-            .Combine(name);
-        report.SaveAsPng(save);
-        sw.Log($"4. Save report >> \"{name}\"");
+        return report;
     }
 
     private static void PutLines(this Image<Rgb24> image, int offsetX = 0, int offsetY = 0)

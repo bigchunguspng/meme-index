@@ -5,8 +5,9 @@ namespace MemeIndex.Core.Analysis.Color;
 
 public static class ColorSearchProfile
 {
-    private const int HUE_RANGE_deg = 30;
-    public  const int HUE_COUNT     = 12; // 360 / 30
+    public const int
+        HUE_RANGE_deg = 30,
+        HUE_COUNT     = 12; // 360 / 30
 
     public static Dictionary<char, ColorPalette> ColorsFunny     { get; } = new();
     public static                  ColorPalette  ColorsGrayscale { get; } = new();

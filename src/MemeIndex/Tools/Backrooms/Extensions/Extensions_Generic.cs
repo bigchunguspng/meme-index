@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 
 namespace MemeIndex.Tools.Backrooms.Extensions;
 
@@ -97,6 +98,12 @@ public static class Extensions_Generic
         for (var i = 0; i < length; i++)
             array[i] = factory(i);
         return array;
+    }
+
+    /// For loop.
+    public static void LoopTill<T>(this T start, T limit, T step, Action<T> action) where T : INumber<T>
+    {
+        for (var i = start; i < limit; i += step) action(i);
     }
 
     // Meme-Index
