@@ -1,7 +1,8 @@
 using MemeIndex.Core.Analysis.Color;
+using MemeIndex.Core.Analysis.Color.v1;
 using MemeIndex.Utils;
 
-Log("[Start]", color: ConsoleColor.Magenta);
+LogCM(ConsoleColor.Magenta, "[Start]");
 
 AppDomain.CurrentDomain.UnhandledException += (_, e) =>
 {
@@ -20,13 +21,20 @@ switch (args.Length)
     case > 0 when args[0] is "-t" or "--test":
         DebugTools.Test();
         return;
+    case > 1 when args[0] is "-p" or "--profile":
+        args.Skip(1)
+            .ForEachTry(DebugTools.RenderAllProfiles);
+        return;
+    case > 1 when args[0] is "-P" or "--profile-list":
+        File.ReadAllLines(args[1]).Select(s => s.Trim('"'))
+            .ForEachTry(DebugTools.RenderAllProfiles);
+        return;
     case > 1 when args[0] is "-d" or "--demo":
         args.Skip(1)
             .ForEachTry(ColorTagService_Demo.Run);
         return;
     case > 1 when args[0] is "-D" or "--demo-list":
-        File.ReadAllLines(args[1])
-            .Select(line => line.Trim('"'))
+        File.ReadAllLines(args[1]).Select(s => s.Trim('"'))
             .ForEachTry(ColorTagService_Demo.Run);
         return;
 }
@@ -72,6 +80,6 @@ await connection.CloseAsync();
 Log("await connection.Insert();");
 */
 
-Log("[Configuration]", color: ConsoleColor.Magenta);
+LogCM(ConsoleColor.Magenta, "[Configuration]");
 
 app.Run();

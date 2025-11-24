@@ -3,7 +3,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using FrequencySample = System.Collections.Generic.KeyValuePair<MemeIndex.Tools.Geometry.BytePoint, ushort>;
 
-namespace MemeIndex.Core.Analysis.Color;
+namespace MemeIndex.Core.Analysis.Color.v1;
 
 public static class ColorTagService // todo rename
 {
@@ -199,13 +199,13 @@ public static class ColorTagService // todo rename
         var totalD = grayscale.Where(x => x.Key.Y <  50).Sum(x => x.Value) + funny.SumByDarkness(Darkness.Dark);
         var totalL = grayscale.Where(x => x.Key.Y >= 50).Sum(x => x.Value) + funny.SumByDarkness(Darkness.Light);
 
-        Log(color: ConsoleColor.Green, message: $"\tfunnyTotal\t{funnyTotal,7}");
-        Log(color: ConsoleColor.Green, message: $"\t grayTotal\t{grayTotal,7}\trange:\t{grayRange} ({grayRangeRatio:P2})");
-        Log(color: ConsoleColor.Green, message: $"\ttotalPaleW\t{totalPaleW,7}");
-        Log(color: ConsoleColor.Green, message: $"\ttotalPaleS\t{totalPaleS,7}");
-        Log(color: ConsoleColor.Green, message: $"\ttotalVivid\t{totalVivid,7}");
-        Log(color: ConsoleColor.Green, message: $"\ttotalD    \t{totalD,7}");
-        Log(color: ConsoleColor.Green, message: $"\ttotalL    \t{totalL,7}");
+        LogCM(ConsoleColor.Green, $"\tfunnyTotal\t{funnyTotal,7}");
+        LogCM(ConsoleColor.Green, $"\t grayTotal\t{grayTotal,7}\trange:\t{grayRange} ({grayRangeRatio:P2})");
+        LogCM(ConsoleColor.Green, $"\ttotalPaleW\t{totalPaleW,7}");
+        LogCM(ConsoleColor.Green, $"\ttotalPaleS\t{totalPaleS,7}");
+        LogCM(ConsoleColor.Green, $"\ttotalVivid\t{totalVivid,7}");
+        LogCM(ConsoleColor.Green, $"\ttotalD    \t{totalD,7}");
+        LogCM(ConsoleColor.Green, $"\ttotalL    \t{totalL,7}");
 
         var almostGrayscale = totalPaleW > 8 * totalPaleS && totalPaleS > 8 * totalVivid;
         var paleGrayness = Math.Clamp(Math.Sqrt(totalPaleW / (double)totalPaleS / 40.0), 0, 1);

@@ -1,6 +1,6 @@
 using Spectre.Console;
 
-namespace MemeIndex.Core.Analysis.Color;
+namespace MemeIndex.Core.Analysis.Color.v1;
 
 public static class ColorTagService_Demo
 {
@@ -8,17 +8,10 @@ public static class ColorTagService_Demo
     {
         var sw = Stopwatch.StartNew();
         DebugTools.RenderProfile_HSL(path);
-        sw.Log("\tDebugTools.RenderProfile_HSL(path);");
+        sw.LogCM(ConsoleColor.Yellow, "\tProfile - HSL");
 
-        DebugTools.RenderProfile_Oklch(path);
-        sw.Log("\tDebugTools.RenderProfile_Oklch(path);");
-
-        DebugTools.RenderProfile_Oklch_HxL(path);
-        sw.Log("\tDebugTools.RenderProfile_Oklch_HxL(path);");
-
-        return;
         var words = ColorTagService.GetTextRepresentation(path).Result;
-        sw.Log("\tGetTextRepresentation(path)");
+        sw.LogCM(ConsoleColor.Yellow, "\tImage Analysis");
 
         if (words is null) return;
 

@@ -1,4 +1,5 @@
 using ColorHelper;
+using MemeIndex.Core.Analysis.Color.v1;
 using MemeIndex.Tools.Geometry;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
@@ -118,7 +119,21 @@ public static class DebugTools
 
     // IMAGE PROFILES
 
-    public static void RenderSamplePoster(FilePath path)
+    public static void RenderAllProfiles(string path)
+    {
+        var sw = Stopwatch.StartNew();
+
+        RenderProfile_HSL(path);
+        sw.LogCM(ConsoleColor.Yellow, "\tProfile - HSL");
+
+        RenderProfile_Oklch(path);
+        sw.LogCM(ConsoleColor.Yellow, "\tProfile - Oklch");
+
+        RenderProfile_Oklch_HxL(path);
+        sw.LogCM(ConsoleColor.Yellow, "\tProfile - Oklch HxL");
+    }
+
+    public static void RenderSamplePoster(string path)
     {
         var sw = Stopwatch.StartNew();
 
@@ -180,7 +195,7 @@ public static class DebugTools
     }
 
     public static void RenderProfile_Oklch_HxL
-        (FilePath path) => RenderProfile(path, GetReportBackground_HxL, "Oklch-HxL", (report, sample) =>
+        (string path) => RenderProfile(path, GetReportBackground_HxL, "Oklch-HxL", (report, sample) =>
     {
         var oklch = sample.ToOklch();
         var ly = (oklch.L * 100).RoundInt().Clamp(0, 100);
@@ -190,7 +205,7 @@ public static class DebugTools
     });
 
     public static void RenderProfile_Oklch
-        (FilePath path) => RenderProfile(path, GetReportBackground_HSL, "Oklch", (report, sample) =>
+        (string path) => RenderProfile(path, GetReportBackground_HSL, "Oklch", (report, sample) =>
     {
         var oklch = sample.ToOklch();
         var ly = (oklch.L * 100  ).RoundInt().Clamp(0, 100);
@@ -204,7 +219,7 @@ public static class DebugTools
     });
 
     public static void RenderProfile_HSL
-        (FilePath path) => RenderProfile(path, GetReportBackground_HSL, "HSL", (report, sample) =>
+        (string path) => RenderProfile(path, GetReportBackground_HSL, "HSL", (report, sample) =>
     {
         var hsl = ColorConverter.RgbToHsl(sample.ToRGB());
         var l = hsl.L;
@@ -219,7 +234,7 @@ public static class DebugTools
 
     private static void RenderProfile
     (
-        FilePath path,
+        string path,
         Func<Image<Rgb24>> getReportBg,
         string suffix,
         Action<Image<Rgb24>, Rgb24> useSample

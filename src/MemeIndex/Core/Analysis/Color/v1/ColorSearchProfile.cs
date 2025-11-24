@@ -1,7 +1,7 @@
 using ColorHelper;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace MemeIndex.Core.Analysis.Color;
+namespace MemeIndex.Core.Analysis.Color.v1;
 
 public static class ColorSearchProfile
 {

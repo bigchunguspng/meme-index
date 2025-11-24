@@ -75,6 +75,11 @@ public static class ConsoleLogger
         (string message, ConsoleColor color = ConsoleColor.Blue)
         => Log(message, LogLevel.Debug, color);
 
+    [MethodImpl(AggressiveInlining)]
+    public static void LogCM // CM = color, message
+        (ConsoleColor color, string message, LogLevel level = LogLevel.Info)
+        => Log(message, level, color);
+
     [MethodImpl(Synchronized)]
     public static void Log
     (
@@ -92,8 +97,7 @@ public static class ConsoleLogger
     [MethodImpl(Synchronized)]
     public static void Log
     (
-        string category,
-        string message,
+        string category, string message,
         LogLevel level = LogLevel.Info,
         ConsoleColor color = ConsoleColor.Gray
     )
@@ -106,17 +110,21 @@ public static class ConsoleLogger
         Console.ResetColor();
     }
 
+    [MethodImpl(AggressiveInlining)]
+    public static void LogCM // CM = color, message
+        (this Stopwatch sw, ConsoleColor color, string message)
+        => sw.Log(message, color);
+
     [MethodImpl(Synchronized)]
     public static void Log
     (
-        this Stopwatch sw,
-        string message,
+        this Stopwatch sw, string message,
         ConsoleColor color = ConsoleColor.Blue
     )
     {
         sw.Stop();
         Console.ForegroundColor = ConsoleColor.DarkGray;
-        Console.Write($"0x{sw.GetHashCode():X8}    [TIME] ");
+        Console.Write($"0x{sw.GetHashCode():x8}    [TIME] ");
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.Write("T ");
         Console.ForegroundColor = ConsoleColor.DarkGray;
