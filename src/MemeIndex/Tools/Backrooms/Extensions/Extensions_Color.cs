@@ -122,6 +122,22 @@ public static class Extensions_Color
     private static int Sign(double c) => c < 0 ? -1 : 1;
     //
 
+    public static  sRGB To_sRGB(this  XYZ color)
+    {
+        Span<double> vec3 = stackalloc double[3];
+        color.CopyTo(vec3);
+        MultiplyMatrices_9x3_3(M4, vec3);
+        return new sRGB(vec3);
+    }
+
+    public static  XYZ ToXYZ(this sRGB color)
+    {
+        Span<double> vec3 = stackalloc double[3];
+        color.CopyTo(vec3);
+        MultiplyMatrices_9x3_3(M5, vec3);
+        return new XYZ(vec3);
+    }
+
     public static   XYZ ToXYZ(this Oklab color)
     {
         Span<double> vec3 = stackalloc double[3];
@@ -140,22 +156,6 @@ public static class Extensions_Color
         for (var i = 0; i < 3; i++) vec3[i] = Math.Cbrt(vec3[i]);
         MultiplyMatrices_9x3_3(M3, vec3);
         return new Oklab(vec3);
-    }
-
-    public static  sRGB To_sRGB(this  XYZ color)
-    {
-        Span<double> vec3 = stackalloc double[3];
-        color.CopyTo(vec3);
-        MultiplyMatrices_9x3_3(M4, vec3);
-        return new sRGB(vec3);
-    }
-
-    public static  XYZ ToXYZ(this sRGB color)
-    {
-        Span<double> vec3 = stackalloc double[3];
-        color.CopyTo(vec3);
-        MultiplyMatrices_9x3_3(M5, vec3);
-        return new XYZ(vec3);
     }
 
     /// Result is stored in the second argument.
