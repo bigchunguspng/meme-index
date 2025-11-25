@@ -127,8 +127,11 @@ public static class DebugTools
         /*RenderProfile_HSL(path);
         sw.LogCM(ConsoleColor.Yellow, "\tProfile - HSL");*/
 
-        RenderProfile_Oklch(path);
-        sw.LogCM(ConsoleColor.Yellow, "\tProfile - Oklch");
+        /*RenderProfile_Oklch(path);
+        sw.LogCM(ConsoleColor.Yellow, "\tProfile - Oklch");*/
+
+        RenderSamplePoster(path);
+        sw.LogCM(ConsoleColor.Yellow, "\tPoster - Color v2");
 
         /*RenderProfile_Oklch_HxL(path);
         sw.LogCM(ConsoleColor.Yellow, "\tProfile - Oklch HxL");*/
@@ -136,36 +139,29 @@ public static class DebugTools
 
     public static void RenderSamplePoster(string path)
     {
-        var sw = Stopwatch.StartNew();
-
         using var source = Image.Load<Rgb24>(path);
-        sw.Log("image is loaded");
 
         var step = ColorTagService.CalculateStep(source.Size);
         var halfStep = step / 2;
-        Log($"using step - {step}");
 
         var w = source.Width;
         var h = source.Height;
         var image_actual = new Image<Rgb24>(w, h);
         var image_poster = new Image<Rgb24>(w, h);
 
-        string[] keys = ["SL", "S1", "S2", "SD", "PD", "PL"];
-
         foreach (var (x, y) in new SizeIterator_45deg(source.Size, step))
         {
             var sample = source[x, y];
 
-            var hsl = ColorConverter.RgbToHsl(sample.ToRGB());
-            var l = hsl.L;
-            var s = hsl.S;
-
-            var hue_index = (hsl.H + 15) % 360 / 30; // 0..11 => 12 hues
-
-            var key = (char)('A' + hue_index);
-            var posterized = s < 5
-                ? l < 20 ? 0.ToRgb24() : l > 80 ? 255.ToRgb24() : 128.ToRgb24()
-                : ColorSearchProfile.ColorsFunny[key][$"{key}{keys[s > 50 ? l > 50 ? 1 : 2 : l > 50 ? 5 : 4]}"];
+            var oklch = sample.ToOklch();
+            var hue_ix = ColorProfile.GetHueIndex(oklch.H);
+            var saturated = ColorProfile.IsSaturated(oklch);
+            var bucket = saturated
+                ? ColorProfile.GetBucketIndex_Saturated(oklch)
+                : ColorProfile.GetBucketIndex_Grayscale(oklch);
+            var color = saturated
+                ? ColorProfile.GetColor_Saturated(hue_ix, bucket)
+                : ColorProfile.GetColor_Grayscale(bucket);
 
             for (var y0 = y - halfStep; y0 < y + halfStep; y0++)
             for (var x0 = x - halfStep; x0 < x + halfStep; x0++)
@@ -179,7 +175,7 @@ public static class DebugTools
                     continue;
 
                 image_actual[x0, y0] = sample;
-                image_poster[x0, y0] = posterized;
+                image_poster[x0, y0] = color;
             }
         }
 
@@ -189,9 +185,8 @@ public static class DebugTools
             .EnsureDirectoryExist()
             .Combine($"Samples-{ticks}-{sand}.jpg");
         var jpeg2 = Dir_Debug_Image
-            .EnsureDirectoryExist()
             .Combine($"Poster-{ticks}-{sand}.jpg");
-        image_actual.SaveAsJpeg(jpeg1, JpegEncoder_Q80);
+        //image_actual.SaveAsJpeg(jpeg1, JpegEncoder_Q80);
         image_poster.SaveAsJpeg(jpeg2, JpegEncoder_Q80);
     }
 
