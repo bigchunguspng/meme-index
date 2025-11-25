@@ -29,7 +29,7 @@ public static class ColorProfile
         275 - OFF, 310 - OFF, 340 - OFF,       360,  // Violet  Magenta Pink
     ];
 
-    public const string
+    public const string // Generator: https://patorjk.com/software/taag, Font: Letter.
         PROFILE_TEXT_X1 =
             """
             ####  ##### ####  

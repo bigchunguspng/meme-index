@@ -41,7 +41,7 @@ switch (args.Length)
 
 IEnumerable<string> ArgsFromFile
     (string path) => File.ReadAllLines(path)
-    .Where (s => s.StartsWith('#').Janai())
+    .Where (s => s.IsNotNull_NorWhiteSpace() && s.StartsWith('#').Janai())
     .Select(s => s.Trim('"'));
 
 // BUILDER
