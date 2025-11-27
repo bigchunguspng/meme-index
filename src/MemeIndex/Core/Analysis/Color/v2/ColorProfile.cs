@@ -3,7 +3,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace MemeIndex.Core.Analysis.Color.v2;
 
 /// Oklch based color profile.
-public static class ColorProfile
+public static partial class ColorProfile
 {
     // HUE
 
@@ -12,26 +12,57 @@ public static class ColorProfile
     {
         if (double.IsNaN(oklch_H)) return 0;
 
-        var hue = (oklch_H.RoundInt() - OFF + 360) % 360; // Red = 0°
+        var hue = (oklch_H - OFF + 360) % 360; // Red = 0°
         for (var i = 0; i < N_of_HUES - 1; i++)
         {
-            if (hue < _hue_borders[i]) return i;
+            if (hue < _borders_H[i]) return i;
         }
 
         return N_of_HUES - 1;
     }
 
+    public static int GetChromaIndex(double oklch_C)
+    {
+        return oklch_C < _borders_C[0] ? 0 : 1;
+    }
+
+    public static int GetLightnessIndex(double oklch_L)
+    {
+        for (var i = 0; i < N_of_Ls - 1; i++)
+        {
+            if (oklch_L < _borders_L[i]) return i;
+        }
+
+        return N_of_Ls - 1;
+    }
+
+    public static int GetBucketIndex(Oklch ok)
+    {
+        return GetHueIndex(ok.H) * N_of_Cs * N_of_Ls
+             + GetChromaIndex(ok.C) * N_of_Ls
+             + GetLightnessIndex(ok.L);
+    }
+
+    private const double
+        CHROMA_GRAY = 0.02; // Colors with lower chroma treated as grayscale.
+
     private const int
         OFF       = 15, // Red color offset, degrees.
-        N_of_HUES = 11;
+        N_of_HUES = 11,
+        N_of_Cs   =  2,
+        N_of_Ls   =  3;
 
     // Hue borders in degrees. Values are shifted so Red starts at 0°.
-    private static readonly int[] _hue_borders =
-    [
-        035 - OFF,  75 - OFF, 115 - OFF, 135 - OFF,  // Red     Orange  Yellow  Lime
-        160 - OFF, 225 - OFF, 255 - OFF, 275 - OFF,  // Green   Cyan    Sky     Blue
-        310 - OFF, 340 - OFF, 360,                   // Violet  Magenta Pink
-    ];
+    private static readonly double[]
+        _borders_H =
+        [
+            035 - OFF,  75 - OFF, 115 - OFF, 135 - OFF,  // Red     Orange  Yellow  Lime
+            160 - OFF, 225 - OFF, 255 - OFF, 275 - OFF,  // Green   Cyan    Sky     Blue
+            310 - OFF, 340 - OFF, 360,                   // Violet  Magenta Pink
+        ],
+        _borders_C = [0.15, 1.00],
+        _borders_L = [0.40, 0.75, 1.00]; // todo try 0.75
+        //_borders_C = [0.02, 0.08, 0.15, 1.00], // weak|strong pale - to be used in analysis only
 
     // BUCKETS
 
@@ -81,8 +112,8 @@ public static class ColorProfile
 
     public static Rgb24 GetColor_Saturated(int hue_ix, int bucket) => bucket switch
     {
-        0 => new Oklch(0.35, 0.10, (_hue_borders[hue_ix] + _hue_borders[(hue_ix + 1) % N_of_HUES]) / 2.0).ToRgb24(),
-        1 => new Oklch(0.75, 0.10, (_hue_borders[hue_ix] + _hue_borders[(hue_ix + 1) % N_of_HUES]) / 2.0).ToRgb24(),
+        0 => new Oklch(0.35, 0.10, (_borders_H[hue_ix] + _borders_H[(hue_ix + 1) % N_of_HUES]) / 2.0).ToRgb24(),
+        1 => new Oklch(0.75, 0.10, (_borders_H[hue_ix] + _borders_H[(hue_ix + 1) % N_of_HUES]) / 2.0).ToRgb24(),
         _ => Rgba32.TryParseHex(_hex[2 * hue_ix + bucket % 2], out var c) ? c.Rgb : default, // saturated
     };
 
@@ -95,93 +126,4 @@ public static class ColorProfile
         "570086", "a084fc", "640069", "f64afc", // V,M
         "950043", "fc7aa6",                       // P
     ];
-    public const string // Generator: https://patorjk.com/software/taag, Font: Letter.
-        PROFILE_TEXT_X1 =
-            """
-            ####  ##### ####  
-            #   # #     #   # 
-            ####  ####  #   # 
-            #  #  #     #   # 
-            #   # ##### ####  
-            """,
-        PROFILE_TEXT_X1B =
-            """
-            #   # ##### #     #      ###  #   # 
-             # #  #     #     #     #   # #   # 
-              #   ####  #     #     #   # # # # 
-              #   #     #     #     #   # # # # 
-              #   ##### ##### #####  ###   # #  
-            """,
-        PROFILE_TEXT_X2 =
-            """
-             ###  ####    #   #   #  ###  ##### 
-            #   # #   #  # #  ##  # #     #     
-            #   # ####  ##### # # # # ##  ####  
-            #   # #  #  #   # #  ## #   # #     
-             ###  #   # #   # #   #  ###  ##### 
-            """,
-        PROFILE_TEXT_X2B =
-            """
-            #     ### #   # ##### 
-            #      #  ## ## #     
-            #      #  # # # ####  
-            #      #  #   # #     
-            ##### ### #   # ##### 
-            """,
-        PROFILE_TEXT_X3 =
-            """
-             ###  ####  ##### ##### #   # 
-            #     #   # #     #     ##  # 
-            # ##  ####  ####  ####  # # # 
-            #   # #  #  #     #     #  ## 
-             ###  #   # ##### ##### #   # 
-            """,
-        PROFILE_TEXT_X3B =
-            """
-             #### #   # #   # 
-            #     #  #   # #  
-             ###  ###     #   
-                # #  #    #   
-            ####  #   #   #   
-            """,
-        PROFILE_TEXT_X4 =
-            """
-             ###  #   #   #   #   # 
-            #   #  # #   # #  ##  # 
-            #       #   ##### # # # 
-            #   #   #   #   # #  ## 
-             ###    #   #   # #   # 
-            """,
-        PROFILE_TEXT_X4B =
-            """
-            ####  #     #   # ##### 
-            #   # #     #   # #     
-            ####  #     #   # ####  
-            #   # #     #   # #     
-            ####  #####  ###  ##### 
-            """,
-        PROFILE_TEXT_X5 =
-            """
-            #   # ###  ###  #     ##### ##### 
-            #   #  #  #   # #     #       #   
-            #   #  #  #   # #     ####    #   
-             # #   #  #   # #     #       #   
-              #   ###  ###  ##### #####   #   
-            """,
-        PROFILE_TEXT_X5B =
-            """
-            ####  ### #   # #   # 
-            #   #  #  ##  # #  #  
-            ####   #  # # # ###   
-            #      #  #  ## #  #  
-            #     ### #   # #   # 
-            """,
-        PROFILE_TEXT_X6 =
-            """
-            #   #   #    ###  ##### #   # #####   #   
-            ## ##  # #  #     #     ##  #   #    # #  
-            # # # ##### # ##  ####  # # #   #   ##### 
-            #   # #   # #   # #     #  ##   #   #   # 
-            #   # #   #  ###  ##### #   #   #   #   # 
-            """;
 }

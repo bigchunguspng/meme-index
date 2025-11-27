@@ -16,6 +16,11 @@ public static class DebugTools
 
     public static void Test()
     {
+        ColorProfile.RenderHues();
+        Log("DONE");
+        return;
+        ColorProfile.GeneratePalette_Saturated();
+        return;
         using var report_1 = new Image<Rgb24>(360, 101, new Rgb24(50, 50, 50));
         using var report_2 = new Image<Rgb24>(360, 101, new Rgb24(50, 50, 50));
 
@@ -123,18 +128,22 @@ public static class DebugTools
     public static void RenderAllProfiles(string path)
     {
         var sw = Stopwatch.StartNew();
+        var times = new TimeSpan[4];
 
-        /*RenderProfile_HSL(path);
-        sw.LogCM(ConsoleColor.Yellow, "\tProfile - HSL");*/
+        RenderProfile_HSL(path);
+        times[0] += sw.Elapsed;
+        sw.LogCM(ConsoleColor.Yellow, "\tProfile - HSL");
 
-        /*RenderProfile_Oklch(path);
-        sw.LogCM(ConsoleColor.Yellow, "\tProfile - Oklch");*/
+        RenderProfile_Oklch(path);
+        times[1] += sw.Elapsed;
+        sw.LogCM(ConsoleColor.Yellow, "\tProfile - Oklch");
 
-        RenderSamplePoster(path);
-        sw.LogCM(ConsoleColor.Yellow, "\tPoster - Color v2");
+        /*RenderSamplePoster(path);
+        sw.LogCM(ConsoleColor.Yellow, "\tPoster - Color v2");*/
 
         /*RenderProfile_Oklch_HxL(path);
         sw.LogCM(ConsoleColor.Yellow, "\tProfile - Oklch HxL");*/
+        Print("Elapsed by task:\n" + string.Join('\n', times.Take(2).Select(x => x.ReadableTime())), ConsoleColor.Yellow);
     }
 
     public static void RenderSamplePoster(string path)
@@ -306,17 +315,17 @@ public static class DebugTools
             report.Mutate(ctx => ctx.Fill(rectC, new RectangleF(col * SIDE + 50, row * SIDE, 51, 69)));
         }
 
-        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X1 , textA, new Point(0 * SIDE + 2, 0 * SIDE + 2));
-        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X1B, textA, new Point(0 * SIDE + 2, 0 * SIDE + 9));
-        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X2 , textB, new Point(0 * SIDE + 2, 1 * SIDE + 2));
-        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X2B, textB, new Point(0 * SIDE + 2, 1 * SIDE + 9));
-        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X3 , textB, new Point(1 * SIDE + 2, 0 * SIDE + 2));
-        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X3B, textB, new Point(1 * SIDE + 2, 0 * SIDE + 9));
-        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X4 , textA, new Point(1 * SIDE + 2, 1 * SIDE + 2));
-        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X4B, textA, new Point(1 * SIDE + 2, 1 * SIDE + 9));
-        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X5 , textA, new Point(2 * SIDE + 2, 0 * SIDE + 2));
-        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X5B, textA, new Point(2 * SIDE + 2, 0 * SIDE + 9));
-        report.DrawText_FromASCII(ColorProfile.PROFILE_TEXT_X6 , textB, new Point(2 * SIDE + 2, 1 * SIDE + 2));
+        report.DrawPixelArt(ASCII.HUE_LABEL_01, textA, new Point(0 * SIDE + 2, 0 * SIDE + 2));
+        report.DrawPixelArt(ASCII.HUE_LABEL_02, textA, new Point(0 * SIDE + 2, 0 * SIDE + 9));
+        report.DrawPixelArt(ASCII.HUE_LABEL_03, textB, new Point(0 * SIDE + 2, 1 * SIDE + 2));
+        report.DrawPixelArt(ASCII.HUE_LABEL_04, textB, new Point(0 * SIDE + 2, 1 * SIDE + 9));
+        report.DrawPixelArt(ASCII.HUE_LABEL_05, textB, new Point(1 * SIDE + 2, 0 * SIDE + 2));
+        report.DrawPixelArt(ASCII.HUE_LABEL_06, textB, new Point(1 * SIDE + 2, 0 * SIDE + 9));
+        report.DrawPixelArt(ASCII.HUE_LABEL_07, textA, new Point(1 * SIDE + 2, 1 * SIDE + 2));
+        report.DrawPixelArt(ASCII.HUE_LABEL_08, textA, new Point(1 * SIDE + 2, 1 * SIDE + 9));
+        report.DrawPixelArt(ASCII.HUE_LABEL_09, textA, new Point(2 * SIDE + 2, 0 * SIDE + 2));
+        report.DrawPixelArt(ASCII.HUE_LABEL_10, textA, new Point(2 * SIDE + 2, 0 * SIDE + 9));
+        report.DrawPixelArt(ASCII.HUE_LABEL_11, textB, new Point(2 * SIDE + 2, 1 * SIDE + 2));
 
         return report;
     }
@@ -328,30 +337,14 @@ public static class DebugTools
         for (var row = 0; row < 2; row++)
         for (var col = 0; col < 3; col++)
         {
-            report.PutLines(col * SIDE, row * SIDE);
+            HSL_Report_PutLines(report, col * SIDE, row * SIDE);
         }
 
         return report;
     }
 
-    /// Paints '#' chars with given color.
-    private static void DrawText_FromASCII
-        (this Image<Rgb24> image, string ascii, Rgb24 color, Point point)
-    {
-        var y = 0;
-        using var reader = new StringReader(ascii);
-        while (reader.ReadLine() is { } line)
-        {
-            for (var i = 0; i < line.Length; i++)
-            {
-                if (line[i] == '#') image[point.X + i, point.Y + y] = color;
-            }
-
-            y++;
-        }
-    }
-
-    private static void PutLines(this Image<Rgb24> image, int offsetX = 0, int offsetY = 0)
+    private static void HSL_Report_PutLines
+        (Image<Rgb24> image, int offsetX = 0, int offsetY = 0)
     {
         Rgb24 c1A = 98.ToRgb24(), c2A = 90.ToRgb24(), c3A = 80.ToRgb24(), c4A = 70.ToRgb24(); 
         Rgb24 c1B = 32.ToRgb24(), c2B = 40.ToRgb24(), c3B = 50.ToRgb24(), c4B = 60.ToRgb24(); 
