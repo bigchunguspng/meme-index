@@ -192,5 +192,4 @@ public static class ColorAnalyzer_v2
                 report.PaleXL++;
         }
     }
-
 }

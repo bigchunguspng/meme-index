@@ -2,12 +2,30 @@
   "$schema": "https://www.schemastore.org/launchsettings.json",
   "profiles": {
     "http": {
+      "commandLineArgs": "",
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "todos",
+      "applicationUrl": "http://localhost:7373",
+      "workingDirectory": "../../out/bin/Release/net8.0",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "test": {
+      "commandLineArgs": "-t",
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "workingDirectory": "../../out/bin/Release/net8.0",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "files": {
       "commandLineArgs": "-P files.txt",
       "commandName": "Project",
       "dotnetRunMessages": true,
-      "launchBrowser": false,
-      "launchUrl": "todos",
-      "applicationUrl": "http://localhost:7373",
       "workingDirectory": "../../out/bin/Release/net8.0",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
