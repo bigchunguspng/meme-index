@@ -14,6 +14,8 @@ public static class Extensions_Math
     public static  byte Clamp(this byte x, byte max) => Math.Min(x, max);
     public static  int  Clamp(this int  x, int  max) => Math.Min(x, max);
 
+    public static bool IsNaN(this double value) => double.IsNaN(value);
+
     public static bool IsOdd (this int x) => (x & 1) == 1;
     public static bool IsEven(this int x) => (x & 1) == 0;
 
@@ -27,5 +29,4 @@ public static class Extensions_Math
     public static int Clamp(this int x, int min, int max) => Math.Clamp(x, min, max);
     
     public static int EvenFloor(this int x) => x >> 1 << 1;
-
 }

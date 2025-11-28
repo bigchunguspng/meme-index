@@ -128,22 +128,22 @@ public static class DebugTools
     public static void RenderAllProfiles(string path)
     {
         var sw = Stopwatch.StartNew();
-        var times = new TimeSpan[4];
 
-        RenderProfile_HSL(path);
+        /*RenderProfile_HSL(path);
         times[0] += sw.Elapsed;
-        sw.LogCM(ConsoleColor.Yellow, "\tProfile - HSL");
+        sw.LogCM(ConsoleColor.Yellow, "\tProfile - HSL");*/
 
         RenderProfile_Oklch(path);
-        times[1] += sw.Elapsed;
         sw.LogCM(ConsoleColor.Yellow, "\tProfile - Oklch");
+
+        RenderProfile_Oklch_v2(path);
+        sw.LogCM(ConsoleColor.Yellow, "\tProfile - Oklch-v2");
 
         /*RenderSamplePoster(path);
         sw.LogCM(ConsoleColor.Yellow, "\tPoster - Color v2");*/
 
         /*RenderProfile_Oklch_HxL(path);
         sw.LogCM(ConsoleColor.Yellow, "\tProfile - Oklch HxL");*/
-        Print("Elapsed by task:\n" + string.Join('\n', times.Take(2).Select(x => x.ReadableTime())), ConsoleColor.Yellow);
     }
 
     public static void RenderSamplePoster(string path)
@@ -209,8 +209,29 @@ public static class DebugTools
         report[hx, ly] = sample;
     });
 
+    public static void RenderProfile_Oklch_v2
+        (string path) => RenderProfile(path, () => GetReportBackground_Oklch(useMagenta: false), "Oklch-v2", (report, sample) =>
+    {
+        var oklch = sample.ToOklch();
+        var cy = 100 - (oklch.C * 300).RoundInt().Clamp(0, 100); // ↑
+        var lx =       (oklch.L * 100).RoundInt().Clamp(0, 100); //    →
+
+        Span<int> hue_ixs = stackalloc int [2];
+        ColorAnalyzer_v2.GetHueIndices(oklch, ref hue_ixs);
+
+        foreach (var hue_ix in hue_ixs)
+        {
+            if (hue_ix == -1) continue;
+
+            var row = hue_ix  & 1; // 0 2 | 4 6 | 8
+            var col = hue_ix >> 2; // 1 3 | 5 7 | 9
+
+            report[col * SIDE + lx, row * SIDE + cy] = sample;
+        }
+    });
+
     public static void RenderProfile_Oklch
-        (string path) => RenderProfile(path, GetReportBackground_Oklch, "Oklch", (report, sample) =>
+        (string path) => RenderProfile(path, () => GetReportBackground_Oklch(), "Oklch", (report, sample) =>
     {
         var oklch = sample.ToOklch();
         var cy = 100 - (oklch.C * 300).RoundInt().Clamp(0, 100); // ↑
@@ -295,7 +316,7 @@ public static class DebugTools
         return report;
     }
 
-    private static Image<Rgb24> GetReportBackground_Oklch()
+    private static Image<Rgb24> GetReportBackground_Oklch(bool useMagenta = true)
     {
         Rgb24 
             baseA = 50.ToRgb24(), baseB = 40.ToRgb24(),
@@ -324,8 +345,13 @@ public static class DebugTools
         report.DrawPixelArt(ASCII.HUE_LABEL_07, textA, new Point(1 * SIDE + 2, 1 * SIDE + 2));
         report.DrawPixelArt(ASCII.HUE_LABEL_08, textA, new Point(1 * SIDE + 2, 1 * SIDE + 9));
         report.DrawPixelArt(ASCII.HUE_LABEL_09, textA, new Point(2 * SIDE + 2, 0 * SIDE + 2));
-        report.DrawPixelArt(ASCII.HUE_LABEL_10, textA, new Point(2 * SIDE + 2, 0 * SIDE + 9));
-        report.DrawPixelArt(ASCII.HUE_LABEL_11, textB, new Point(2 * SIDE + 2, 1 * SIDE + 2));
+        if (useMagenta)
+        {
+            report.DrawPixelArt(ASCII.HUE_LABEL_10, textA, new Point(2 * SIDE + 2, 0 * SIDE + 9));
+            report.DrawPixelArt(ASCII.HUE_LABEL_11, textB, new Point(2 * SIDE + 2, 1 * SIDE + 2));
+        }
+        else
+            report.DrawPixelArt(ASCII.HUE_LABEL_10, textB, new Point(2 * SIDE + 2, 1 * SIDE + 2));
 
         return report;
     }
