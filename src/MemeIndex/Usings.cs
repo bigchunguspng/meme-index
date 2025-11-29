@@ -7,6 +7,7 @@ global using System.Collections.Generic;
 global using System.Text.RegularExpressions;
 global using System.Threading.Tasks;
 global using System.Diagnostics;
+global using System.Runtime.CompilerServices;
 
 global using MemeIndex.Tools.Backrooms.Extensions;
 global using MemeIndex.Tools.Backrooms.Helpers;

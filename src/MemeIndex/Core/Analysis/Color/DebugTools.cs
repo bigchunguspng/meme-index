@@ -114,9 +114,14 @@ public static partial class DebugTools
             var odd = i.IsOdd();
             if (odd) report.Mutate(ctx => ctx.Fill(baseB, new RectangleF(col * SIDE, row * SIDE, SIDE, SIDE)));
 
-            var rectC = odd ? rectB : rectA;
-            report.Mutate(ctx => ctx.Fill(rectC, new RectangleF(col * SIDE, row * SIDE + 69, 50, 32)));
-            report.Mutate(ctx => ctx.Fill(rectC, new RectangleF(col * SIDE + 50, row * SIDE, 51, 69)));
+            var c1 = odd ? baseB : baseA;
+            var c2 = odd ? rectB : rectA;
+
+            var offsetCol = col * SIDE;
+            var offsetRow = row * SIDE;
+            report.SwitchColors(c1, c2, new Rectangle(offsetCol, offsetRow + 71, SIDE, 30)); // Pale
+            report.SwitchColors(c1, c2, new Rectangle(offsetCol, offsetRow + 86, SIDE,  9)); // Weak
+            report.SwitchColors(c1, c2, new Rectangle(offsetCol + 50, offsetRow, 51, SIDE)); // Light
         }
 
         report.DrawPixelArt(ASCII.HUE_LABEL_01, textA, new Point(0 * SIDE + 2, 0 * SIDE + 2));

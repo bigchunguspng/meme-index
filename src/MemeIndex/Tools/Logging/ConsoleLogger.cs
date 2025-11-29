@@ -1,6 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-
-namespace MemeIndex.Tools.Logging;
+﻿namespace MemeIndex.Tools.Logging;
 
 public static class ConsoleLogger
 {

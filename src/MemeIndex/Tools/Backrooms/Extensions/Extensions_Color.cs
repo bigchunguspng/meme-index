@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using ColorHelper;
 using SixLabors.ImageSharp.PixelFormats;
@@ -200,7 +199,13 @@ public static class Extensions_Color
 
 // TYPES
 
-public readonly record struct Oklch(double L, double C, double H);
+public readonly record struct Oklch(double L, double C, double H)
+{
+    public int IntL => (L * 100).RoundInt().Clamp(0, 100);
+    public int IntC => (C * 300).RoundInt().Clamp(0, 100);
+    public int IntH =>  H       .RoundInt().Clamp(0, 360);
+}
+
 public readonly record struct Oklab(double L, double A, double B)
 {
     public Oklab(Span<double> s) : this(s[0], s[1], s[2]) { }

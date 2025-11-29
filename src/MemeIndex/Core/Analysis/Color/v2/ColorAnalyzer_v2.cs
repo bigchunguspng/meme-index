@@ -81,26 +81,26 @@ public static class ColorAnalyzer_v2
 
     public static readonly double[] u_limits_H = // hue upper limits
     [
-          8, // PINK, i: 0
-         20, // PINK-RED
-         25, // RED
-         40, // RED-ORANGE
-         75, // ORANGE
+         15, // PINK, i: 0
+         18, // PINK-RED
+         30, // RED
+         35, // RED-ORANGE
+         83, // ORANGE
          90, // ORANGE-YELLOW
-        105, // YELLOW
-        110, // YELLOW-LIME
-        120, // LIME
-        137, // LIME-GREEN
-        150, // GREEN
-        170, // GREEN-CYAN
-        175, // CYAN
-        210, // CYAN-SKY
-        250, // SKY
-        265, // SKY-BLUE
-        275, // BLUE
+        110, // YELLOW
+        113, // YELLOW-LIME
+        125, // LIME
+        132, // LIME-GREEN
+        148, // GREEN
+        156, // GREEN-CYAN
+        180, // CYAN
+        194, // CYAN-SKY
+        245, // SKY
+        263, // SKY-BLUE
+        282, // BLUE
         285, // BLUE-VIOLET
         315, // VIOLET
-        325, // VIOLET-PINK
+        329, // VIOLET-PINK
         360, // PINK x2, i: 20
     ];
 
@@ -124,7 +124,7 @@ public static class ColorAnalyzer_v2
 
     public static void CategorizeColor(this ColorAnalysisReport report, Oklch color)
     {
-        if (color.H.IsNaN() || color.C < 0.02)
+        if (color.C < 0.02 || color.H.IsNaN())
             report.PutGray(color);
         else
         {

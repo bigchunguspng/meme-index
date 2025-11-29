@@ -81,6 +81,7 @@ public static partial class DebugTools
     public static void RenderHues_Oklch_v2()
     {
         var images = ColorAnalyzer_v2.N_HUES.Times(GetReportBackground_HxL);
+        var ticks = $"{DateTime.UtcNow.Ticks >> 24:x}";
 
         Span<int> hue_ixs = stackalloc int[2];
         for (byte s = 0; s < 100; s++)
@@ -90,19 +91,19 @@ public static partial class DebugTools
             var hsl = new HSL(h, s, l);
             var rgb = ColorConverter.HslToRgb(hsl).ToRgb24();
             var ok  = rgb.ToOklch();
-            
+
             ColorAnalyzer_v2.GetHueIndices(ok, ref hue_ixs);
             foreach (var hue_ix in hue_ixs)
             {
                 if (hue_ix == -1) continue;
 
-                images[hue_ix][h, l] = rgb;
+                images[hue_ix][ok.IntH, ok.IntL] = rgb;
             }
         }
 
         for (var i = 0; i < ColorAnalyzer_v2.N_HUES; i++)
         {
-            var path = Dir_Debug_Color.EnsureDirectoryExist().Combine($"Oklch-v2-Hue-{i:00}.png");
+            var path = Dir_Debug_Color.EnsureDirectoryExist().Combine($"Oklch-v2-Hue-{ticks}-{i:00}.png");
             images[i].SaveAsPng(path); 
         }
     }

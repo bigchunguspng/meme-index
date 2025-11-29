@@ -23,4 +23,21 @@ public static class Extensions_Image
             y++;
         }
     }
+
+    /// Switches colors a & b inside given area of the image.
+    public static void SwitchColors
+        (this Image<Rgb24> image, Rgb24 a, Rgb24 b, Rectangle area)
+    {
+        int
+            y0 = area.Y, yN = area.Bottom,
+            x0 = area.X, xN = area.Right;
+
+        for (var y = y0; y < yN; y++)
+        for (var x = x0; x < xN; x++)
+        {
+            var pixel = image[x,y];
+            if      (pixel == a) image[x, y] = b;
+            else if (pixel == b) image[x, y] = a;
+        }
+    }
 }

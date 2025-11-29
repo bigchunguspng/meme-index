@@ -2,31 +2,31 @@
 
 public static class Extensions_Math
 {
-    public static int RoundInt(this double x) => (int)Math.Round(x);
-    public static int RoundInt(this float  x) => (int)Math.Round(x);
+    // F -> I
+    [MethodImpl(AggressiveInlining)] public static int   RoundInt(this double x) => (int)Math.Round  (x);
+    [MethodImpl(AggressiveInlining)] public static int   RoundInt(this float  x) => (int)Math.Round  (x);
+    [MethodImpl(AggressiveInlining)] public static int CeilingInt(this double x) => (int)Math.Ceiling(x);
+    [MethodImpl(AggressiveInlining)] public static int CeilingInt(this float  x) => (int)Math.Ceiling(x);
 
-    public static int CeilingInt(this double x) => (int)Math.Ceiling(x);
-    public static int CeilingInt(this float  x) => (int)Math.Ceiling(x);
+    // CLAMP
+    [MethodImpl(AggressiveInlining)] public static   int Clamp(this int  x, int  min, int  max) => Math.Clamp(x, min, max);
+    [MethodImpl(AggressiveInlining)] public static   int Cap  (this int  x,           int  max) => Math.Min  (x,      max);
+    [MethodImpl(AggressiveInlining)] public static  byte Cap  (this byte x,           byte max) => Math.Min  (x,      max);
 
-    public static  byte ClampByte (this int  x) =>  (byte)Math.Clamp(x,    0, 255);
-    public static sbyte ClampSbyte(this int  x) => (sbyte)Math.Clamp(x, -128, 127);
-    public static  byte Clamp100  (this byte x) =>      Math.Min(x, (byte)100);
-    public static  byte Clamp(this byte x, byte max) => Math.Min(x, max);
-    public static  int  Clamp(this int  x, int  max) => Math.Min(x, max);
+    [MethodImpl(AggressiveInlining)] public static  byte ClampByte (this int x) =>  (byte)Math.Clamp(x,    0, 255);
+    [MethodImpl(AggressiveInlining)] public static sbyte ClampSbyte(this int x) => (sbyte)Math.Clamp(x, -128, 127);
 
-    public static bool IsNaN(this double value) => double.IsNaN(value);
+    // CHECK
+    [MethodImpl(AggressiveInlining)] public static bool IsNaN(this double value) => double.IsNaN(value);
 
-    public static bool IsOdd (this int x) => (x & 1) == 1;
-    public static bool IsEven(this int x) => (x & 1) == 0;
+    [MethodImpl(AggressiveInlining)] public static bool IsOdd (this int x) => (x & 1) == 1;
+    [MethodImpl(AggressiveInlining)] public static bool IsEven(this int x) => (x & 1) == 0;
 
-    public static int  ToEven(this int x) => x & ~1;
+    // TO EVEN
+    [MethodImpl(AggressiveInlining)] public static int ToEven     (this int x) => x & ~1;
+    [MethodImpl(AggressiveInlining)] public static int   EvenFloor(this int x) => x >> 1 << 1;
 
-    public static float CombineRound(this float a, float b, int digits) => MathF.Round(a + b, digits);
-
-    public static float Gap(this int   outer, int   inner) => (outer - inner) / 2F;
-    public static float Gap(this float outer, float inner) => (outer - inner) / 2F;
-
-    public static int Clamp(this int x, int min, int max) => Math.Clamp(x, min, max);
-    
-    public static int EvenFloor(this int x) => x >> 1 << 1;
+    // GAP
+    [MethodImpl(AggressiveInlining)] public static float Gap(this int   outer, int   inner) => (outer - inner) / 2F;
+    [MethodImpl(AggressiveInlining)] public static float Gap(this float outer, float inner) => (outer - inner) / 2F;
 }
