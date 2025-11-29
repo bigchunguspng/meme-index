@@ -109,12 +109,12 @@ public static class Extensions_Color
     private static double Channel_RgbToLinearRGB
         (double c) => Math.Abs(c) <= 0.04045
         ? c / 12.92
-        : Sign(c) * Math.Pow((Math.Abs(c) + 0.055) / 1.055, 2.4);
+        : Sign(c) * ((Math.Abs(c) + 0.055) / 1.055).FastPow(2.4);
 
     [MethodImpl(AggressiveInlining)]
     private static double Channel_LinearRGBToRgb
         (double c) => Math.Abs(c) > 0.0031308
-        ? Sign(c) * (1.055 * Math.Pow(Math.Abs(c), 1 / 2.4) - 0.055)
+        ? Sign(c) * (1.055 * Math.Abs(c).FastPow(1 / 2.4) - 0.055)
         : 12.92 * c;
 
     [MethodImpl(AggressiveInlining)]
@@ -142,7 +142,7 @@ public static class Extensions_Color
         Span<double> vec3 = stackalloc double[3];
         color.CopyTo(vec3);
         MultiplyMatrices_9x3_3(M0, vec3);
-        for (var i = 0; i < 3; i++) vec3[i] = Math.Pow(vec3[i], 3);
+        for (var i = 0; i < 3; i++) vec3[i] = vec3[i].FastPow(3);
         MultiplyMatrices_9x3_3(M1, vec3);
         return new XYZ(vec3);
     }
@@ -152,7 +152,7 @@ public static class Extensions_Color
         Span<double> vec3 = stackalloc double[3];
         color.CopyTo(vec3);
         MultiplyMatrices_9x3_3(M2, vec3);
-        for (var i = 0; i < 3; i++) vec3[i] = Math.Cbrt(vec3[i]);
+        for (var i = 0; i < 3; i++) vec3[i] = vec3[i].FastPow(1 / 3.0);
         MultiplyMatrices_9x3_3(M3, vec3);
         return new Oklab(vec3);
     }

@@ -73,15 +73,14 @@ for each bucket
         for (var g = 0; g < 256; g++)
         for (var b = 0; b < 256; b++)
         {
-            var ok = new Rgb24((byte)r, (byte)g, (byte)b).ToOklch();
+            var rgb = new Rgb24((byte)r, (byte)g, (byte)b);
+            var ok = rgb.ToOklch();
             var hi = GetHueIndex(ok.H);
             if (Math.Abs(ok.H - his[hi]) > 2.0) continue;
 
             var row = hi / 4;
             var col = hi % 4;
-            var l = (ok.L * 100).RoundInt().Clamp(0, 100);
-            var c = (ok.C * 300).RoundInt().Clamp(0, 100);
-            image[col * 101 + l, row * 101 + 100 - c] = ok.ToRgb24();
+            image[col * 101 + ok.IntL, row * 101 + 100 - ok.IntC] = rgb;
         }
         var path = Dir_Debug_Color.EnsureDirectoryExist().Combine($"Hues-{Desert.GetSand()}.png");
         image.SaveAsPng(path);
