@@ -54,7 +54,7 @@ public static class ColorTagger_v2_Demo
                 }
 
                 var bg = ColorConverter.RgbToHex(bg_rgb.ToRGB());
-                var fg = special ? "red" : bg_rgb.ToOklch().L > 0.5 ? "black" : "white";
+                var fg = special ? "gold1" : bg_rgb.ToOklch().L > 0.5 ? "black" : "white";
                 AnsiConsole.Markup($"[{fg} on #{bg}]\t {term,3} - {score,5} [/]");
             }
 

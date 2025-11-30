@@ -21,7 +21,8 @@ public static class ColorTagger_v2
         sw.LogCM(ConsoleColor.Yellow, "ANALYZE");
 
         return tags
-            .Where(x => x.Value > 100)
+            .Where(x => x.Value > 0)
+            //.Where(x => x.Value > 100)
             // todo math to make tag scores logarithmic?
             .Select(x => new TagContent(x.Key, x.Value));
     }
@@ -88,15 +89,36 @@ public static class ColorTagger_v2
         }
 
         // GENERAL - opacity, saturated/pale/gray, light/dark
-        var transparency  = MAX_SCORE - MAX_SCORE * opacityTotal / (samplesTotal * 255);
-        tags.Add(_tags_X[0], (int)transparency);
+        var transparent = MAX_SCORE - MAX_SCORE * opacityTotal / (samplesTotal * 255);
+        tags.Add(_tags_X[0], (int)transparent);
+
+        var gray  = report.Grays.Sum();
+        var bold  = report.Hues.Sum(hue => hue.Bold);
+        var pale  = report.Hues.Sum(hue => hue.Pale);
+        var dark  = report.Hues.Sum(hue => hue.Dark)  + report.Grays.Take(3).Sum();
+        var light = report.Hues.Sum(hue => hue.Light) + report.Grays.Skip(3).Sum();
+
+        tags.Add(_tags_X[1], GetRawScore_General(gray));
+        tags.Add(_tags_X[2], GetRawScore_General(bold));
+        tags.Add(_tags_X[3], GetRawScore_General(pale));
+        tags.Add(_tags_X[4], GetRawScore_General(dark));
+        tags.Add(_tags_X[5], GetRawScore_General(light));
 
         return tags;
 
         // ==
 
         [MethodImpl(AggressiveInlining)]
-        int GetRawScore_Opaque(long value) => (int)(MAX_SCORE * value / samplesOpaque);
+        int GetRawScore_Opaque  (int value) => MAX_SCORE * value / samplesOpaque;
+
+        [MethodImpl(AggressiveInlining)]
+        int GetRawScore_General (int value)
+        {
+            var ratio = (double) value / samplesOpaque;
+            return ratio < 0.25
+                ? 0
+                : (MAX_SCORE * 0.0001.FastPow(1 - ratio)).RoundInt();
+        }
     }
 
     public const string
@@ -126,5 +148,5 @@ public static class ColorTagger_v2
             "PS", "PP", "PD", "PL", "P0", "P1",
         ],
         _tags_W = ["WHD", "WHL", "WCD", "WCL"], // Weak
-        _tags_X = ["#X"]; // Extra
+        _tags_X = ["#X", "#Y", "#S", "#P", "#D", "#L"]; // Extra
 }
