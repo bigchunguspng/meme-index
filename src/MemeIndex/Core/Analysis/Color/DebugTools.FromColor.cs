@@ -1,7 +1,9 @@
 using ColorHelper;
 using MemeIndex.Core.Analysis.Color.v2;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 namespace MemeIndex.Core.Analysis.Color;
 
@@ -17,7 +19,7 @@ public static partial class DebugTools
             for (var y = 0; y < image.Height; y++)
             {
                 var hsl = new HSL(hue, (byte)x, (byte)y);
-                var rgb = ColorConverter.HslToRgb(hsl);
+                var rgb = hsl.ToRgb24();
                 var color = new Rgb24(rgb.R, rgb.G, rgb.B);
                 image[x, y] = color;
             }
@@ -60,7 +62,7 @@ public static partial class DebugTools
             for (var h = 0; h < image.Width; h++)
             {
                 var hsl = new HSL(h, (byte)(chroma * 100).RoundInt(), (byte)l);
-                var rgb = ColorConverter.HslToRgb(hsl).ToRgb24();
+                var rgb = hsl.ToRgb24();
                 //var oklch = new Oklch(l / 100.0, chroma, h);
                 var oklch = rgb.ToOklch();
                 var x =  oklch.H       .RoundInt().Clamp(0, 360 - 1);
@@ -89,7 +91,7 @@ public static partial class DebugTools
         for (byte l = 0; l < 100; l++)
         {
             var hsl = new HSL(h, s, l);
-            var rgb = ColorConverter.HslToRgb(hsl).ToRgb24();
+            var rgb = hsl.ToRgb24();
             var ok  = rgb.ToOklch();
 
             ColorAnalyzer_v2.GetHueIndices(ok, ref hue_ixs);
@@ -106,5 +108,43 @@ public static partial class DebugTools
             var path = Dir_Debug_Color.EnsureDirectoryExist().Combine($"Oklch-v2-Hue-{ticks}-{i:00}.png");
             images[i].SaveAsPng(path); 
         }
+    }
+
+    public static void CompareHLS_ToOklch()
+    {
+        using var report_1 = new Image<Rgb24>(360, 101, new Rgb24(50, 50, 50));
+        using var report_2 = new Image<Rgb24>(360, 101, new Rgb24(50, 50, 50));
+
+        var color = 40.ToRgb24();
+        for (var r_hi = 0; r_hi < 12; r_hi += 2)
+        {
+            var rect = new RectangleF(r_hi * 30, 0, 30, 360);
+            report_1.Mutate(x => x.Fill(color, rect));
+            report_2.Mutate(x => x.Fill(color, rect));
+        }
+
+        for (byte s = 0; s < 100; s++)
+        for (var  h = 0; h < 360; h++)
+        for (byte l = 0; l < 100; l++)
+        {
+            var hsl = new HSL(h, s, l);
+            var rgb = ColorConverter.HslToRgb(hsl).ToRgb24();
+            var HSL = ColorConverter.RgbToHsl(rgb.ToRGB());
+            var OkLCH = rgb.ToOklch();
+            //if (Math.Abs(hsl.L - HSL.L) > 5) LogError($"{hsl.H},{hsl.S},{hsl.L} != {HSL.H},{HSL.S},{HSL.L}");
+            report_1[HSL.H.Clamp(0, 360 - 1), HSL.L] = rgb;
+            report_2[OkLCH.H.RoundInt().Clamp(0, 360 - 1), (OkLCH.L * 100).RoundInt().Clamp(0, 100)] = rgb;
+        }
+
+        var name_1 = $"Test-{DateTime.UtcNow.Ticks}-H-Full.png";
+        var name_2 = $"Test-{DateTime.UtcNow.Ticks}-O-Full.png";
+        var save_1 = Dir_Debug_Color
+            .EnsureDirectoryExist()
+            .Combine(name_1);
+        var save_2 = Dir_Debug_Color
+            .Combine(name_2);
+
+        report_1.SaveAsPng(save_1);
+        report_2.SaveAsPng(save_2);
     }
 }

@@ -30,6 +30,15 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
+    },
+    "demo": {
+      "commandLineArgs": "-D files.txt",
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "workingDirectory": "../../out/bin/Release/net8.0",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
     }
   }
 }

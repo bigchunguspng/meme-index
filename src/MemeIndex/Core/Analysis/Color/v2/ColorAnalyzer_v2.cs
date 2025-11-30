@@ -1,3 +1,7 @@
+using MemeIndex.Tools.Geometry;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace MemeIndex.Core.Analysis.Color.v2;
 
 /* ===============  Legend  =============== *\
@@ -16,26 +20,54 @@ namespace MemeIndex.Core.Analysis.Color.v2;
 
 \* ======================================== */
 
-public class ColorAnalysisReport
+public class ImageScanReport
 {
-    // Buckets
-    public readonly long[] Grays = new long[6];
+    public int
+        SamplesTotal  = 0, // Say 10k
+        SamplesOpaque = 0; // < ^
 
     public long
+        OpacityTotal  = 0; // up to 255 * ^^ = 2.5M
+
+    // Values in each bucket: < SamplesTotal
+
+    /// Black, 4 shades of gray, White.
+    public readonly int[] Grays = new int[6];
+
+    public int
         WeakHot_D, WeakHot_L,
         WeakCoolD, WeakCoolL;
 
     /// Contains primary hues and their combinations.
     /// Red, R/O, Orange, …, Pink, P/R.
-    public readonly ColorAnalysis_Hue[] Hues
-        =  new      ColorAnalysis_Hue[ColorAnalyzer_v2.B_HUES];
+    public readonly ImageScan_Hue[] Hues
+        =  new      ImageScan_Hue[ColorAnalyzer_v2.B_HUES];
 }
 
-public struct ColorAnalysis_Hue
+public struct ImageScan_Hue
 {
-    public long
+    public int
         BoldD, PaleD, PaleXD,
         BoldL, PaleL, PaleXL;
+
+    /*public double
+        MaxL, MinL,
+        MaxC, MinC;*/
+
+    public int Dark  => BoldD + PaleD + PaleXD;
+    public int Light => BoldL + PaleL + PaleXL;
+    public int Bold  => BoldD + BoldL;
+    public int Pale  => PaleD + PaleL + PaleXD + PaleXL;
+
+    public void Combine(ImageScan_Hue other, int multiplier)
+    {
+        BoldD  += multiplier * other.BoldD;
+        PaleD  += multiplier * other.PaleD;
+        PaleXD += multiplier * other.PaleXD;
+        BoldL  += multiplier * other.BoldL;
+        PaleL  += multiplier * other.PaleL;
+        PaleXL += multiplier * other.PaleXL;
+    }
 }
 
 public enum Weak : byte
@@ -104,6 +136,8 @@ public static class ColorAnalyzer_v2
         360, // PINK x2, i: 20
     ];
 
+    // DEBUG
+
     /// Writes to span a pair of red-based primary hue space indices (0..10).
     /// Second one is -1 if color matches to a single hue.
     public static void GetHueIndices(Oklch color, ref Span<int> hue_ixs)
@@ -122,7 +156,48 @@ public static class ColorAnalyzer_v2
         }
     }
 
-    public static void CategorizeColor(this ColorAnalysisReport report, Oklch color)
+    // ACTUAL
+
+    /// Color analysis PART I <br/>
+    /// Collect color samples, categorize them, count.
+    public static ImageScanReport ScanImage(Image<Rgba32> image)
+    {
+        var report = new ImageScanReport();
+
+        var size = image.Size;
+        var step = CalculateIteratorStep(size);
+
+        Log($"step = {step}");
+
+        // SCAN
+        int total = 0, opaque = 0, opacity = 0;
+        foreach (var (x, y) in new SizeIterator_45deg(size, step))
+        {
+            var sample = image[x, y];
+            total++;
+            opacity += sample.A;
+
+            if (sample.A < 8) continue; // discard almost invisible pixels
+
+            opaque++;
+            report.CategorizeColor(sample.Rgb.ToOklch());
+        }
+
+        report.SamplesTotal  = total;
+        report.SamplesOpaque = opaque;
+        report.OpacityTotal  = opacity;
+
+        return report;
+    }
+
+    public static int CalculateIteratorStep(Size size)
+    {
+        var area = size.Width * size.Height;
+        var d = Math.Sqrt(area / 4000.0);
+        return d.RoundInt().EvenFloor().Clamp(4, 32);
+    }
+
+    public static void CategorizeColor(this ImageScanReport report, Oklch color)
     {
         if (color.C < 0.02 || color.H.IsNaN())
             report.PutGray(color);
@@ -144,15 +219,17 @@ public static class ColorAnalyzer_v2
         }
     }
 
+    [MethodImpl(AggressiveInlining)]
     public static void PutGray
-        (this ColorAnalysisReport report, Oklch color)
+        (this ImageScanReport report, Oklch color)
     {
-        var gix = Math.Floor(color.L * 6).RoundInt();
+        var gix = Math.Floor(color.L * 6).RoundInt().Cap(5);
         report.Grays[gix]++;
     }
 
+    [MethodImpl(AggressiveInlining)]
     public static void PutWeak
-        (this ColorAnalysisReport report, Oklch color)
+        (this ImageScanReport report, Oklch color)
     {
         if (color.H is > 110 and < 315)
         {
@@ -170,8 +247,9 @@ public static class ColorAnalyzer_v2
         }
     }
 
+    [MethodImpl(AggressiveInlining)]
     public static void Put
-        (ref this ColorAnalysis_Hue report, Oklch color)
+        (ref this ImageScan_Hue report, Oklch color)
     {
         if (color.C > 0.10)
         {

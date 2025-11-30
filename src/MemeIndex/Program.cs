@@ -1,5 +1,6 @@
 using MemeIndex.Core.Analysis.Color;
 using MemeIndex.Core.Analysis.Color.v1;
+using MemeIndex.Core.Analysis.Color.v2;
 using MemeIndex.Utils;
 
 LogCM(ConsoleColor.Magenta, "[Start]");
@@ -31,11 +32,11 @@ switch (args.Length)
         return;
     case > 1 when args[0] is "-d" or "--demo":
         args.Skip(1)
-            .ForEachTry(ColorTagService_Demo.Run);
+            .ForEachTry(ColorTagger_v2_Demo.Run);
         return;
     case > 1 when args[0] is "-D" or "--demo-list":
         ArgsFromFile(args[1])
-            .ForEachTry(ColorTagService_Demo.Run);
+            .ForEachTry(ColorTagger_v2_Demo.Run);
         return;
 }
 

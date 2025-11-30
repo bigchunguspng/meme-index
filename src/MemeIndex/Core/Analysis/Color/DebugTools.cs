@@ -1,4 +1,3 @@
-using ColorHelper;
 using MemeIndex.Core.Analysis.Color.v1;
 using MemeIndex.Core.Analysis.Color.v2;
 using SixLabors.ImageSharp;
@@ -16,45 +15,11 @@ public static partial class DebugTools
     public static void Test()
     {
         RenderHues_Oklch_v2();
-        //ColorProfile.RenderHues();
+        //ColorProfile.RenderHues(); // 12s -> 7s
         Log("DONE");
         return;
         ColorProfile.GeneratePalette_Saturated();
         return;
-        using var report_1 = new Image<Rgb24>(360, 101, new Rgb24(50, 50, 50));
-        using var report_2 = new Image<Rgb24>(360, 101, new Rgb24(50, 50, 50));
-
-        var color = 40.ToRgb24();
-        for (var r_hi = 0; r_hi < 12; r_hi += 2)
-        {
-            var rect = new RectangleF(r_hi * 30, 0, 30, 360);
-            report_1.Mutate(x => x.Fill(color, rect));
-            report_2.Mutate(x => x.Fill(color, rect));
-        }
-
-        for (byte s = 0; s < 100; s++)
-        for (var  h = 0; h < 360; h++)
-        for (byte l = 0; l < 100; l++)
-        {
-            var hsl = new HSL(h, s, l);
-            var rgb = ColorConverter.HslToRgb(hsl).ToRgb24();
-            var HSL = ColorConverter.RgbToHsl(rgb.ToRGB());
-            var OkLCH = rgb.ToOklch();
-            //if (Math.Abs(hsl.L - HSL.L) > 5) LogError($"{hsl.H},{hsl.S},{hsl.L} != {HSL.H},{HSL.S},{HSL.L}");
-            report_1[HSL.H.Clamp(0, 360 - 1), HSL.L] = rgb;
-            report_2[OkLCH.H.RoundInt().Clamp(0, 360 - 1), (OkLCH.L * 100).RoundInt().Clamp(0, 100)] = rgb;
-        }
-
-        var name_1 = $"Test-{DateTime.UtcNow.Ticks}-H-Full.png";
-        var name_2 = $"Test-{DateTime.UtcNow.Ticks}-O-Full.png";
-        var save_1 = Dir_Debug_Color
-            .EnsureDirectoryExist()
-            .Combine(name_1);
-        var save_2 = Dir_Debug_Color
-            .Combine(name_2);
-
-        report_1.SaveAsPng(save_1);
-        report_2.SaveAsPng(save_2);
     }
 
     public static void RenderAllProfiles(string path)
