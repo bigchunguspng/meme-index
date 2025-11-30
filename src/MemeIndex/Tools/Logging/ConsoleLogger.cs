@@ -24,8 +24,9 @@ public static class ConsoleLogger
 
     private static void Console_WritePrefix(LogLevel level)
     {
+        var         prevDate = _prevDate;
         var         thisDate = DateTime.UtcNow;
-        var delta = thisDate - _prevDate;
+        var delta = thisDate - prevDate;
         _prevDate = thisDate;
         Console.ForegroundColor = ConsoleColor.DarkGray;
         Console.Write($"{DateTime.Now:MMM' 'dd', 'HH:mm:ss.fff} ");
