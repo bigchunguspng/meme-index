@@ -110,6 +110,79 @@ public static partial class DebugTools
         }
     }
 
+    public static void RenderFullOklch_On3x2()
+    {
+        var report = GetReportBackground_Oklch();
+        var oklchs = GetOklchCube_SortedBy_HCL();
+
+        for (var i = 0; i < 256 * 256 * 256; i++)
+        {
+            var color = oklchs[i];
+            var hi = color.IntH.Cap(359) / 60;
+            var col = hi % 3;
+            var row = hi / 3;
+            var lx =       color.IntL;
+            var cy = 100 - color.IntC;
+            report[SIDE * col + lx, SIDE * row + cy] = color.ToRgb24();
+        }
+        Log("loop OKLCH");
+
+        var path = Dir_Debug_Color.EnsureDirectoryExist().Combine($"Oklch-full-smooth-{Desert.GetSand()}.png");
+        report.SaveAsPng(path);
+        Log("SaveAsPng");
+    }
+
+    public static void RenderFullOklch_Frames()
+    {
+        var oklchs = GetOklchCube_SortedBy_HCL();
+        var dir = Dir_Debug_Color
+            .Combine($"Frames-{Desert.GetSand()}")
+            .EnsureDirectoryExist();
+
+        var N = 256 * 256 * 256;
+        var frame = new Image<Rgb24>(102, 102, 50.ToRgb24());
+        var fr_curr = -1;
+        for (var i = 0; i < N; i++)
+        {
+            var color = oklchs[i];
+            var fr =       color.IntH;
+            var lx =       color.IntL;
+            var cy = 100 - color.IntC;
+            if (fr != fr_curr)
+            {
+                SaveFrame(fr);
+            }
+            frame[lx, cy] = color.ToRgb24();
+        }
+        SaveFrame(fr_curr);
+
+        void SaveFrame(int fr)
+        {
+            var path = dir.Combine($"O-{fr:000}.png");
+            frame.SaveAsPng(path);
+            frame.Mutate(x => x.Fill(50.ToRgb24()));
+            fr_curr = fr;
+        }
+    }
+
+    private static Oklch[] GetOklchCube_SortedBy_HCL()
+    {
+        var oklchs = new Oklch[256 * 256 * 256]; // 16M * 24B = 284MB
+        var i = 0;
+        for (var r = 0; r < 256; r++)
+        for (var g = 0; g < 256; g++)
+        for (var b = 0; b < 256; b++)
+        {
+            oklchs[i++] = new Rgb24((byte)r, (byte)g, (byte)b).ToOklch();
+        }
+        Log("loop RGB");
+        
+        Array.Sort(oklchs, (a, b) => 10_000 * (a.IntH - b.IntH) + 100 * (a.IntC - b.IntC) + (a.IntL - b.IntL));
+        Log("Array.Sort");
+
+        return oklchs;
+    }
+
     public static void CompareHLS_ToOklch()
     {
         using var report_1 = new Image<Rgb24>(360, 101, new Rgb24(50, 50, 50));
