@@ -81,6 +81,8 @@ public static class DB
                 mdate   INTEGER NOT NULL,
                 adate   INTEGER,
                 tdate   INTEGER,
+                image_w INTEGER,
+                image_h INTEGER,
                 UNIQUE (dir_id, name),
                 FOREIGN KEY (dir_id)
                 REFERENCES dirs (id) ON DELETE CASCADE
