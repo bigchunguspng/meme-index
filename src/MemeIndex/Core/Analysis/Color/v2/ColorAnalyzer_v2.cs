@@ -1,3 +1,4 @@
+using ColorHelper;
 using MemeIndex.Tools.Geometry;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -72,32 +73,19 @@ public struct ImageScan_Hue
 
 public enum Weak : byte
 {
-    WeakHot_D,
-    WeakHot_L,
-    WeakCoolD,
-    WeakCoolL,
+    WeakHot_D, WeakHot_L,
+    WeakCoolD, WeakCoolL,
 }
 public enum Shade : byte
 {
-    BLACK,
-    GRAY_XD,
-    GRAY_D,
-    GRAY_L,
-    GRAY_XL,
-    WHITE,
+    BLACK, GRAY_XD, GRAY_D,
+    GRAY_L, GRAY_XL, WHITE,
 }
 public enum Hue : byte
 {
-    RED,
-    ORANGE,
-    YELLOW,
-    LIME,
-    GREEN,
-    CYAN,
-    SKY,
-    BLUE,
-    VIOLET,
-    PINK,
+    RED,    ORANGE, YELLOW, LIME,
+    GREEN,  CYAN,   SKY,    BLUE,
+    VIOLET, PINK,
 }
 
 public readonly struct ColorComponentBoundary(double A, double B)
@@ -269,5 +257,91 @@ public static class ColorAnalyzer_v2
             else
                 report.PaleXL++;
         }
+    }
+    
+    // v2.2
+
+    /// A set of points for a hue used for color sample mapping.
+    public readonly struct HueReference()
+    {
+        public readonly Oklch[] Points = new Oklch[6];
+
+        public Oklch this[int i]
+        {
+            get => Points[i];
+            set => Points[i] = value;
+        }
+
+        public Oklch this[Point i]
+        {
+            get => Points[(int)i];
+            set => Points[(int)i] = value;
+        }
+
+        public enum Point : byte
+        {
+            S, P, XD, XL, D, L,
+        }
+    }
+
+    public static readonly HueReference[] HueReferences = CalculateHueReferencePoints();
+
+    public static HueReference[] CalculateHueReferencePoints()
+    {
+        const int N_90 = 360 / 4;
+
+        // Get oklch chroma peaks for each 4th hue
+        var peaks = new Oklch[N_90];
+        for (var  h =  0; h < 360; h++)
+        for (byte l = 45; l <  55; l++)
+        {
+            var oklch = new HSL(h, 100, l).ToRgb24().ToOklch();
+            var i = oklch.IntH % 360 / 4;
+            if (oklch.C > peaks[i].C)
+                peaks[i] = oklch;
+        }
+
+        // Calculate a palette for each 4th hue
+        var pointSets = new HueReference[N_90];
+        for (var i = 0; i < N_90; i++)
+        {
+            pointSets[i] = new HueReference();
+
+            var peak = peaks[i];
+            var top  = peak with { C = peak.C - 0.02 };
+            var pale = peak with { C = 0.0.LerpTo(top.C, 0.33), L = 0.5.LerpTo(top.L, 0.33) };
+            pointSets[i][HueReference.Point.S] = top;
+            pointSets[i][HueReference.Point.P] = pale;
+
+            // m = (y₂ − y₁) / (x₂ − x₁)    slope
+            // b = y₁ − mx₁                 y value for x=0
+            // y = mx + b
+            // x = (y - b) / m
+            // y = C, x = L
+            var y = 0.05; // C
+            {
+                var m = (peak.C - 0) / (peak.L - 0);
+                var x = y / m;
+                var xd = peak with { C = y, L = x + 0.08 };
+                var  d = peak with { C = xd.C.HalfwayTo(top.C), L = xd.L.HalfwayTo(top.L) };
+                pointSets[i][HueReference.Point.XD] = xd;
+                pointSets[i][HueReference.Point. D] =  d;
+            }
+            {
+                var m = (peak.C - 0) / (peak.L - 1);
+                var x = (y + m) / m;
+                var xl = peak with { C = y, L = x - 0.08 };
+                var  l = peak with { C = xl.C.HalfwayTo(top.C), L = xl.L.HalfwayTo(top.L) };
+                pointSets[i][HueReference.Point.XL] = xl;
+                pointSets[i][HueReference.Point. L] =  l;
+            }
+
+            // top      - peak - 0.02 C
+            // bottom 2 - triangle sides × C=0.05 +-0.08L
+            // center 2 - mid point of top-bottoms
+            // pale     - 1/3 from C0 L0.50 to top
+        }
+
+        return pointSets;
     }
 }

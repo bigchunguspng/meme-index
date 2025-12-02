@@ -14,7 +14,8 @@ public static partial class DebugTools
 
     public static void Test()
     {
-        RenderFullOklch_Frames();
+        RenderHueReferences_Frames();
+        //RenderFullOklch_Frames();
         //RenderFullOklch_On3x2();
         //RenderHues_Oklch_v2();
         //ColorProfile.RenderHues(); // 12s -> 7s

@@ -26,6 +26,10 @@ public static class Extensions_Math
     [MethodImpl(AggressiveInlining)] public static int ToEven     (this int x) => x & ~1;
     [MethodImpl(AggressiveInlining)] public static int   EvenFloor(this int x) => x >> 1 << 1;
 
+    // LERP
+    [MethodImpl(AggressiveInlining)] public static double LerpTo   (this double a, double b, double t) => a + (b - a) * t;
+    [MethodImpl(AggressiveInlining)] public static double HalfwayTo(this double a, double b) => (a + b) * 0.5;
+
     // GAP
     [MethodImpl(AggressiveInlining)] public static float Gap(this int   outer, int   inner) => (outer - inner) / 2F;
     [MethodImpl(AggressiveInlining)] public static float Gap(this float outer, float inner) => (outer - inner) / 2F;

@@ -220,4 +220,29 @@ public static partial class DebugTools
         report_1.SaveAsPng(save_1);
         report_2.SaveAsPng(save_2);
     }
+
+    public static void RenderHueReferences_Frames()
+    {
+        var dir = Dir_Debug_Color.Combine($"Frames-HR-{Desert.GetSand()}").EnsureDirectoryExist();
+
+        var report = GetReportBackground_Oklch();
+        var frame = new Image<Rgb24>(SIDE, SIDE, 50.ToRgb24());
+        frame.Mutate(x => x.DrawImage(report, new Point(0, 0), 1));
+        var refs = ColorAnalyzer_v2.HueReferences;
+        for (var h = 0; h < refs.Length; h++)
+        {
+            for (var o = 0; o < 6; o++)
+            {
+                var oklch = refs[h][o];
+                var x = oklch.IntL;
+                var y = oklch.IntC;
+                var rgb = oklch.ToRgb24();
+                frame[x, 100 - y] = rgb;
+            }
+
+            var path = dir.Combine($"O-{h:000}.png");
+            frame.SaveAsPng(path);
+            frame.Mutate(x => x.DrawImage(report, new Point(0, 0), 1));
+        }
+    }
 }
