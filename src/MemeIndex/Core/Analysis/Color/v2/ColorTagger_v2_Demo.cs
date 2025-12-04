@@ -6,6 +6,23 @@ namespace MemeIndex.Core.Analysis.Color.v2;
 
 public static class ColorTagger_v2_Demo
 {
+    public static void PrintPalette()
+    {
+        var palette = ColorAnalyzer_v2.GetPalette();
+        foreach (var set in palette)
+        {
+            foreach (var point in set.Points)
+            {
+                var bg_rgb = point.ToRgb24();
+                var bg = ColorConverter.RgbToHex(bg_rgb.ToRGB());
+                var fg = bg_rgb.ToOklch().L > 0.6 ? "black" : "white";
+                AnsiConsole.Markup($"[{fg} on #{bg}] ABCDEF [/]");
+            }
+
+            Console.WriteLine();
+        }
+    }
+
     public static void Run(string path)
     {
         DebugTools.RenderProfile_Oklch_v2(path);
@@ -32,8 +49,8 @@ public static class ColorTagger_v2_Demo
                 var special = false;
                 if      (term[0] == ColorTagger_v2.KEY_GRAY)
                 {
-                    var l = (term[1] - '0') * 20;
-                    bg_rgb = new HSL(0, 0, l.ClampByte()).ToRgb24();
+                    var l = (term[1] - '0') * 25;
+                    bg_rgb = new HSL(0, 0, (byte)l.Cap(100)).ToRgb24();
                 }
                 else if (term[0] == ColorTagger_v2.KEY_WEAK)
                 {
@@ -82,6 +99,19 @@ public static class ColorTagger_v2_Demo
     }
 
     private static Rgb24[] GeneratePalette_Hue()
+    {
+        var palette = new Rgb24[6 * ColorAnalyzer_v2.N_HUES];
+        var refs = ColorAnalyzer_v2.GetPalette().ToArray();
+        for (var h = 0; h < ColorAnalyzer_v2.N_HUES;  h++)
+        for (var o = 0; o < ColorAnalyzer_v2.N_OPS_H; o++)
+        {
+            palette[ColorAnalyzer_v2.N_OPS_H * h + o] = refs[h][o].ToRgb24();
+        }
+
+        return palette;
+    }
+
+    private static Rgb24[] GeneratePalette_Hue_old()
     {
         var palette = new Rgb24[6 * ColorAnalyzer_v2.N_HUES];
         var hues = new [] {0, 30, 60, 75, 110, 165, 190, 240, 265, 315};

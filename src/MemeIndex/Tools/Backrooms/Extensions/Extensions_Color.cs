@@ -204,6 +204,7 @@ public readonly record struct Oklch(double L, double C, double H)
     public int IntL => (L * 100).RoundInt().Clamp(0, 100);
     public int IntC => (C * 300).RoundInt().Clamp(0, 100);
     public int IntH =>  H       .RoundInt().Clamp(0, 360);
+    public int IntH_safe =>        ((int)H).Clamp(0, 360);
 }
 
 public readonly record struct Oklab(double L, double A, double B)

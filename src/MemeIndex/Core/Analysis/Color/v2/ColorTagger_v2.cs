@@ -28,7 +28,7 @@ public static class ColorTagger_v2
     }
 
     /// Returns a raw numbers for all possible tags.
-    private static Dictionary<string, int> AnalyzeImageScan(ImageScanReport report)
+    private static Dictionary<string, int> AnalyzeImageScan(ImageScanReport_v22 report)
     {
         var tags = new Dictionary<string, int>();
 
@@ -37,22 +37,21 @@ public static class ColorTagger_v2
         var opacityTotal  = report.OpacityTotal;
 
         // GRAY
-        var lenG = report.Grays.Length;
-        for (var i = 0; i < lenG; i++)
+        for (var i = 0; i < ColorAnalyzer_v2.N_OPS_G; i++)
         {
-            tags.Add(_tags_Y[i], GetRawScore_Opaque(report.Grays[i]));
+            tags.Add(_tags_Y[i], GetRawScore_Opaque(report.Scores_Gray[i]));
         }
 
         // WEAK
-        {
+        /*{
             tags.Add(_tags_W[0], GetRawScore_Opaque(report.WeakHot_D));
             tags.Add(_tags_W[1], GetRawScore_Opaque(report.WeakHot_L));
             tags.Add(_tags_W[2], GetRawScore_Opaque(report.WeakCoolD));
             tags.Add(_tags_W[3], GetRawScore_Opaque(report.WeakCoolL));
-        }
+        }*/
 
         // BY HUE
-        var hues = new ImageScan_Hue[ColorAnalyzer_v2.N_HUES];
+        var hues = ColorAnalyzer_v2.N_HUES.Times(_ => new ImageScan_Hue_v22());
         var lenH = report.Hues.Length;
         for (var i = 0; i < lenH; i++)
         {
@@ -63,14 +62,14 @@ public static class ColorTagger_v2
             var primary = i.IsEven();
             if (primary)
             {
-                hues[hue_ix].Combine(samples, multiplier: 2);
+                hues[hue_ix].Combine(samples, multiplier: 1.0);
             }
             else
             {
                 // split samples between primary hues to the sides
                 var  hue_i2 = (hue_ix + 1) % ColorAnalyzer_v2.N_HUES;
-                hues[hue_ix].Combine(samples, multiplier: 1);
-                hues[hue_i2].Combine(samples, multiplier: 1);
+                hues[hue_ix].Combine(samples, multiplier: 0.5);
+                hues[hue_i2].Combine(samples, multiplier: 0.5);
             }
         }
 
@@ -80,19 +79,17 @@ public static class ColorTagger_v2
 
             var hue = hues[i];
             var hue_offset = i * 6;
-            tags.Add(_tags_H[hue_offset + 0], GetRawScore_Opaque(hue.Bold));
-            tags.Add(_tags_H[hue_offset + 1], GetRawScore_Opaque(hue.Pale));
-            tags.Add(_tags_H[hue_offset + 2], GetRawScore_Opaque(hue.Dark));
-            tags.Add(_tags_H[hue_offset + 3], GetRawScore_Opaque(hue.Light));
-            tags.Add(_tags_H[hue_offset + 4], GetRawScore_Opaque(hue.PaleXD));
-            tags.Add(_tags_H[hue_offset + 5], GetRawScore_Opaque(hue.PaleXL));
+            for (var o = 0; o < ColorAnalyzer_v2.N_OPS_H; o++)
+            {
+                tags.Add(_tags_H[hue_offset + o], GetRawScore_Opaque(hue[o]));
+            }
         }
 
         // GENERAL - opacity, saturated/pale/gray, light/dark
         var transparent = MAX_SCORE - MAX_SCORE * opacityTotal / (samplesTotal * 255);
         tags.Add(_tags_X[0], (int)transparent);
 
-        var gray  = report.Grays.Sum();
+        /*var gray  = report.Grays.Sum();
         var bold  = report.Hues.Sum(hue => hue.Bold);
         var pale  = report.Hues.Sum(hue => hue.Pale);
         var dark  = report.Hues.Sum(hue => hue.Dark)  + report.Grays.Take(3).Sum();
@@ -102,14 +99,14 @@ public static class ColorTagger_v2
         tags.Add(_tags_X[2], GetRawScore_General(bold));
         tags.Add(_tags_X[3], GetRawScore_General(pale));
         tags.Add(_tags_X[4], GetRawScore_General(dark));
-        tags.Add(_tags_X[5], GetRawScore_General(light));
+        tags.Add(_tags_X[5], GetRawScore_General(light));*/
 
         return tags;
 
         // ==
 
         [MethodImpl(AggressiveInlining)]
-        int GetRawScore_Opaque  (int value) => MAX_SCORE * value / samplesOpaque;
+        int GetRawScore_Opaque  (double value) => (1000 * value / samplesOpaque).RoundInt();
 
         [MethodImpl(AggressiveInlining)]
         int GetRawScore_General (int value)
@@ -136,6 +133,7 @@ public static class ColorTagger_v2
         _tags_Y = ["_0", "_1", "_2", "_3", "_4", "_5"], // Luma (Y)
         _tags_H = // Only hue full!
         [
+            // ENSURE SAME OPT ORDER AS IN "HueOption" ENUM!
             "RS", "RP", "RD", "RL", "R0", "R1",
             "OS", "OP", "OD", "OL", "O0", "O1",
             "YS", "YP", "YD", "YL", "Y0", "Y1",
