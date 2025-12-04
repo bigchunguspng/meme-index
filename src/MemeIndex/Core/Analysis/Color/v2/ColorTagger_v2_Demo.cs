@@ -100,7 +100,7 @@ public static class ColorTagger_v2_Demo
 
     private static Rgb24[] GeneratePalette_Hue()
     {
-        var palette = new Rgb24[6 * ColorAnalyzer_v2.N_HUES];
+        var palette = new Rgb24[ColorAnalyzer_v2.N_HUES * ColorAnalyzer_v2.N_OPS_H];
         var refs = ColorAnalyzer_v2.GetPalette().ToArray();
         for (var h = 0; h < ColorAnalyzer_v2.N_HUES;  h++)
         for (var o = 0; o < ColorAnalyzer_v2.N_OPS_H; o++)

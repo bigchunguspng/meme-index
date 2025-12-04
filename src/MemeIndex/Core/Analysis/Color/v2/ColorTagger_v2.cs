@@ -52,14 +52,13 @@ public static class ColorTagger_v2
 
         // BY HUE
         var hues = ColorAnalyzer_v2.N_HUES.Times(_ => new ImageScan_Hue_v22());
-        var lenH = report.Hues.Length;
-        for (var i = 0; i < lenH; i++)
+        for (var bi = 0; bi < ColorAnalyzer_v2.B_HUES; bi++)
         {
             // primary + vague -> primary
 
-            var hue_ix = i >> 1;
-            var samples = report.Hues[i];
-            var primary = i.IsEven();
+            var hue_ix = bi >> 1;
+            var samples = report.Hues[bi];
+            var primary = bi.IsEven();
             if (primary)
             {
                 hues[hue_ix].Combine(samples, multiplier: 1.0);
@@ -73,12 +72,12 @@ public static class ColorTagger_v2
             }
         }
 
-        for (var i = 0; i < ColorAnalyzer_v2.N_HUES; i++)
+        for (var hi = 0; hi < ColorAnalyzer_v2.N_HUES; hi++)
         {
             // struct -> tags
 
-            var hue = hues[i];
-            var hue_offset = i * 6;
+            var hue = hues[hi];
+            var hue_offset = hi * ColorAnalyzer_v2.N_OPS_H;
             for (var o = 0; o < ColorAnalyzer_v2.N_OPS_H; o++)
             {
                 tags.Add(_tags_H[hue_offset + o], GetRawScore_Opaque(hue[o]));
@@ -106,7 +105,7 @@ public static class ColorTagger_v2
         // ==
 
         [MethodImpl(AggressiveInlining)]
-        int GetRawScore_Opaque  (double value) => (1000 * value / samplesOpaque).RoundInt();
+        int GetRawScore_Opaque  (double value) => (MAX_SCORE * value / samplesOpaque).RoundInt();
 
         [MethodImpl(AggressiveInlining)]
         int GetRawScore_General (int value)

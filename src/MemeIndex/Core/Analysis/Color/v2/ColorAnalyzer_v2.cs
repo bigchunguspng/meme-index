@@ -241,7 +241,7 @@ public static class ColorAnalyzer_v2
 
     public static void CategorizeColor(this ImageScanReport_v22 report, Oklch color)
     {
-        if (color.C < 0.02 || color.H.IsNaN())
+        if (color.C < 0.015 || color.H.IsNaN())
             report.PutGray(color);
         else
         {
@@ -271,11 +271,11 @@ public static class ColorAnalyzer_v2
             stackalloc (int, double)[N_OPS_G];
         for (var i = 0; i < N_OPS_G; i++)
         {
-            var ref_L = GrayReferences_L[i];
-            var distance = Math.Abs(ref_L - color.L);
+            var ref_i_L = GrayReferences_L[i];
+            var distance = Math.Abs(ref_i_L - color.L);
             if (distance <= 0.02)
             {
-                report.Scores_Gray[i] += 50.0; // 1 / 0.02
+                report.Scores_Gray[i] += 1.0;
                 return; // Closest point -> return max score.
             }
 
@@ -283,18 +283,27 @@ public static class ColorAnalyzer_v2
         }
 
         // Sort asc by distance (smaller distance = bigger score).
-        distances.Sort((x1, x2) => (int)(x1.value - x2.value));
+        distances.Sort((x1, x2) => (int)(1_000_000 * (x1.value - x2.value)));
 
-        // Take 2 smallest distances, or even less if there is a 2x drop.
-        var take = distances[0].value * 2 < distances[1].value ? 1 : 2;
-        var smallest_distances = distances.Slice(0, take);
+        // Take 2 smallest distances, or just 1 if there is a 2x drop.
+        var take = distances[0].value * 2 
+                 < distances[1].value ? 1 : 2;
+
+        // Convert distances to scores
+        var scoreTotal = 0.0;
+        var scores = distances; // same shit, different label
+        for (var i = 0; i < take; i++)
+        {
+            scores[i].value = 1 / distances[i].value;
+            scoreTotal += scores[i].value;
+        }
 
         // Increase score for 1-2 closest points.
         for (var i = 0; i < take; i++)
         {
-            var distance = smallest_distances[i].value;
-            var opt_ix   = smallest_distances[i].index;
-            report.Scores_Gray[opt_ix] += 1 / distance; // distance > 0 due to early return
+            var score  = scores[i].value;
+            var opt_ix = scores[i].index;
+            report.Scores_Gray[opt_ix] += score / scoreTotal;
         }
     }
 
@@ -316,9 +325,9 @@ public static class ColorAnalyzer_v2
             var a  = point.L - color.L;
             var b  = point.C - color.C;
             var cc = a * a + b * b * 9; // stretch C scale 3 times
-            if (cc <= 0.0004) // if distance <= 0.02
+            if (cc <= 0.02 * 0.02)
             {
-                report[i] += 50.0; // 1 / sqrt(0.0004)
+                report[i] += 1.0;
                 return; // Closest point -> return max score.
             }
 
@@ -326,26 +335,33 @@ public static class ColorAnalyzer_v2
         }
 
         // Sort asc by distance (smaller distance = bigger score).
-        square_distances.Sort((x1, x2) => (int)(x1.value - x2.value));
+        square_distances.Sort((x1, x2) => (int)(1_000_000 * (x1.value - x2.value)));
 
         // Take 3 smallest distances, or even less if there is a 2x drop.
         var take = 3;
         for (var i = 1; i < 3; i++)
-        {
-            // if next distance² is 4 times bigger (distance is twice as long) - take only what's before
-            if (square_distances[i - 1].value * 4 < square_distances[i].value)
+            if (square_distances[i - 1].value * 4
+              < square_distances[i    ].value)
             {
                 take = i;
+                break;
             }
+
+        // Convert distance²s to scores
+        var scoreTotal = 0.0;
+        var scores = square_distances;
+        for (var i = 0; i < take; i++)
+        {
+            scores[i].value = square_distances[i].value.FastPow(-0.5);
+            scoreTotal += scores[i].value;
         }
-        var smallest_square_distances = square_distances.Slice(0, take);
 
         // Increase score for 1-3 closest points.
         for (var i = 0; i < take; i++)
         {
-            var distance = smallest_square_distances[i].value.FastPow(0.5);
-            var opt_ix   = smallest_square_distances[i].index;
-            report[opt_ix] += 1 / distance; // distance > 0 due to early return
+            var score  = scores[i].value;
+            var opt_ix = scores[i].index;
+            report[opt_ix] += score / scoreTotal;
         }
     }
 
@@ -354,7 +370,7 @@ public static class ColorAnalyzer_v2
     /// A set of points for a hue used for color sample mapping.
     public readonly struct HueReference()
     {
-        public readonly Oklch[] Points = new Oklch[6];
+        public readonly Oklch[] Points = new Oklch[N_OPS_H];
 
         public Oklch this[int i]
         {
@@ -385,7 +401,7 @@ public static class ColorAnalyzer_v2
         }
     }
 
-    public static readonly       double[] GrayReferences_L = [0.0, 0.25, 0.5, 0.75, 1.0];
+    public static readonly       double[] GrayReferences_L = [0.0, 0.15, 0.5, 0.85, 1.0];
     public static readonly HueReference[]  HueReferences = CalculateHueReferencePoints();
 
     public static HueReference[] CalculateHueReferencePoints()
