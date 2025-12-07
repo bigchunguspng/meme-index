@@ -92,22 +92,22 @@ public static partial class DebugTools
             report.SwitchColors(c1, c2, new Rectangle(offsetCol + 50, offsetRow, 51, SIDE)); // Light
         }
 
-        report.DrawPixelArt(ASCII.HUE_LABEL_01, textA, new Point(0 * SIDE + 2, 0 * SIDE + 2));
-        report.DrawPixelArt(ASCII.HUE_LABEL_02, textA, new Point(0 * SIDE + 2, 0 * SIDE + 9));
-        report.DrawPixelArt(ASCII.HUE_LABEL_03, textB, new Point(0 * SIDE + 2, 1 * SIDE + 2));
-        report.DrawPixelArt(ASCII.HUE_LABEL_04, textB, new Point(0 * SIDE + 2, 1 * SIDE + 9));
-        report.DrawPixelArt(ASCII.HUE_LABEL_05, textB, new Point(1 * SIDE + 2, 0 * SIDE + 2));
-        report.DrawPixelArt(ASCII.HUE_LABEL_06, textB, new Point(1 * SIDE + 2, 0 * SIDE + 9));
-        report.DrawPixelArt(ASCII.HUE_LABEL_07, textA, new Point(1 * SIDE + 2, 1 * SIDE + 2));
-        report.DrawPixelArt(ASCII.HUE_LABEL_08, textA, new Point(1 * SIDE + 2, 1 * SIDE + 9));
-        report.DrawPixelArt(ASCII.HUE_LABEL_09, textA, new Point(2 * SIDE + 2, 0 * SIDE + 2));
+        report.DrawASCII("RED",     textA, new Point(0 * SIDE + 2, 0 * SIDE + 2));
+        report.DrawASCII("YELLOW",  textA, new Point(0 * SIDE + 2, 0 * SIDE + 9));
+        report.DrawASCII("ORANGE",  textB, new Point(0 * SIDE + 2, 1 * SIDE + 2));
+        report.DrawASCII("LIME",    textB, new Point(0 * SIDE + 2, 1 * SIDE + 9));
+        report.DrawASCII("GREEN",   textB, new Point(1 * SIDE + 2, 0 * SIDE + 2));
+        report.DrawASCII("SKY",     textB, new Point(1 * SIDE + 2, 0 * SIDE + 9));
+        report.DrawASCII("CYAN",    textA, new Point(1 * SIDE + 2, 1 * SIDE + 2));
+        report.DrawASCII("BLUE",    textA, new Point(1 * SIDE + 2, 1 * SIDE + 9));
+        report.DrawASCII("VIOLET",  textA, new Point(2 * SIDE + 2, 0 * SIDE + 2));
         if (useMagenta)
         {
-            report.DrawPixelArt(ASCII.HUE_LABEL_10, textA, new Point(2 * SIDE + 2, 0 * SIDE + 9));
-            report.DrawPixelArt(ASCII.HUE_LABEL_11, textB, new Point(2 * SIDE + 2, 1 * SIDE + 2));
+            report.DrawASCII("PINK",    textA, new Point(2 * SIDE + 2, 0 * SIDE + 9));
+            report.DrawASCII("MAGENTA", textB, new Point(2 * SIDE + 2, 1 * SIDE + 2));
         }
         else
-            report.DrawPixelArt(ASCII.HUE_LABEL_10, textB, new Point(2 * SIDE + 2, 1 * SIDE + 2));
+            report.DrawASCII("PINK",    textB, new Point(2 * SIDE + 2, 1 * SIDE + 2));
 
         return report;
     }
