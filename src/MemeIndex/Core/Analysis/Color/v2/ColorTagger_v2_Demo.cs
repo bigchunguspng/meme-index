@@ -49,8 +49,9 @@ public static class ColorTagger_v2_Demo
                 var special = false;
                 if      (term[0] == ColorTagger_v2.KEY_GRAY)
                 {
-                    var l = (term[1] - '0') * 25;
-                    bg_rgb = new HSL(0, 0, (byte)l.Cap(100)).ToRgb24();
+                    var L = ColorAnalyzer_v2.GrayReferences_L[term[1] - '0'];
+                    var l = (L * 100).RoundInt().Cap(100);
+                    bg_rgb = new HSL(0, 0, (byte)l).ToRgb24();
                 }
                 else if (term[0] == ColorTagger_v2.KEY_WEAK)
                 {

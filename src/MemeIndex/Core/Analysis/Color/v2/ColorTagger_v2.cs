@@ -124,12 +124,12 @@ public static class ColorTagger_v2
         KEYS_DL = "DL";
 
     public const char
-        KEY_GRAY = '_', // _0 - _5
+        KEY_GRAY = 'A', // A0 - A4
         KEY_MISC = '#', // #D, #S, #X, …
         KEY_WEAK = 'W'; // WHD - WCL
 
     private static readonly string[]
-        _tags_Y = ["_0", "_1", "_2", "_3", "_4", "_5"], // Luma (Y)
+        _tags_Y = ["A0", "A1", "A2", "A3", "A4", "A5"], // Luma (Y)
         _tags_H = // Only hue full!
         [
             // ENSURE SAME OPT ORDER AS IN "HueOption" ENUM!

@@ -27,7 +27,7 @@ public static class ColorTagService // todo rename
             var scanResult = ScanImage(image);
             sw.Log($"IMAGE SCANNED ({scanResult.TotalSamples} samples collected)");
 #if DEBUG
-            var jpeg = Dir_Debug_SampleGrids
+            var jpeg = Dir_Debug_Image
                 .EnsureDirectoryExist()
                 .Combine($"Dots-{DateTime.UtcNow.Ticks >> 32}-{Desert.GetSand(4)}.jpg");
             await image.SaveAsJpegAsync(jpeg, DebugTools.JpegEncoder_Q80);
