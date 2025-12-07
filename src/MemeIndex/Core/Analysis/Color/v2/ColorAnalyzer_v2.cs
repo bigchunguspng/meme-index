@@ -167,7 +167,7 @@ public static class ColorAnalyzer_v2
         132, // LIME-GREEN
         148, // GREEN
         156, // GREEN-CYAN
-        180, // CYAN
+        190, // CYAN
         194, // CYAN-SKY
         245, // SKY
         263, // SKY-BLUE
