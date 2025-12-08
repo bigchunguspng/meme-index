@@ -67,7 +67,7 @@ public static partial class DebugTools
         return report;
     }
 
-    private static Image<Rgb24> GetReportBackground_Oklch(bool useMagenta = true)
+    public static Image<Rgb24> GetReportBackground_Oklch(bool useMagenta = true)
     {
         Rgb24 
             baseA = 50.ToRgb24(), baseB = 40.ToRgb24(),

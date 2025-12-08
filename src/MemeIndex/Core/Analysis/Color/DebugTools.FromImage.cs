@@ -22,11 +22,13 @@ public static partial class DebugTools
     });
 
     public static void RenderProfile_Oklch_v2
-        (string path) => RenderProfile(path, () => GetReportBackground_Oklch(useMagenta: false), "Oklch-v2", (report, sample) =>
+        (string path) => RenderProfile(path, () => GetReportBackground_Oklch(useMagenta: false), "Oklch-v2", PutSample_On_Profile_Oklch_v2);
+
+    public static void PutSample_On_Profile_Oklch_v2(Image<Rgb24> report, Rgb24 sample)
     {
         var oklch = sample.ToOklch();
-        var cy = 100 - (oklch.C * 300).RoundInt().Clamp(0, 100); // ↑
-        var lx =       (oklch.L * 100).RoundInt().Clamp(0, 100); //    →
+        var cy = 100 - oklch.IntC; // ↑
+        var lx =       oklch.IntL; //    →
 
         Span<int> hue_ixs = stackalloc int [2];
         ColorAnalyzer_v2.GetHueIndices(oklch, ref hue_ixs);
@@ -40,14 +42,14 @@ public static partial class DebugTools
 
             report[col * SIDE + lx, row * SIDE + cy] = sample;
         }
-    });
+    }
 
     public static void RenderProfile_Oklch
         (string path) => RenderProfile(path, () => GetReportBackground_Oklch(), "Oklch", (report, sample) =>
     {
         var oklch = sample.ToOklch();
-        var cy = 100 - (oklch.C * 300).RoundInt().Clamp(0, 100); // ↑
-        var lx =       (oklch.L * 100).RoundInt().Clamp(0, 100); //    →
+        var cy = 100 - oklch.IntC; // ↑
+        var lx =       oklch.IntL; //    →
 
         var hue_ix = ColorProfile.GetHueIndex(oklch.H);
 
