@@ -147,7 +147,8 @@ public static class ColorTagger_v2_Demo
                 {
                     var side = (float)(score * 0.016).FastPow(0.5);
                     var gap  = TAG_WH.Gap((int)side).RoundInt();
-                    report.Mutate(ctx => ctx.Fill(colorTagHl, new RectangleF(x, y, TAG_WH, TAG_WH)));
+                    if (score >= 10)
+                        report.Mutate(ctx => ctx.Fill(colorTagHl, new RectangleF(x, y, TAG_WH, TAG_WH)));
                     report.Mutate(ctx => ctx.Fill(getColor(), new RectangleF(x + gap, y + gap, side, side)));
                 }
                 else
