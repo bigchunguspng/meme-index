@@ -113,6 +113,8 @@ public static class ColorTagger_v2_Demo
                 report.Mutate(ctx => ctx.Fill(bgForL, new RectangleF(x0, y0 + 5 * h, w, h)));
             }*/
             var tag_scores = tags.ToDictionary(x => x.Term, x => x.Score);
+
+            // CHROMATIC
             for (var oi = 0; oi < ColorAnalyzer_v2.N_OPS_H; oi++)
             for (var hi = 0; hi < ColorAnalyzer_v2.N_HUES;  hi++)
             {
@@ -122,6 +124,31 @@ public static class ColorTagger_v2_Demo
                 if (tag_scores.TryGetValue(key, out var score))
                 {
                     var color = _palette_H[ColorAnalyzer_v2.N_OPS_H * hi + oi];
+                    var side  = (float)(score * 0.016).FastPow(0.5);
+                    var gap   =  TAG_SIDE.Gap((int)side).RoundInt();
+                    var x = xi + gap;
+                    var y = yi + gap;
+                    var rect = new RectangleF(x, y, side, side);
+                    report.Mutate(ctx => ctx.Fill(68.ToRgb24(), new RectangleF(xi, yi, TAG_SIDE, TAG_SIDE)));
+                    report.Mutate(ctx => ctx.Fill(color, rect));
+                }
+                else
+                {
+                    report.DrawASCII("~", colorText, new Point(xi + CHAR_PAD, yi + CHAR_PAD));
+                }
+            }
+
+            // ACHROMATIC
+            for (var i = 0; i < ColorAnalyzer_v2.N_OPS_G; i++)
+            {
+                var xi = x0 + TAG_TABLE_W + PAD + LABEL_SIDE;
+                var yi = y0 + i * TAG_SIDE;
+                var key = $"{ColorTagger_v2.KEY_GRAY}{i}";
+                if (tag_scores.TryGetValue(key, out var score))
+                {
+                    var L = ColorAnalyzer_v2.GrayReferences_L[i];
+                    var l = (L * 100).RoundInt().Cap(100);
+                    var color = new HSL(0, 0, (byte)l).ToRgb24();
                     var side  = (float)(score * 0.016).FastPow(0.5);
                     var gap   =  TAG_SIDE.Gap((int)side).RoundInt();
                     var x = xi + gap;
