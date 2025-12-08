@@ -50,6 +50,7 @@ public static class ColorTagger_v2_Demo
         using var report = new Image<Rgb24>(W, H, 64.ToRgb24());
 
         var colorText = 120.ToRgb24();
+        var colorTagHl = 68.ToRgb24();
         const int
             TAG_SIDE = 18,
             TAG_TABLE_PAD = 3,
@@ -103,15 +104,7 @@ public static class ColorTagger_v2_Demo
             const int
                 x0 = IMAGE_SIDE + LABEL_SIDE,
                 y0 = PROFILE_H  + LABEL_SIDE;
-            /*var bgForD = 224.ToRgb24();
-            var bgForL =  32.ToRgb24();
-            {
-                const int w = ColorAnalyzer_v2.N_HUES * TAG_SIDE, h = TAG_SIDE;
-                report.Mutate(ctx => ctx.Fill(bgForD, new RectangleF(x0, y0 + 2 * h, w, h)));
-                report.Mutate(ctx => ctx.Fill(bgForL, new RectangleF(x0, y0 + 3 * h, w, h)));
-                report.Mutate(ctx => ctx.Fill(bgForD, new RectangleF(x0, y0 + 4 * h, w, h)));
-                report.Mutate(ctx => ctx.Fill(bgForL, new RectangleF(x0, y0 + 5 * h, w, h)));
-            }*/
+
             var tag_scores = tags.ToDictionary(x => x.Term, x => x.Score);
 
             // CHROMATIC
@@ -121,21 +114,8 @@ public static class ColorTagger_v2_Demo
                 var xi = x0 + TAG_SIDE * hi;
                 var yi = y0 + TAG_SIDE * oi;
                 var key = $"{ColorTagger_v2.KEYS_HUE[hi]}{ColorTagger_v2.KEYS_OPT[oi]}";
-                if (tag_scores.TryGetValue(key, out var score))
-                {
-                    var color = _palette_H[ColorAnalyzer_v2.N_OPS_H * hi + oi];
-                    var side  = (float)(score * 0.016).FastPow(0.5);
-                    var gap   =  TAG_SIDE.Gap((int)side).RoundInt();
-                    var x = xi + gap;
-                    var y = yi + gap;
-                    var rect = new RectangleF(x, y, side, side);
-                    report.Mutate(ctx => ctx.Fill(68.ToRgb24(), new RectangleF(xi, yi, TAG_SIDE, TAG_SIDE)));
-                    report.Mutate(ctx => ctx.Fill(color, rect));
-                }
-                else
-                {
-                    report.DrawASCII("~", colorText, new Point(xi + CHAR_PAD, yi + CHAR_PAD));
-                }
+                var i = ColorAnalyzer_v2.N_OPS_H * hi + oi;
+                DrawTagSquare(xi, yi, key, () => _palette_H[i]);
             }
 
             // ACHROMATIC
@@ -144,23 +124,29 @@ public static class ColorTagger_v2_Demo
                 var xi = x0 + TAG_TABLE_W + PAD + LABEL_SIDE;
                 var yi = y0 + i * TAG_SIDE;
                 var key = $"{ColorTagger_v2.KEY_GRAY}{i}";
+                var i_ = i;
+                DrawTagSquare(xi, yi, key, () =>
+                {
+                    var L = ColorAnalyzer_v2.GrayReferences_L[i_];
+                    var l = (L * 100).RoundInt().Cap(100);
+                    return new HSL(0, 0, (byte)l).ToRgb24();
+                });
+            }
+
+            void DrawTagSquare(int xi, int yi, string key, Func<Rgb24> getColor)
+            {
                 if (tag_scores.TryGetValue(key, out var score))
                 {
-                    var L = ColorAnalyzer_v2.GrayReferences_L[i];
-                    var l = (L * 100).RoundInt().Cap(100);
-                    var color = new HSL(0, 0, (byte)l).ToRgb24();
                     var side  = (float)(score * 0.016).FastPow(0.5);
                     var gap   =  TAG_SIDE.Gap((int)side).RoundInt();
                     var x = xi + gap;
                     var y = yi + gap;
                     var rect = new RectangleF(x, y, side, side);
-                    report.Mutate(ctx => ctx.Fill(68.ToRgb24(), new RectangleF(xi, yi, TAG_SIDE, TAG_SIDE)));
-                    report.Mutate(ctx => ctx.Fill(color, rect));
+                    report.Mutate(ctx => ctx.Fill(colorTagHl, new RectangleF(xi, yi, TAG_SIDE, TAG_SIDE)));
+                    report.Mutate(ctx => ctx.Fill(getColor(), rect));
                 }
                 else
-                {
-                    report.DrawASCII("~", colorText, new Point(xi + CHAR_PAD, yi + CHAR_PAD));
-                }
+                    report.DrawASCII("!", 48.ToRgb24(), new Point(xi + CHAR_PAD + 2, yi + CHAR_PAD));
             }
         }
 
