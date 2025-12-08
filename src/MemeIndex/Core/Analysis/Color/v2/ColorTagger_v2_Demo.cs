@@ -45,6 +45,8 @@ public static class ColorTagger_v2_Demo
             CHAR_PAD = (TAG_WH - CHAR_WH) / 2,
             LABEL_PAD = 3,
             LABEL_WH = CHAR_WH + LABEL_PAD,
+            TAG_BY_SCORE_W = TAG_WH + 2,
+            TAG_BY_SCORE_H = TAG_WH + 2 * CHAR_WH + 2,
             TAG_TABLE_FULL_W = LABEL_WH + TAG_TABLE_W,
             TAG_TABLE_FULL_H = LABEL_WH + TAG_TABLE_H;
 
@@ -57,6 +59,13 @@ public static class ColorTagger_v2_Demo
             C1R1 = C1R0 + PROFILE_H + PAD,
             C1R2 = C1R1 + TAG_TABLE_FULL_H + PAD;
 
+        var colorTextB = 160.ToRgb24();
+        var colorText  = 120.ToRgb24();
+        var colorTextD = 100.ToRgb24();
+        var colorTagHl =  68.ToRgb24();
+        var colorBack  =  64.ToRgb24();
+        var colorNoTag =  48.ToRgb24();
+
         // ANALYZE IMAGE
         var tags = ColorTagger_v2.AnalyzeImage(path).Result.OrderByDescending(x => x.Score).ToArray();
         if (tags.Length == 0)
@@ -67,10 +76,7 @@ public static class ColorTagger_v2_Demo
 
         // REPORT
         using var source = Image.Load<Rgb24>(path);
-        using var report = new Image<Rgb24>(W, H, 64.ToRgb24());
-
-        var colorText = 120.ToRgb24();
-        var colorTagHl = 68.ToRgb24();
+        using var report = new Image<Rgb24>(W, H, colorBack);
 
         // TAGS BY CATEGORY
         {
@@ -113,21 +119,21 @@ public static class ColorTagger_v2_Demo
             for (var oi = 0; oi < ColorAnalyzer_v2.N_OPS_H; oi++)
             for (var hi = 0; hi < ColorAnalyzer_v2.N_HUES;  hi++)
             {
-                var xi = xl + TAG_WH * hi;
-                var yi = yl + TAG_WH * oi;
+                var x = xl + TAG_WH * hi;
+                var y = yl + TAG_WH * oi;
                 var key = $"{ColorTagger_v2.KEYS_HUE[hi]}{ColorTagger_v2.KEYS_OPT[oi]}";
                 var i = ColorAnalyzer_v2.N_OPS_H * hi + oi;
-                DrawTagSquare(xi, yi, key, () => _palette_H[i]);
+                DrawTagSquare(x, y, key, () => _palette_H[i]);
             }
 
             // TAGS - ACHROMATIC
             for (var i = 0; i < ColorAnalyzer_v2.N_OPS_G; i++)
             {
-                var xi = xl + TAG_TABLE_W + PAD + LABEL_WH;
-                var yi = yl + i * TAG_WH;
+                var x = xl + TAG_TABLE_W + PAD + LABEL_WH;
+                var y = yl + i * TAG_WH;
                 var key = $"{ColorTagger_v2.KEY_GRAY}{i}";
                 var i_ = i;
-                DrawTagSquare(xi, yi, key, () =>
+                DrawTagSquare(x, y, key, () =>
                 {
                     var L = ColorAnalyzer_v2.GrayReferences_L[i_];
                     var l = (L * 100).RoundInt().Cap(100);
@@ -145,13 +151,79 @@ public static class ColorTagger_v2_Demo
                     report.Mutate(ctx => ctx.Fill(getColor(), new RectangleF(x + gap, y + gap, side, side)));
                 }
                 else
-                    report.DrawASCII("!", 48.ToRgb24(), new Point(x + CHAR_PAD + 2, y + CHAR_PAD));
+                    report.DrawASCII("!", colorNoTag, new Point(x + CHAR_PAD + 2, y + CHAR_PAD));
+            }
+        }
+
+        // TAGS BY SCORE
+        {
+            const string keys = "SML";
+            const int
+                x0 = C1,
+                y0 = C1R2,
+                xl = x0 + LABEL_WH,
+                yl = y0 + LABEL_WH;
+
+            var groups = tags.GroupBy(x => (int)Math.Log10(x.Score.Cap(9999))).Take(3).ToDictionary(x => x.Key, x => x.ToArray());
+            var x = xl;
+            var y = yl;
+            foreach (var (key, tags_) in groups)
+            {
+                var text = keys.AsSpan(key - 1, 1);
+                report.DrawASCII(text, colorText, new Point(x0, y + TAG_WH.GapInt(CHAR_WH)));
+                foreach (var tag in tags_)
+                {
+                    if (x + TAG_BY_SCORE_W > W || y + TAG_BY_SCORE_H > H) break;
+
+                    var (color, _) = GetColorsByTag(tag.Term);
+                    DrawTagScore(x, y, tag.Term, tag.Score, () => color);
+                    x += TAG_BY_SCORE_W;
+                    if (x + TAG_BY_SCORE_W > W)
+                    {
+                        x = xl;
+                        y += TAG_BY_SCORE_H;
+                    }
+                }
+
+                x = xl;
+                y += TAG_BY_SCORE_H;
+            }
+
+            var legend = "Score: S: 10-99, M: 100-999, L: 1k-10k";
+            report.DrawASCII(legend, colorText, new Point(x0, y0));
+
+            void DrawTagScore(int x, int y, string key, int score, Func<Rgb24> getColor)
+            {
+                var y_key   = y + TAG_WH;
+                var y_score = y + TAG_WH + CHAR_WH;
+                var side = (float)(score * 0.016).FastPow(0.5);
+                var gap  = TAG_WH.Gap((int)side).RoundInt();
+                report.Mutate(ctx => ctx.Fill(getColor(), new RectangleF(x + gap, y + gap, side, side)));
+                report.DrawASCII(key, colorTextD, new Point(x + TAG_WH.GapInt(key.Length * CHAR_WH), y_key));
+                if (score < 100)
+                {
+                    var text = $"{score}";
+                    report.DrawASCII(text, colorText, new Point(x + TAG_WH.GapInt(text.Length * CHAR_WH), y_score));
+                }
+                else
+                {
+                    var hundreds  = $"{score / 100}";
+                    var remainder = $"{score % 100:00}";
+                    report.DrawASCII(hundreds, colorTextB, new Point(x, y_score));
+                    var free_chars = 3 - hundreds.Length;
+                    if (free_chars > 0)
+                    {
+                        var point = new Point(x + hundreds.Length * CHAR_WH, y_score);
+                        report.DrawASCII(remainder.AsSpan(0, free_chars), colorText, point);
+                    }
+                }
             }
         }
 
         // OTHER INFO
         {
-            report.DrawASCII($"TAGS: {tags.Length,3}", colorText, new Point(C0, C0R1));
+            var tagsCount_db = tags.TakeWhile(x => x.Score >= 10).Count();
+            report.DrawASCII($"TAGS: {tags.Length,3} -> {tagsCount_db}", colorText, new Point(C0, C0R1));
         }
 
         // OKLCH v2 PROFILE
@@ -201,34 +273,10 @@ public static class ColorTagger_v2_Demo
 
                 var (term, score) = tags[i];
 
-                Rgb24 bg_rgb;
-                var special = false;
-                if      (term[0] == ColorTagger_v2.KEY_GRAY)
-                {
-                    var L = ColorAnalyzer_v2.GrayReferences_L[term[1] - '0'];
-                    var l = (L * 100).RoundInt().Cap(100);
-                    bg_rgb = new HSL(0, 0, (byte)l).ToRgb24();
-                }
-                else if (term[0] == ColorTagger_v2.KEY_WEAK)
-                {
-                    var hc = ColorTagger_v2.KEYS_HC.IndexOf(term[1]);
-                    var dl = ColorTagger_v2.KEYS_DL.IndexOf(term[2]);
-                    bg_rgb = _palette_W[2 * hc + dl];
-                }
-                else if (term[0] == ColorTagger_v2.KEY_MISC)
-                {
-                    bg_rgb = 0.ToRgb24();
-                    special = true;
-                }
-                else
-                {
-                    var hue_ix = ColorTagger_v2.KEYS_HUE.IndexOf(term[0]);
-                    var opt_ix = ColorTagger_v2.KEYS_OPT.IndexOf(term[1]);
-                    bg_rgb = _palette_H[6 * hue_ix + opt_ix];
-                }
-
+                var (bg_rgb, fg_rgb) = GetColorsByTag(term);
+                
                 var bg = ColorConverter.RgbToHex(bg_rgb.ToRGB());
-                var fg = special ? "gold1" : bg_rgb.ToOklch().L > 0.5 ? "black" : "white";
+                var fg = ColorConverter.RgbToHex(fg_rgb.ToRGB());
                 AnsiConsole.Markup($"[{fg} on #{bg}]\t {term,3} - {score,5} [/]");
             }
 
@@ -236,6 +284,39 @@ public static class ColorTagger_v2_Demo
         }
 
         Console.WriteLine();
+    }
+
+    private static (Rgb24 bg, Rgb24 fg) GetColorsByTag(string term)
+    {
+        Rgb24 bg;
+        var special = false;
+        if      (term[0] == ColorTagger_v2.KEY_GRAY)
+        {
+            var L = ColorAnalyzer_v2.GrayReferences_L[term[1] - '0'];
+            var l = (L * 100).RoundInt().Cap(100);
+            bg = new HSL(0, 0, (byte)l).ToRgb24();
+        }
+        else if (term[0] == ColorTagger_v2.KEY_WEAK)
+        {
+            var hc = ColorTagger_v2.KEYS_HC.IndexOf(term[1]);
+            var dl = ColorTagger_v2.KEYS_DL.IndexOf(term[2]);
+            bg = _palette_W[2 * hc + dl];
+        }
+        else if (term[0] == ColorTagger_v2.KEY_MISC)
+        {
+            bg = 0.ToRgb24();
+            special = true;
+        }
+        else
+        {
+            var hue_ix = ColorTagger_v2.KEYS_HUE.IndexOf(term[0]);
+            var opt_ix = ColorTagger_v2.KEYS_OPT.IndexOf(term[1]);
+            bg = _palette_H[6 * hue_ix + opt_ix];
+        }
+
+        var fg = special ? new Rgb24(255, 215, 0) : bg.ToOklch().L > 0.5 ? 0.ToRgb24() : 255.ToRgb24();
+
+        return (bg, fg);
     }
 
     private static readonly Rgb24[]

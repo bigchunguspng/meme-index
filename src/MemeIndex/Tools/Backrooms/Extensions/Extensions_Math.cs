@@ -31,8 +31,9 @@ public static class Extensions_Math
     [MethodImpl(AggressiveInlining)] public static double HalfwayTo(this double a, double b) => (a + b) * 0.5;
 
     // GAP
-    [MethodImpl(AggressiveInlining)] public static float Gap(this int   outer, int   inner) => (outer - inner) / 2F;
-    [MethodImpl(AggressiveInlining)] public static float Gap(this float outer, float inner) => (outer - inner) / 2F;
+    [MethodImpl(AggressiveInlining)] public static int   GapInt(this int   outer, int   inner) => (outer - inner) / 2;
+    [MethodImpl(AggressiveInlining)] public static float Gap   (this int   outer, int   inner) => (outer - inner) / 2F;
+    [MethodImpl(AggressiveInlining)] public static float Gap   (this float outer, float inner) => (outer - inner) / 2F;
 
     //
     /// Up to 33% faster than <see cref="Math.Pow"/>. Result can differ by N,e-16 - round if necessary!
