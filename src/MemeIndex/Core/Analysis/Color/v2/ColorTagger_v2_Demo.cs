@@ -30,12 +30,32 @@ public static class ColorTagger_v2_Demo
 
     public static void Run(string path)
     {
-        const int 
-            PAD = 6, 
-            IMAGE_FIT = 392, 
-            IMAGE_SIDE = IMAGE_FIT + 2 * PAD, 
-            PROFILE_SIDE = 101, PROFILE_H = 2 * PROFILE_SIDE + 2 * PAD,
-            W = IMAGE_SIDE + 3 * PROFILE_SIDE + PAD, H = IMAGE_SIDE;
+        const int
+            PAD = 6,
+            IMAGE_WH = 392,
+            PROFILE_TILE_WH = 101,
+            PROFILE_H = 2 * PROFILE_TILE_WH,
+            PROFILE_W = 3 * PROFILE_TILE_WH,
+            W = IMAGE_WH + PROFILE_W + 3 * PAD,
+            H = IMAGE_WH + 100 + 3 * PAD, // todo 100 -> ?
+            TAG_WH = 18,
+            TAG_TABLE_W = ColorAnalyzer_v2.N_HUES  * TAG_WH,
+            TAG_TABLE_H = ColorAnalyzer_v2.N_OPS_H * TAG_WH,
+            CHAR_WH = 6,
+            CHAR_PAD = (TAG_WH - CHAR_WH) / 2,
+            LABEL_PAD = 3,
+            LABEL_WH = CHAR_WH + LABEL_PAD,
+            TAG_TABLE_FULL_W = LABEL_WH + TAG_TABLE_W,
+            TAG_TABLE_FULL_H = LABEL_WH + TAG_TABLE_H;
+
+        const int // columns, rows
+            C0 = PAD,
+            C1 = C0 + IMAGE_WH + PAD,
+            C0R0 = PAD,
+            C0R1 = C0R0 + IMAGE_WH + PAD,
+            C1R0 = PAD,
+            C1R1 = C1R0 + PROFILE_H + PAD,
+            C1R2 = C1R1 + TAG_TABLE_FULL_H + PAD;
 
         // ANALYZE IMAGE
         var tags = ColorTagger_v2.AnalyzeImage(path).Result.OrderByDescending(x => x.Score).ToArray();
@@ -51,78 +71,60 @@ public static class ColorTagger_v2_Demo
 
         var colorText = 120.ToRgb24();
         var colorTagHl = 68.ToRgb24();
-        const int
-            TAG_SIDE = 18,
-            TAG_TABLE_PAD = 3,
-            TAG_TABLE_W = ColorAnalyzer_v2.N_HUES  * TAG_SIDE,
-            TAG_TABLE_H = ColorAnalyzer_v2.N_OPS_H * TAG_SIDE,
-            CHAR_SIDE = 6,
-            CHAR_PAD = (TAG_SIDE - CHAR_SIDE) / 2,
-            LABEL_SIDE = CHAR_SIDE + TAG_TABLE_PAD;
 
-        // TAG LABELS
+        // TAGS BY CATEGORY
         {
             const int
-                x0 = IMAGE_SIDE,
-                y0 = PROFILE_H;
+                x0 = C1,
+                y0 = C1R1,
+                xl = x0 + LABEL_WH,
+                yl = y0 + LABEL_WH;
 
-            // CHROMATIC
+            // LABELS - CHROMATIC
             for (var hi = 0; hi < ColorAnalyzer_v2.N_HUES; hi++)
             {
                 var key = ColorTagger_v2.KEYS_HUE.AsSpan(hi, 1);
-                var x = x0 + LABEL_SIDE + hi * TAG_SIDE + CHAR_PAD;
+                var x = xl + hi * TAG_WH + CHAR_PAD;
                 report.DrawASCII(key, colorText, new Point(x, y0));
             }
             for (var oi = 0; oi < ColorAnalyzer_v2.N_OPS_H; oi++)
             {
                 var key = ColorTagger_v2.KEYS_OPT.AsSpan(oi, 1);
-                var y = y0 + LABEL_SIDE + oi * TAG_SIDE + CHAR_PAD;
+                var y = yl + oi * TAG_WH + CHAR_PAD;
                 report.DrawASCII(key, colorText, new Point(x0, y));
             }
 
-            // ACHROMATIC
+            // LABELS - ACHROMATIC
             {
-                var x = x0 + LABEL_SIDE + TAG_TABLE_W + PAD + LABEL_SIDE + CHAR_PAD;
+                var x = x0 + TAG_TABLE_FULL_W + PAD + LABEL_WH + CHAR_PAD;
                 report.DrawASCII($"{ColorTagger_v2.KEY_GRAY}", colorText, new Point(x, y0));
             }
             for (var i = 0; i < ColorAnalyzer_v2.N_OPS_G; i++)
             {
                 var key = $"{(char)('0' + i)}";
-                var x = x0 + LABEL_SIDE + TAG_TABLE_W + PAD;
-                var y = y0 + LABEL_SIDE + i * TAG_SIDE + CHAR_PAD;
+                var x = x0 + TAG_TABLE_FULL_W + PAD;
+                var y = yl + i * TAG_WH + CHAR_PAD;
                 report.DrawASCII(key, colorText, new Point(x, y));
             }
 
-            {
-                var y = y0 + LABEL_SIDE + TAG_TABLE_H + PAD;
-                report.DrawASCII($"TAGS: {tags.Length,3}", colorText, new Point(x0, y));
-            }
-        }
-
-        // TAGS
-        {
-            const int
-                x0 = IMAGE_SIDE + LABEL_SIDE,
-                y0 = PROFILE_H  + LABEL_SIDE;
-
             var tag_scores = tags.ToDictionary(x => x.Term, x => x.Score);
 
-            // CHROMATIC
+            // TAGS - CHROMATIC
             for (var oi = 0; oi < ColorAnalyzer_v2.N_OPS_H; oi++)
             for (var hi = 0; hi < ColorAnalyzer_v2.N_HUES;  hi++)
             {
-                var xi = x0 + TAG_SIDE * hi;
-                var yi = y0 + TAG_SIDE * oi;
+                var xi = xl + TAG_WH * hi;
+                var yi = yl + TAG_WH * oi;
                 var key = $"{ColorTagger_v2.KEYS_HUE[hi]}{ColorTagger_v2.KEYS_OPT[oi]}";
                 var i = ColorAnalyzer_v2.N_OPS_H * hi + oi;
                 DrawTagSquare(xi, yi, key, () => _palette_H[i]);
             }
 
-            // ACHROMATIC
+            // TAGS - ACHROMATIC
             for (var i = 0; i < ColorAnalyzer_v2.N_OPS_G; i++)
             {
-                var xi = x0 + TAG_TABLE_W + PAD + LABEL_SIDE;
-                var yi = y0 + i * TAG_SIDE;
+                var xi = xl + TAG_TABLE_W + PAD + LABEL_WH;
+                var yi = yl + i * TAG_WH;
                 var key = $"{ColorTagger_v2.KEY_GRAY}{i}";
                 var i_ = i;
                 DrawTagSquare(xi, yi, key, () =>
@@ -133,21 +135,23 @@ public static class ColorTagger_v2_Demo
                 });
             }
 
-            void DrawTagSquare(int xi, int yi, string key, Func<Rgb24> getColor)
+            void DrawTagSquare(int x, int y, string key, Func<Rgb24> getColor)
             {
                 if (tag_scores.TryGetValue(key, out var score))
                 {
-                    var side  = (float)(score * 0.016).FastPow(0.5);
-                    var gap   =  TAG_SIDE.Gap((int)side).RoundInt();
-                    var x = xi + gap;
-                    var y = yi + gap;
-                    var rect = new RectangleF(x, y, side, side);
-                    report.Mutate(ctx => ctx.Fill(colorTagHl, new RectangleF(xi, yi, TAG_SIDE, TAG_SIDE)));
-                    report.Mutate(ctx => ctx.Fill(getColor(), rect));
+                    var side = (float)(score * 0.016).FastPow(0.5);
+                    var gap  = TAG_WH.Gap((int)side).RoundInt();
+                    report.Mutate(ctx => ctx.Fill(colorTagHl, new RectangleF(x, y, TAG_WH, TAG_WH)));
+                    report.Mutate(ctx => ctx.Fill(getColor(), new RectangleF(x + gap, y + gap, side, side)));
                 }
                 else
-                    report.DrawASCII("!", 48.ToRgb24(), new Point(xi + CHAR_PAD + 2, yi + CHAR_PAD));
+                    report.DrawASCII("!", 48.ToRgb24(), new Point(x + CHAR_PAD + 2, y + CHAR_PAD));
             }
+        }
+
+        // OTHER INFO
+        {
+            report.DrawASCII($"TAGS: {tags.Length,3}", colorText, new Point(C0, C0R1));
         }
 
         // OKLCH v2 PROFILE
@@ -158,13 +162,16 @@ public static class ColorTagger_v2_Demo
             var sample = source[x, y];
             DebugTools.PutSample_On_Profile_Oklch_v2(profile, sample);
         }
-        report.Mutate(ctx => ctx.DrawImage(profile, new Point(IMAGE_SIDE, PAD), 1F));
+        report.Mutate(ctx => ctx.DrawImage(profile, new Point(C1, C1R0), 1F));
 
         // PUT IMAGE
-        var size = source.Size.FitSize(392);
-        var point = new Point(IMAGE_SIDE.Gap(size.Width).RoundInt(), IMAGE_SIDE.Gap(size.Height).RoundInt());
-        source.Mutate(ctx => ctx.Resize(size));
-        report.Mutate(ctx => ctx.DrawImage(source, point, 1F));
+        {
+            var size = source.Size.FitSize(392);
+            var x = PAD + IMAGE_WH.Gap(size.Width ).RoundInt();
+            var y = PAD + IMAGE_WH.Gap(size.Height).RoundInt();
+            source.Mutate(ctx => ctx.Resize(size));
+            report.Mutate(ctx => ctx.DrawImage(source, new Point(x, y), 1F));
+        }
 
         // SAVE REPORT
         var name = $"Profile-{DateTime.UtcNow.Ticks:x16}-{Desert.GetSand()}-Analysis.png";
