@@ -36,8 +36,6 @@ public static class ColorTagger_v2_Demo
             PROFILE_TILE_WH = 101,
             PROFILE_H = 2 * PROFILE_TILE_WH,
             PROFILE_W = 3 * PROFILE_TILE_WH,
-            W = IMAGE_WH + PROFILE_W + 3 * PAD,
-            H = IMAGE_WH + 100 + 3 * PAD, // todo 100 -> ?
             TAG_WH = 18,
             TAG_TABLE_W = ColorAnalyzer_v2.N_HUES  * TAG_WH,
             TAG_TABLE_H = ColorAnalyzer_v2.N_OPS_H * TAG_WH,
@@ -48,16 +46,22 @@ public static class ColorTagger_v2_Demo
             TAG_BY_SCORE_W = TAG_WH + 2,
             TAG_BY_SCORE_H = TAG_WH + 2 * CHAR_WH + 2,
             TAG_TABLE_FULL_W = LABEL_WH + TAG_TABLE_W,
-            TAG_TABLE_FULL_H = LABEL_WH + TAG_TABLE_H;
+            TAG_TABLE_FULL_H = LABEL_WH + TAG_TABLE_H,
+            W = IMAGE_WH + PROFILE_W + 3 * PAD,
+            H = IMAGE_WH + 3 * TAG_BY_SCORE_H + LABEL_WH + 3 * PAD;
 
         const int // columns, rows
             C0 = PAD,
             C1 = C0 + IMAGE_WH + PAD,
+            CW = PAD,
             C0R0 = PAD,
             C0R1 = C0R0 + IMAGE_WH + PAD,
             C1R0 = PAD,
             C1R1 = C1R0 + PROFILE_H + PAD,
-            C1R2 = C1R1 + TAG_TABLE_FULL_H + PAD;
+            C1R2 = C1R1 + TAG_TABLE_FULL_H + PAD,
+            CWR0 = C0R0 + IMAGE_WH + PAD;
+
+        // todo  cw: legend + tags by score;  c1: tags count + tables
 
         var colorTextB = 160.ToRgb24();
         var colorText  = 120.ToRgb24();
@@ -145,11 +149,9 @@ public static class ColorTagger_v2_Demo
             {
                 if (tag_scores.TryGetValue(key, out var score))
                 {
-                    var side = (float)(score * 0.016).FastPow(0.5);
-                    var gap  = TAG_WH.Gap((int)side).RoundInt();
                     if (score >= 10)
                         report.Mutate(ctx => ctx.Fill(colorTagHl, new RectangleF(x, y, TAG_WH, TAG_WH)));
-                    report.Mutate(ctx => ctx.Fill(getColor(), new RectangleF(x + gap, y + gap, side, side)));
+                    report.Mutate(ctx => ctx.Fill(getColor(), GetTagSquareRect(x, y, score)));
                 }
                 else
                     report.DrawASCII("!", colorNoTag, new Point(x + CHAR_PAD + 2, y + CHAR_PAD));
@@ -158,48 +160,44 @@ public static class ColorTagger_v2_Demo
 
         // TAGS BY SCORE
         {
-            const string keys = "SML";
+            const string SML = "SML";
             const int
-                x0 = C1,
-                y0 = C1R2,
+                x0 = CW,
+                y0 = CWR0,
                 xl = x0 + LABEL_WH,
                 yl = y0 + LABEL_WH;
 
-            var groups = tags.GroupBy(x => (int)Math.Log10(x.Score.Cap(9999))).Take(3).ToDictionary(x => x.Key, x => x.ToArray());
+            var groups = tags
+                .GroupBy(x => (int)Math.Log10(x.Score.Cap(9999)))
+                .Take(3)
+                .ToDictionary(x => x.Key, x => x.ToArray());
             var x = xl;
             var y = yl;
             foreach (var (key, tags_) in groups)
             {
-                var text = keys.AsSpan(key - 1, 1);
-                report.DrawASCII(text, colorText, new Point(x0, y + TAG_WH.GapInt(CHAR_WH)));
+                var key_SML = SML.AsSpan(key - 1, 1);
+                report.DrawASCII(key_SML, colorText, new Point(x0, y + TAG_WH.GapInt(CHAR_WH)));
                 foreach (var tag in tags_)
                 {
                     if (x + TAG_BY_SCORE_W > W || y + TAG_BY_SCORE_H > H) break;
 
                     var (color, _) = GetColorsByTag(tag.Term);
-                    DrawTagScore(x, y, tag.Term, tag.Score, () => color);
+                    DrawTagSquare_Labeled(x, y, tag.Term, tag.Score, () => color);
                     x += TAG_BY_SCORE_W;
-                    if (x + TAG_BY_SCORE_W > W)
-                    {
-                        x = xl;
-                        y += TAG_BY_SCORE_H;
-                    }
                 }
 
                 x = xl;
                 y += TAG_BY_SCORE_H;
             }
 
-            var legend = "Score: S: 10-99, M: 100-999, L: 1k-10k";
+            var legend = "Score:  S: 10-99,  M: 100-999,  L: 1k-10k";
             report.DrawASCII(legend, colorText, new Point(x0, y0));
 
-            void DrawTagScore(int x, int y, string key, int score, Func<Rgb24> getColor)
+            void DrawTagSquare_Labeled(int x, int y, string key, int score, Func<Rgb24> getColor)
             {
                 var y_key   = y + TAG_WH;
-                var y_score = y + TAG_WH + CHAR_WH;
-                var side = (float)(score * 0.016).FastPow(0.5);
-                var gap  = TAG_WH.Gap((int)side).RoundInt();
-                report.Mutate(ctx => ctx.Fill(getColor(), new RectangleF(x + gap, y + gap, side, side)));
+                var y_score = y_key + CHAR_WH;
+                report.Mutate(ctx => ctx.Fill(getColor(), GetTagSquareRect(x, y, score)));
                 report.DrawASCII(key, colorTextD, new Point(x + TAG_WH.GapInt(key.Length * CHAR_WH), y_key));
                 if (score < 100)
                 {
@@ -221,10 +219,17 @@ public static class ColorTagger_v2_Demo
             }
         }
 
+        RectangleF GetTagSquareRect(int x, int y, int score)
+        {
+            var side = (float)(score * 0.016).FastPow(0.5);
+            var gap = ((float)TAG_WH).Gap(side).RoundInt();
+            return new RectangleF(x + gap, y + gap, side, side);
+        }
+
         // OTHER INFO
         {
             var tagsCount_db = tags.TakeWhile(x => x.Score >= 10).Count();
-            report.DrawASCII($"TAGS: {tags.Length,3} -> {tagsCount_db}", colorText, new Point(C0, C0R1));
+            report.DrawASCII($"TAGS: {tags.Length,3} -> {tagsCount_db}", colorText, new Point(C1, C1R2));
         }
 
         // OKLCH v2 PROFILE
