@@ -32,19 +32,18 @@ public static class Extensions_Image
     };
 
     /// <inheritdoc cref="DrawASCII{T}"/>
-    public static int DrawASCII_Shady<T>
+    public static Point DrawASCII_Shady<T>
         (this Image<T> image, ReadOnlySpan<char> text, T colorText, T colorShadow, Point point)
         where T : unmanaged, IPixel<T>
     {
-        var point2 = new Point(point.X + 1, point.Y + 1);
-        _    = image.DrawASCII(text, colorShadow, point2);
+        _    = image.DrawASCII(text, colorShadow, point + new Size(1, 1));
         return image.DrawASCII(text, colorText,   point);
     }
 
     /// Draw text with a 5x6 bitmap font (variable char width). <br/>
     /// Pass only printable ASCII text (0x20 ' ' - 0x7E '~') and 0x0A '\n'! <br/>
-    /// Text width is returned (usefull only for oneliners).
-    public static int DrawASCII<T>
+    /// Method returns a point which can be used to continue draw text.
+    public static Point DrawASCII<T>
         (this Image<T> image, ReadOnlySpan<char> text, T color, Point point)
         where T : unmanaged, IPixel<T>
     {
@@ -72,7 +71,7 @@ public static class Extensions_Image
             px += w + 1;
         }
 
-        return px - point.X;
+        return new Point(px, py);
     }
 
     /// To draw a pixel-art, encode it as a multiline string,

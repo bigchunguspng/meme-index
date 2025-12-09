@@ -191,14 +191,14 @@ public static class ColorTagger_v2_Demo
 
             // TAGS COUNT BY SCORE
             {
-                var w = 0;
-                w += report.DrawASCII_Shady("Score: ",               colorText,  colorTextS, new Point(x0,     y0));
-                w += report.DrawASCII_Shady($"{groups[3].Length,3}", colorTextB, colorTextS, new Point(x0 + w, y0));
-                w += report.DrawASCII_Shady("*L (1k-10k), ",         colorText,  colorTextS, new Point(x0 + w, y0));
-                w += report.DrawASCII_Shady($"{groups[2].Length,3}", colorTextB, colorTextS, new Point(x0 + w, y0));
-                w += report.DrawASCII_Shady("*M (100-999), ",        colorText,  colorTextS, new Point(x0 + w, y0));
-                w += report.DrawASCII_Shady($"{groups[1].Length,3}", colorTextB, colorTextS, new Point(x0 + w, y0));
-                _  = report.DrawASCII_Shady("*S (10-99)",            colorText,  colorTextS, new Point(x0 + w, y0));
+                var p = new Point(x0, y0);
+                p = report.DrawASCII_Shady("Score: ",               colorText,  colorTextS, p);
+                p = report.DrawASCII_Shady($"{groups[3].Length,3}", colorTextB, colorTextS, p);
+                p = report.DrawASCII_Shady("*L (1k-10k), ",         colorText,  colorTextS, p);
+                p = report.DrawASCII_Shady($"{groups[2].Length,3}", colorTextB, colorTextS, p);
+                p = report.DrawASCII_Shady("*M (100-999), ",        colorText,  colorTextS, p);
+                p = report.DrawASCII_Shady($"{groups[1].Length,3}", colorTextB, colorTextS, p);
+                _ = report.DrawASCII_Shady("*S (10-99)",            colorText,  colorTextS, p);
             }
 
             void DrawTagSquare_Labeled(int x, int y, string key, int score, Func<Rgb24> getColor)
@@ -236,10 +236,11 @@ public static class ColorTagger_v2_Demo
 
         // TAGS COUNT
         {
+            var p = new Point(C1, CWR0);
             var tagsCount_db = tags.TakeWhile(x => x.Score >= 10).Count();
-            var w = report.DrawASCII_Shady("TAGS: ",            colorText,  colorTextS, new Point(C1,     CWR0));
-            w    += report.DrawASCII_Shady($"{tagsCount_db,2}", colorTextB, colorTextS, new Point(C1 + w, CWR0));
-            _     = report.DrawASCII_Shady($"/{tags.Length,2}", colorText , colorTextS, new Point(C1 + w, CWR0));
+            p = report.DrawASCII_Shady("TAGS: ",            colorText,  colorTextS, p);
+            p = report.DrawASCII_Shady($"{tagsCount_db,2}", colorTextB, colorTextS, p);
+            _ = report.DrawASCII_Shady($"/{tags.Length,2}", colorText , colorTextS, p);
         }
 
         // OKLCH v2 PROFILE
