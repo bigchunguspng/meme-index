@@ -61,14 +61,13 @@ public static class ColorTagger_v2_Demo
             C1R2 = C1R1 + TAG_TABLE_FULL_H + PAD,
             CWR0 = C0R0 + IMAGE_WH + PAD;
 
-        // todo  cw: legend + tags by score;  c1: tags count + tables
-
         var colorTextB = 160.ToRgb24();
         var colorText  = 120.ToRgb24();
         var colorTextD = 100.ToRgb24();
         var colorTagHl =  68.ToRgb24();
         var colorBack  =  64.ToRgb24();
         var colorNoTag =  48.ToRgb24();
+        var colorTextS =  48.ToRgb24();
 
         // ANALYZE IMAGE
         var tags = ColorTagger_v2.AnalyzeImage(path).Result.OrderByDescending(x => x.Score).ToArray();
@@ -95,26 +94,26 @@ public static class ColorTagger_v2_Demo
             {
                 var key = ColorTagger_v2.KEYS_HUE.AsSpan(hi, 1);
                 var x = xl + hi * TAG_WH + CHAR_PAD;
-                report.DrawASCII(key, colorText, new Point(x, y0));
+                report.DrawASCII_Shady(key, colorText, colorTextS, new Point(x, y0));
             }
             for (var oi = 0; oi < ColorAnalyzer_v2.N_OPS_H; oi++)
             {
                 var key = ColorTagger_v2.KEYS_OPT.AsSpan(oi, 1);
                 var y = yl + oi * TAG_WH + CHAR_PAD;
-                report.DrawASCII(key, colorText, new Point(x0, y));
+                report.DrawASCII_Shady(key, colorText, colorTextS, new Point(x0, y));
             }
 
             // LABELS - ACHROMATIC
             {
                 var x = x0 + TAG_TABLE_FULL_W + PAD + LABEL_WH + CHAR_PAD;
-                report.DrawASCII($"{ColorTagger_v2.KEY_GRAY}", colorText, new Point(x, y0));
+                report.DrawASCII_Shady($"{ColorTagger_v2.KEY_GRAY}", colorText, colorTextS, new Point(x, y0));
             }
             for (var i = 0; i < ColorAnalyzer_v2.N_OPS_G; i++)
             {
                 var key = $"{(char)('0' + i)}";
                 var x = x0 + TAG_TABLE_FULL_W + PAD;
                 var y = yl + i * TAG_WH + CHAR_PAD;
-                report.DrawASCII(key, colorText, new Point(x, y));
+                report.DrawASCII_Shady(key, colorText, colorTextS, new Point(x, y));
             }
 
             var tag_scores = tags.ToDictionary(x => x.Term, x => x.Score);
@@ -176,7 +175,7 @@ public static class ColorTagger_v2_Demo
             foreach (var (key, tags_) in groups)
             {
                 var key_SML = SML.AsSpan(key - 1, 1);
-                report.DrawASCII(key_SML, colorText, new Point(x0, y + TAG_WH.GapInt(CHAR_WH)));
+                report.DrawASCII_Shady(key_SML, colorText, colorTextS, new Point(x0, y + TAG_WH.GapInt(CHAR_WH)));
                 foreach (var tag in tags_)
                 {
                     if (x + TAG_BY_SCORE_W > W || y + TAG_BY_SCORE_H > H) break;
@@ -190,30 +189,39 @@ public static class ColorTagger_v2_Demo
                 y += TAG_BY_SCORE_H;
             }
 
-            var legend = "Score:  S: 10-99,  M: 100-999,  L: 1k-10k";
-            report.DrawASCII(legend, colorText, new Point(x0, y0));
+            // TAGS COUNT BY SCORE
+            {
+                var w = 0;
+                w += report.DrawASCII_Shady("Score: ",               colorText,  colorTextS, new Point(x0,     y0));
+                w += report.DrawASCII_Shady($"{groups[3].Length,3}", colorTextB, colorTextS, new Point(x0 + w, y0));
+                w += report.DrawASCII_Shady("*L (1k-10k), ",         colorText,  colorTextS, new Point(x0 + w, y0));
+                w += report.DrawASCII_Shady($"{groups[2].Length,3}", colorTextB, colorTextS, new Point(x0 + w, y0));
+                w += report.DrawASCII_Shady("*M (100-999), ",        colorText,  colorTextS, new Point(x0 + w, y0));
+                w += report.DrawASCII_Shady($"{groups[1].Length,3}", colorTextB, colorTextS, new Point(x0 + w, y0));
+                _  = report.DrawASCII_Shady("*S (10-99)",            colorText,  colorTextS, new Point(x0 + w, y0));
+            }
 
             void DrawTagSquare_Labeled(int x, int y, string key, int score, Func<Rgb24> getColor)
             {
                 var y_key   = y + TAG_WH;
                 var y_score = y_key + CHAR_WH;
                 report.Mutate(ctx => ctx.Fill(getColor(), GetTagSquareRect(x, y, score)));
-                report.DrawASCII(key, colorTextD, new Point(x + TAG_WH.GapInt(key.Length * CHAR_WH), y_key));
+                report.DrawASCII_Shady(key, colorTextD, colorTextS, new Point(x + TAG_WH.GapInt(key.Length * CHAR_WH), y_key));
                 if (score < 100)
                 {
                     var text = $"{score}";
-                    report.DrawASCII(text, colorText, new Point(x + TAG_WH.GapInt(text.Length * CHAR_WH), y_score));
+                    report.DrawASCII_Shady(text, colorText, colorTextS, new Point(x + TAG_WH.GapInt(text.Length * CHAR_WH), y_score));
                 }
                 else
                 {
                     var hundreds  = $"{score / 100}";
                     var remainder = $"{score % 100:00}";
-                    report.DrawASCII(hundreds, colorTextB, new Point(x, y_score));
+                    report.DrawASCII_Shady(hundreds, colorTextB, colorTextS, new Point(x, y_score));
                     var free_chars = 3 - hundreds.Length;
                     if (free_chars > 0)
                     {
                         var point = new Point(x + hundreds.Length * CHAR_WH, y_score);
-                        report.DrawASCII(remainder.AsSpan(0, free_chars), colorText, point);
+                        report.DrawASCII_Shady(remainder.AsSpan(0, free_chars), colorText, colorTextS, point);
                     }
                 }
             }
@@ -226,10 +234,12 @@ public static class ColorTagger_v2_Demo
             return new RectangleF(x + gap, y + gap, side, side);
         }
 
-        // OTHER INFO
+        // TAGS COUNT
         {
             var tagsCount_db = tags.TakeWhile(x => x.Score >= 10).Count();
-            report.DrawASCII($"TAGS: {tags.Length,3} -> {tagsCount_db}", colorText, new Point(C1, C1R2));
+            var w = report.DrawASCII_Shady("TAGS: ",            colorText,  colorTextS, new Point(C1,     CWR0));
+            w    += report.DrawASCII_Shady($"{tagsCount_db,2}", colorTextB, colorTextS, new Point(C1 + w, CWR0));
+            _     = report.DrawASCII_Shady($"/{tags.Length,2}", colorText , colorTextS, new Point(C1 + w, CWR0));
         }
 
         // OKLCH v2 PROFILE
