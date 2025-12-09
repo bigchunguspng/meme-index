@@ -245,4 +245,18 @@ public static partial class DebugTools
             frame.Mutate(x => x.DrawImage(report, new Point(0, 0), 1));
         }
     }
+
+    public static void RenderStepCalculation()
+    {
+        using var image = new Image<Rgb24>(3000, 3000);
+        for (var h = 0; h < 3000; h++)
+        for (var w = 0; w < 3000; w++)
+        {
+            var size = new Size(w, h);
+            var step = ColorAnalyzer_v2.CalculateIteratorStep(size);
+            image[w, h] = (step * 4).ToRgb24();
+        }
+
+        image.SaveAsPng(Dir_Debug_Color.EnsureDirectoryExist().Combine($"step-{Desert.GetSand()}.png"));
+    }
 }
