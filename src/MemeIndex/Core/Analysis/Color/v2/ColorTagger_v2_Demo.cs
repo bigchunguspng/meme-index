@@ -159,7 +159,7 @@ public static class ColorTagger_v2_Demo
 
         // TAGS BY SCORE
         {
-            const string SML = "SML";
+            const string SML = "_SML";
             const int
                 x0 = CW,
                 y0 = CWR0,
@@ -168,21 +168,24 @@ public static class ColorTagger_v2_Demo
 
             var groups = tags
                 .GroupBy(x => (int)Math.Log10(x.Score.Cap(9999)))
-                .Take(3)
+                .Where(g => g.Key > 0)
                 .ToDictionary(x => x.Key, x => x.ToArray());
             var x = xl;
             var y = yl;
-            foreach (var (key, tags_) in groups)
+            for (var i = SML.Length - 1; i > 0; i--)
             {
-                var key_SML = SML.AsSpan(key - 1, 1);
-                report.DrawASCII_Shady(key_SML, colorText, colorTextS, new Point(x0, y + TAG_WH.GapInt(CHAR_WH)));
-                foreach (var tag in tags_)
+                if (groups.TryGetValue(i, out var tags_i))
                 {
-                    if (x + TAG_BY_SCORE_W > W || y + TAG_BY_SCORE_H > H) break;
+                    var key = SML.AsSpan(i, 1);
+                    report.DrawASCII_Shady(key, colorText, colorTextS, new Point(x0, y + TAG_WH.GapInt(CHAR_WH)));
+                    foreach (var tag in tags_i)
+                    {
+                        if (x + TAG_BY_SCORE_W > W || y + TAG_BY_SCORE_H > H) break;
 
-                    var (color, _) = GetColorsByTag(tag.Term);
-                    DrawTagSquare_Labeled(x, y, tag.Term, tag.Score, () => color);
-                    x += TAG_BY_SCORE_W;
+                        var (color, _) = GetColorsByTag(tag.Term);
+                        DrawTagSquare_Labeled(x, y, tag.Term, tag.Score, () => color);
+                        x += TAG_BY_SCORE_W;
+                    }
                 }
 
                 x = xl;
@@ -191,14 +194,17 @@ public static class ColorTagger_v2_Demo
 
             // TAGS COUNT BY SCORE
             {
+                var L = groups.TryGetValue(3, out var a3) ? a3.Length : 0;
+                var M = groups.TryGetValue(2, out var a2) ? a2.Length : 0;
+                var S = groups.TryGetValue(1, out var a1) ? a1.Length : 0;
                 var p = new Point(x0, y0);
-                p = report.DrawASCII_Shady("Score: ",               colorText,  colorTextS, p);
-                p = report.DrawASCII_Shady($"{groups[3].Length,3}", colorTextB, colorTextS, p);
-                p = report.DrawASCII_Shady("*L (1k-10k), ",         colorText,  colorTextS, p);
-                p = report.DrawASCII_Shady($"{groups[2].Length,3}", colorTextB, colorTextS, p);
-                p = report.DrawASCII_Shady("*M (100-999), ",        colorText,  colorTextS, p);
-                p = report.DrawASCII_Shady($"{groups[1].Length,3}", colorTextB, colorTextS, p);
-                _ = report.DrawASCII_Shady("*S (10-99)",            colorText,  colorTextS, p);
+                p = report.DrawASCII_Shady("Score: ",        colorText,  colorTextS, p);
+                p = report.DrawASCII_Shady($"{L,3}",         colorTextB, colorTextS, p);
+                p = report.DrawASCII_Shady("*L (1k-10k), ",  colorText,  colorTextS, p);
+                p = report.DrawASCII_Shady($"{M,3}",         colorTextB, colorTextS, p);
+                p = report.DrawASCII_Shady("*M (100-999), ", colorText,  colorTextS, p);
+                p = report.DrawASCII_Shady($"{S,3}",         colorTextB, colorTextS, p);
+                _ = report.DrawASCII_Shady("*S (10-99)",     colorText,  colorTextS, p);
             }
 
             void DrawTagSquare_Labeled(int x, int y, string key, int score, Func<Rgb24> getColor)
@@ -229,7 +235,10 @@ public static class ColorTagger_v2_Demo
 
         RectangleF GetTagSquareRect(int x, int y, int score)
         {
-            var side = (float)(score * 0.016).FastPow(0.5);
+            // var side = (float)(score * 0.0256).FastPow(0.5);
+            // ^ REAL, area ~ score
+            var side = (float)Math.Log10(score).FastPow(2);
+            // ^ INFORMATIVE, makes square bigger for easier visual assessment
             var gap = ((float)TAG_WH).Gap(side).RoundInt();
             return new RectangleF(x + gap, y + gap, side, side);
         }
