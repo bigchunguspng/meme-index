@@ -337,7 +337,7 @@ public static class ColorTagger_v2_Demo
         {
             var hue_ix = ColorTagger_v2.KEYS_HUE.IndexOf(term[0]);
             var opt_ix = ColorTagger_v2.KEYS_OPT.IndexOf(term[1]);
-            bg = _palette_H[6 * hue_ix + opt_ix];
+            bg = _palette_H[ColorAnalyzer_v2.N_OPS_H * hue_ix + opt_ix];
         }
 
         var fg = special ? new Rgb24(255, 215, 0) : bg.ToOklch().L > 0.5 ? 0.ToRgb24() : 255.ToRgb24();
