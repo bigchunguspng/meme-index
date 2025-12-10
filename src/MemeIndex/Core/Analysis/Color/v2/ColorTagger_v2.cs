@@ -88,24 +88,27 @@ public static class ColorTagger_v2
         var transparent = MAX_SCORE - MAX_SCORE * opacityTotal / (samplesTotal * 255);
         tags.Add(_tags_X[0], (int)transparent);
 
-        /*var gray  = report.Grays.Sum();
-        var bold  = report.Hues.Sum(hue => hue.Bold);
-        var pale  = report.Hues.Sum(hue => hue.Pale);
-        var dark  = report.Hues.Sum(hue => hue.Dark)  + report.Grays.Take(3).Sum();
-        var light = report.Hues.Sum(hue => hue.Light) + report.Grays.Skip(3).Sum();
-
-        tags.Add(_tags_X[1], GetRawScore_General(gray));
-        tags.Add(_tags_X[2], GetRawScore_General(bold));
-        tags.Add(_tags_X[3], GetRawScore_General(pale));
-        tags.Add(_tags_X[4], GetRawScore_General(dark));
-        tags.Add(_tags_X[5], GetRawScore_General(light));*/
+        tags.Add(_tags_X[1], GetRawScore_Opaque(report.Gray));
+        tags.Add(_tags_X[2], GetRawScore_Opaque(report.Bold));
+        tags.Add(_tags_X[3], GetRawScore_Opaque(report.Pale));
+        tags.Add(_tags_X[4], GetRawScore_Opaque(report.Dark));
+        tags.Add(_tags_X[5], GetRawScore_Opaque(report.Light));
 
         return tags;
 
         // ==
 
         [MethodImpl(AggressiveInlining)]
-        int GetRawScore_Opaque  (double value) => (MAX_SCORE * value / samplesOpaque).RoundInt();
+        int GetRawScore_Opaque
+            (double value) // value: color-tag score: 0..samplesOpaque
+            => (MAX_SCORE * value / samplesOpaque).RoundInt();
+
+        [MethodImpl(AggressiveInlining)]
+        int GetRawScore_General_2
+            (double value) // value: 0..1
+            => value < 0.25
+                ? 0
+                : (MAX_SCORE * 0.0001.FastPow(1 - value)).RoundInt();
 
         [MethodImpl(AggressiveInlining)]
         int GetRawScore_General (int value)
@@ -120,6 +123,7 @@ public static class ColorTagger_v2
     public const string
         KEYS_HUE = "ROYLGCSBVP",
         KEYS_OPT = "SPDL01", // RS RP RD RL R0 R1
+        KEYS_X   = "XASPDL",
         KEYS_HC = "HC",
         KEYS_DL = "DL";
 
@@ -145,5 +149,5 @@ public static class ColorTagger_v2
             "PS", "PP", "PD", "PL", "P0", "P1",
         ],
         _tags_W = ["WHD", "WHL", "WCD", "WCL"], // Weak
-        _tags_X = ["#X", "#Y", "#S", "#P", "#D", "#L"]; // Extra
+        _tags_X = ["#X", "#A", "#S", "#P", "#D", "#L"]; // Extra
 }

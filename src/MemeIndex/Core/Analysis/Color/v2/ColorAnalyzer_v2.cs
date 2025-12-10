@@ -23,71 +23,9 @@ namespace MemeIndex.Core.Analysis.Color.v2;
 
 \* ======================================== */
 
-/*public class ImageScanReport
+public enum GeneralBucket : byte
 {
-    public int
-        SamplesTotal  = 0, // Say 10k
-        SamplesOpaque = 0; // < ^
-
-    public long
-        OpacityTotal  = 0; // up to 255 * ^^ = 2.5M
-
-    // Values in each bucket: < SamplesTotal
-
-    /// Black, 4 shades of gray, White.
-    public readonly int[] Grays = new int[6];
-
-    public int
-        WeakHot_D, WeakHot_L,
-        WeakCoolD, WeakCoolL;
-
-    /// Contains primary hues and their combinations.
-    /// Red, R/O, Orange, …, Pink, P/R.
-    public readonly ImageScan_Hue[] Hues
-        =  new      ImageScan_Hue[ColorAnalyzer_v2.B_HUES];
-}
-
-public struct ImageScan_Hue
-{
-    public int
-        BoldD, PaleD, PaleXD,
-        BoldL, PaleL, PaleXL;
-
-    /*public double
-        MaxL, MinL,
-        MaxC, MinC;#1#
-
-    public int Dark  => BoldD + PaleD + PaleXD;
-    public int Light => BoldL + PaleL + PaleXL;
-    public int Bold  => BoldD + BoldL;
-    public int Pale  => PaleD + PaleL + PaleXD + PaleXL;
-
-    public void Combine(ImageScan_Hue other, int multiplier)
-    {
-        BoldD  += multiplier * other.BoldD;
-        PaleD  += multiplier * other.PaleD;
-        PaleXD += multiplier * other.PaleXD;
-        BoldL  += multiplier * other.BoldL;
-        PaleL  += multiplier * other.PaleL;
-        PaleXL += multiplier * other.PaleXL;
-    }
-}*/
-
-public enum Weak : byte
-{
-    WeakHot_D, WeakHot_L,
-    WeakCoolD, WeakCoolL,
-}
-public enum Shade : byte
-{
-    BLACK, GRAY_XD, GRAY_D,
-    GRAY_L, GRAY_XL, WHITE,
-}
-public enum Hue : byte
-{
-    RED,    ORANGE, YELLOW, LIME,
-    GREEN,  CYAN,   SKY,    BLUE,
-    VIOLET, PINK,
+    SD, SL, PD, PL, AD, AL,
 }
 
 public enum HueOption : byte
@@ -110,14 +48,21 @@ public class ImageScanReport_v22
     public readonly double[] Scores_Gray
         = new double[ColorAnalyzer_v2.N_OPS_G];
 
-    /*public int
-        WeakHot_D, WeakHot_L,
-        WeakCoolD, WeakCoolL;*/
-
     /// Contains primary hues and their combinations.
     /// Red, R/O, Orange, …, Pink, P/R.
     public readonly ImageScan_Hue_v22[] Hues
         = ColorAnalyzer_v2.B_HUES.Times(_ => new ImageScan_Hue_v22());
+
+    public readonly double[] GeneralBuckets
+        = new double[ColorAnalyzer_v2.B_GENERAL];
+
+    private double GetGB(GeneralBucket index) => GeneralBuckets[(int)index];
+
+    public double Gray  => GetGB(GeneralBucket.AD) + GetGB(GeneralBucket.AL);
+    public double Bold  => GetGB(GeneralBucket.SD) + GetGB(GeneralBucket.SL);
+    public double Pale  => GetGB(GeneralBucket.PD) + GetGB(GeneralBucket.PL);
+    public double Dark  => GetGB(GeneralBucket.AD) + GetGB(GeneralBucket.PD) + GetGB(GeneralBucket.SD);
+    public double Light => GetGB(GeneralBucket.AL) + GetGB(GeneralBucket.PL) + GetGB(GeneralBucket.SL);
 }
 
 public readonly struct ImageScan_Hue_v22()
@@ -151,7 +96,9 @@ public static class ColorAnalyzer_v2
         N_OPS_G = 5,
         N_OPS_H = 6,
         N_HUES = 10,
-        B_HUES = 20;
+        B_HUES = 20,
+        B_GENERAL = 6,
+        N_GENERAL = 6;
 
     public static readonly double[] u_limits_H = // hue upper limits
     [
@@ -241,13 +188,14 @@ public static class ColorAnalyzer_v2
 
     public static void CategorizeColor(this ImageScanReport_v22 report, Oklch color)
     {
+        var li = color.L <= 0.5 ? 0 : 1;
+        var ci = color.C > 0.10 ? 0 : color.C > 0.01 ? 2 : 4;
+        report.GeneralBuckets[ci + li]++;
+
         if (color.C < 0.015 || color.H.IsNaN())
             report.PutGray(color);
         else
         {
-            /*if (color.C < 0.05)
-                report.PutWeak(color);*/
-
             for (var i = 0; i <= B_HUES; i++)
             {
                 if (color.H <= u_limits_H[i])
