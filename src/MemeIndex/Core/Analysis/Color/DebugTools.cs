@@ -21,9 +21,6 @@ public static partial class DebugTools
         //RenderHues_Oklch_v2();
         //ColorProfile.RenderHues(); // 12s -> 7s
         Log("DONE");
-        return;
-        ColorProfile.GeneratePalette_Saturated();
-        return;
     }
 
     public static void RenderAllProfiles(string path)
@@ -33,9 +30,6 @@ public static partial class DebugTools
         /*RenderProfile_HSL(path);
         times[0] += sw.Elapsed;
         sw.LogCM(ConsoleColor.Yellow, "\tProfile - HSL");*/
-
-        RenderProfile_Oklch(path);
-        sw.LogCM(ConsoleColor.Yellow, "\tProfile - Oklch");
 
         RenderProfile_Oklch_v2(path);
         sw.LogCM(ConsoleColor.Yellow, "\tProfile - Oklch-v2");

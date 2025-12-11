@@ -44,21 +44,6 @@ public static partial class DebugTools
         }
     }
 
-    public static void RenderProfile_Oklch
-        (string path) => RenderProfile(path, () => GetReportBackground_Oklch(), "Oklch", (report, sample) =>
-    {
-        var oklch = sample.ToOklch();
-        var cy = 100 - oklch.IntC; // ↑
-        var lx =       oklch.IntL; //    →
-
-        var hue_ix = ColorProfile.GetHueIndex(oklch.H);
-
-        var row = hue_ix  & 1; // 0 2 | 4 6 | 8 A
-        var col = hue_ix >> 2; // 1 3 | 5 7 | 9
-
-        report[col * SIDE + lx, row * SIDE + cy] = sample;
-    });
-
     public static void RenderProfile_HSL
         (string path) => RenderProfile(path, GetReportBackground_HSL, "HSL", (report, sample) =>
     {
@@ -107,60 +92,5 @@ public static partial class DebugTools
         sw.Log($"4. Save report >> \"{name}\"");
 
         Log($"[step: {step,3}, samples collected: {samplesTotal,6}]");
-    }
-
-    // POSTER
-
-    public static void RenderSamplePoster(string path)
-    {
-        using var source = Image.Load<Rgb24>(path);
-
-        var step = ColorTagService.CalculateStep(source.Size);
-        var halfStep = step / 2;
-
-        var w = source.Width;
-        var h = source.Height;
-        var image_actual = new Image<Rgb24>(w, h);
-        var image_poster = new Image<Rgb24>(w, h);
-
-        foreach (var (x, y) in new SizeIterator_45deg(source.Size, step))
-        {
-            var sample = source[x, y];
-
-            var oklch = sample.ToOklch();
-            var hue_ix = ColorProfile.GetHueIndex(oklch.H);
-            var saturated = ColorProfile.IsSaturated(oklch);
-            var bucket = saturated
-                ? ColorProfile.GetBucketIndex_Saturated(oklch)
-                : ColorProfile.GetBucketIndex_Grayscale(oklch);
-            var color = saturated
-                ? ColorProfile.GetColor_Saturated(hue_ix, bucket)
-                : ColorProfile.GetColor_Grayscale(bucket);
-
-            for (var y0 = y - halfStep; y0 < y + halfStep; y0++)
-            for (var x0 = x - halfStep; x0 < x + halfStep; x0++)
-            {
-                if (x0 < 0 || y0 < 0 || x0 >= w || y0 >= h)
-                    continue;
-
-                var xd = Math.Abs(x - x0);
-                var yd = Math.Abs(y - y0);
-                if (xd + yd > halfStep)
-                    continue;
-
-                image_actual[x0, y0] = sample;
-                image_poster[x0, y0] = color;
-            }
-        }
-
-        var ticks = DateTime.UtcNow.Ticks;
-        var sand = Desert.GetSand();
-        var jpeg1 = Dir_Debug_Image
-            .EnsureDirectoryExist()
-            .Combine($"Samples-{ticks}-{sand}.jpg");
-        var jpeg2 = Dir_Debug_Image
-            .Combine($"Poster-{ticks}-{sand}.jpg");
-        //image_actual.SaveAsJpeg(jpeg1, JpegEncoder_Q80);
-        image_poster.SaveAsJpeg(jpeg2, JpegEncoder_Q80);
     }
 }
