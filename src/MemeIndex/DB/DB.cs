@@ -64,10 +64,10 @@ public static class DB
             (
                 id      INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                 dir_id  INTEGER NOT NULL,
-                mean    INTEGER NOT NULL,
+                method  INTEGER NOT NULL,
                 recurse INTEGER NOT NULL DEFAULT 1,
                 enabled INTEGER NOT NULL DEFAULT 1,
-                UNIQUE (dir_id, mean),
+                UNIQUE (dir_id, method),
                 FOREIGN KEY (dir_id)
                 REFERENCES dirs (id) ON DELETE CASCADE
             );
@@ -91,14 +91,14 @@ public static class DB
             (
                 id      INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                 file_id INTEGER NOT NULL,
-                word    TEXT    NOT NULL,
-                rank    INTEGER NOT NULL,
-                UNIQUE (file_id, word),
+                term    TEXT    NOT NULL,
+                score   INTEGER NOT NULL,
+                UNIQUE (file_id, term),
                 FOREIGN KEY (file_id)
                 REFERENCES files (id) ON DELETE CASCADE
             );
-            CREATE INDEX IF NOT EXISTS ix_tags_word
-            ON tags (word);
+            CREATE INDEX IF NOT EXISTS ix_tags_term
+            ON tags (term);
             """,
         _SQL_CREATE_TABLES_RAW =
             """
