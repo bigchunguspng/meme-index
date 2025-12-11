@@ -73,8 +73,11 @@ public static class ColorTagger_v2_Demo
     public static void Run(string path)
     {
         // ANALYZE IMAGE
-        var tags = ColorTagger_v2.AnalyzeImage(path, minScore: 1).Result
-            .OrderByDescending(x => x.Score).ToArray();
+        var sw = Stopwatch.StartNew();
+        var analysis = ColorTagger_v2.AnalyzeImage(path, minScore: 1).Result;
+        sw.Log("1 - ANALYSIS");
+
+        var tags = analysis.OrderByDescending(x => x.Score).ToArray();
         if (tags.Length == 0)
         {
             Print("NO TAGS, IMAGE EMPTY");
@@ -84,6 +87,7 @@ public static class ColorTagger_v2_Demo
         // REPORT
         using var source = Image.Load<Rgba32>(path);
         using var report = new Image<Rgb24>(W, H, colorBack);
+        var step = ColorTagService.CalculateStep(source.Size);
 
         // TAGS BY CATEGORY
         {
@@ -251,14 +255,20 @@ public static class ColorTagger_v2_Demo
         {
             var p = new Point(C1, C0R1);
             var tagsCount_db = tags.TakeWhile(x => x.Score >= 10).Count();
-            p = report.DrawASCII_Shady("TAGS: ",            colorText,  colorTextS, p);
-            p = report.DrawASCII_Shady($"{tagsCount_db,2}", colorTextB, colorTextS, p);
-            _ = report.DrawASCII_Shady($"/{tags.Length,2}", colorText , colorTextS, p);
+            p = report.DrawASCII_Shady("TAGS: ",             colorText,  colorTextS, p);
+            p = report.DrawASCII_Shady($"{tagsCount_db,2}",  colorTextB, colorTextS, p);
+            _ = report.DrawASCII_Shady($"/{tags.Length,2}",  colorText,  colorTextS, p);
+            p.X = (C1 + W - PAD) / 2;
+            p = report.DrawASCII_Shady("STEP: ",             colorText,  colorTextS, p);
+            p = report.DrawASCII_Shady($"{step,2}",          colorTextB, colorTextS, p);
+            p = report.DrawASCII_Shady("  SIZE: ",           colorText,  colorTextS, p);
+            p = report.DrawASCII_Shady($"{source.Width,4}",  colorTextB, colorTextS, p);
+            p = report.DrawASCII_Shady("*",                  colorText,  colorTextS, p);
+            _ = report.DrawASCII_Shady($"{source.Height,4}", colorTextB, colorTextS, p);
         }
 
         // OKLCH v2 PROFILE
         using var profile = DebugTools.GetReportBackground_Oklch(useMagenta: false);
-        var step = ColorTagService.CalculateStep(source.Size);
         foreach (var (x, y) in new SizeIterator_45deg(source.Size, step))
         {
             var sample = source[x, y].Rgb;
@@ -275,10 +285,14 @@ public static class ColorTagger_v2_Demo
             report.Mutate(ctx => ctx.DrawImage(source, new Point(x, y), 1F));
         }
 
+        sw.Log("2 - REPORT");
+
         // SAVE REPORT
         var name = $"Profile-{DateTime.UtcNow.Ticks:x16}-{Desert.GetSand()}-Analysis.png";
         var save = Dir_Debug_Mixed.EnsureDirectoryExist().Combine(name);
         report.SaveAsPng(save);
+
+        sw.Log("3 - SAVE");
     }
 
     // DRAW TAG SQUARE

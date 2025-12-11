@@ -12,33 +12,54 @@ public static partial class DebugTools
 {
     public static readonly JpegEncoder JpegEncoder_Q80 = new() { Quality = 80 };
 
-    public static void Test()
+    public static void Test(int number)
     {
-        RenderStepCalculation();
-        //RenderHueReferences_Frames();
-        //RenderFullOklch_Frames();
-        //RenderFullOklch_On3x2();
-        //RenderHues_Oklch_v2();
-        //ColorProfile.RenderHues(); // 12s -> 7s
-        Log("DONE");
+        var sw = Stopwatch.StartNew();
+        switch (number)
+        {
+            case 1: sw.Log("TEST: RenderStepCalculation");
+                RenderStepCalculation();
+                break;
+            case 2: sw.Log("TEST: RenderHueReferences_Frames");
+                RenderHueReferences_Frames();
+                break;
+            case 3: sw.Log("TEST: RenderFullOklch_Frames");
+                RenderFullOklch_Frames();
+                break;
+            case 4: sw.Log("TEST: RenderFullOklch_On3x2");
+                RenderFullOklch_On3x2();
+                break;
+            case 5: sw.Log("TEST: RenderHues_Oklch_v2");
+                RenderHues_Oklch_v2();
+                break;
+            case 6: sw.Log("TEST: HSL(step: 30)");
+                HSL(30);
+                break;
+            case 7: sw.Log("TEST: Oklch(step: 30)");
+                Oklch(30);
+                break;
+            case 8: sw.Log("TEST: Oklch_HxL");
+                Oklch_HxL();
+                break;
+            case 9: sw.Log("TEST: CompareHLS_ToOklch");
+                CompareHLS_ToOklch();
+                break;
+        }
+        sw.Log("DONE");
     }
 
     public static void RenderAllProfiles(string path)
     {
         var sw = Stopwatch.StartNew();
 
-        /*RenderProfile_HSL(path);
-        times[0] += sw.Elapsed;
-        sw.LogCM(ConsoleColor.Yellow, "\tProfile - HSL");*/
+        RenderProfile_HSL(path);
+        sw.LogCM(ConsoleColor.Yellow, "\tProfile - HSL");
 
         RenderProfile_Oklch_v2(path);
         sw.LogCM(ConsoleColor.Yellow, "\tProfile - Oklch-v2");
 
-        /*RenderSamplePoster(path);
-        sw.LogCM(ConsoleColor.Yellow, "\tPoster - Color v2");*/
-
-        /*RenderProfile_Oklch_HxL(path);
-        sw.LogCM(ConsoleColor.Yellow, "\tProfile - Oklch HxL");*/
+        RenderProfile_Oklch_HxL(path);
+        sw.LogCM(ConsoleColor.Yellow, "\tProfile - Oklch HxL");
     }
 
     // REPORT BACKGROUNDS

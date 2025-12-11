@@ -156,8 +156,6 @@ public static class ColorAnalyzer_v2
         var size = image.Size;
         var step = CalculateIteratorStep(size);
 
-        Log($"step = {step}");
-
         // SCAN
         int total = 0, opaque = 0, opacity = 0;
         foreach (var (x, y) in new SizeIterator_45deg(size, step))

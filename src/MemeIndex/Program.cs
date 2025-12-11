@@ -20,7 +20,8 @@ switch (args.Length)
         Print(Texts.HELP);
         return;
     case > 0 when args[0] is "-t" or "--test":
-        DebugTools.Test();
+        var number = args.Length > 1 && int.TryParse(args[1], out var n) ? n : 1;
+        DebugTools.Test(number);
         return;
     case > 1 when args[0] is "-p" or "--profile":
         args.Skip(1)
