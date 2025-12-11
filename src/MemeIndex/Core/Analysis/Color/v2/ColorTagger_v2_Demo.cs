@@ -32,7 +32,7 @@ public static class ColorTagger_v2_Demo
 
     private const int
         PAD = 6,
-        IMAGE_WH = 392,
+        IMAGE_WH = 394,
         PROFILE_TILE_WH = 101,
         PROFILE_H = 2 * PROFILE_TILE_WH,
         PROFILE_W = 3 * PROFILE_TILE_WH,
@@ -50,30 +50,31 @@ public static class ColorTagger_v2_Demo
         W = IMAGE_WH + PROFILE_W + 3 * PAD,
         H = IMAGE_WH + 3 * TAG_BY_SCORE_H + LABEL_WH + 3 * PAD;
 
-    private const int // columns, rows
+    private const int
+        // X - columns
         C0 = PAD,
         C1 = C0 + IMAGE_WH + PAD,
-        CW = PAD,
-        C0R0 = PAD,
-        C0R1 = C0R0 + IMAGE_WH + PAD,
-        C1R0 = PAD,
-        C1R1 = C1R0 + PROFILE_H + PAD,
-        C1R2 = C1R1 + TAG_TABLE_FULL_H + PAD,
-        CWR0 = C0R0 + IMAGE_WH + PAD;
+        // Y - rows of columns
+        C0R0 = PAD, // image
+        C0R1 = C0R0 + IMAGE_WH + PAD,  // tags by score
+        C1R0 = PAD, // oklch profile
+        C1R1 = C1R0 + PROFILE_H + PAD, // tags by category
+        C1R2 = C1R1 + TAG_TABLE_FULL_H + PAD; // TBA 
 
     private static readonly Rgb24
-        colorTextB = 160.ToRgb24(),
+        colorTextB = 160.ToRgb24(), // bold
         colorText  = 120.ToRgb24(),
-        colorTextD = 100.ToRgb24(),
-        colorTagHl =  68.ToRgb24(),
-        colorBack  =  64.ToRgb24(),
-        colorNoTag =  48.ToRgb24(),
-        colorTextS =  48.ToRgb24();
+        colorTextD = 100.ToRgb24(), // dark
+        colorTagHl =  68.ToRgb24(), // tag square highlight
+        colorBack  =  64.ToRgb24(), // background
+        colorNoTag =  48.ToRgb24(), // !
+        colorTextS =  48.ToRgb24(); // shadow
 
     public static void Run(string path)
     {
         // ANALYZE IMAGE
-        var tags = ColorTagger_v2.AnalyzeImage(path).Result.OrderByDescending(x => x.Score).ToArray();
+        var tags = ColorTagger_v2.AnalyzeImage(path, minScore: 1).Result
+            .OrderByDescending(x => x.Score).ToArray();
         if (tags.Length == 0)
         {
             Print("NO TAGS, IMAGE EMPTY");
@@ -95,25 +96,26 @@ public static class ColorTagger_v2_Demo
             // LABELS - CHROMATIC
             for (var hi = 0; hi < ColorAnalyzer_v2.N_HUES; hi++)
             {
-                var key = ColorTagger_v2.KEYS_HUE.AsSpan(hi, 1);
+                var key = ColorTagger_v2.HUES_C0.AsSpan(hi, 1);
                 var x = xl + hi * TAG_WH + CHAR_PAD;
                 report.DrawASCII_Shady(key, colorText, colorTextS, new Point(x, y0));
             }
             for (var oi = 0; oi < ColorAnalyzer_v2.N_OPS_H; oi++)
             {
-                var key = ColorTagger_v2.KEYS_OPT.AsSpan(oi, 1);
+                var key = ColorTagger_v2.HUES_C1.AsSpan(oi, 1);
                 var y = yl + oi * TAG_WH + CHAR_PAD;
                 report.DrawASCII_Shady(key, colorText, colorTextS, new Point(x0, y));
             }
 
             // LABELS - ACHROMATIC
             {
+                var key = ColorTagger_v2.GRAY_C0.AsSpan(0, 1);
                 var x = x0 + TAG_TABLE_FULL_W + PAD + LABEL_WH + CHAR_PAD;
-                report.DrawASCII_Shady($"{ColorTagger_v2.KEY_GRAY}", colorText, colorTextS, new Point(x, y0));
+                report.DrawASCII_Shady(key, colorText, colorTextS, new Point(x, y0));
             }
             for (var i = 0; i < ColorAnalyzer_v2.N_OPS_G; i++)
             {
-                var key = $"{(char)('0' + i)}";
+                var key = ColorTagger_v2.GRAY_C1.AsSpan(i, 1);
                 var x = x0 + TAG_TABLE_FULL_W + PAD;
                 var y = yl + i * TAG_WH + CHAR_PAD;
                 report.DrawASCII_Shady(key, colorText, colorTextS, new Point(x, y));
@@ -121,12 +123,13 @@ public static class ColorTagger_v2_Demo
 
             // LABELS - GENERAL
             {
+                var key = ColorTagger_v2.MISC_C0.AsSpan(0, 1);
                 var x = x0 + TAG_TABLE_FULL_W + PAD + LABEL_WH + TAG_WH + PAD + LABEL_WH + CHAR_PAD;
-                report.DrawASCII_Shady($"{ColorTagger_v2.KEY_MISC}", colorText, colorTextS, new Point(x, y0));
+                report.DrawASCII_Shady(key, colorText, colorTextS, new Point(x, y0));
             }
             for (var i = 0; i < ColorAnalyzer_v2.N_GENERAL; i++)
             {
-                var key = ColorTagger_v2.KEYS_X.AsSpan(i, 1);
+                var key = ColorTagger_v2.MISC_C1.AsSpan(i, 1);
                 var x = x0 + TAG_TABLE_FULL_W + PAD + LABEL_WH + TAG_WH + PAD;
                 var y = yl + i * TAG_WH + CHAR_PAD;
                 report.DrawASCII_Shady(key, colorText, colorTextS, new Point(x, y));
@@ -140,7 +143,7 @@ public static class ColorTagger_v2_Demo
             {
                 var x = xl + TAG_WH * hi;
                 var y = yl + TAG_WH * oi;
-                var key = $"{ColorTagger_v2.KEYS_HUE[hi]}{ColorTagger_v2.KEYS_OPT[oi]}";
+                var key = $"{ColorTagger_v2.HUES_C0[hi]}{ColorTagger_v2.HUES_C1[oi]}";
                 var score = tag_scores.GetValueOrDefault(key, 0);
                 var i = ColorAnalyzer_v2.N_OPS_H * hi + oi;
                 report.DrawTagSquare(x, y, score, () => _palette_H[i]);
@@ -151,7 +154,7 @@ public static class ColorTagger_v2_Demo
             {
                 var x = xl + TAG_TABLE_W + PAD + LABEL_WH;
                 var y = yl + i * TAG_WH;
-                var key = $"{ColorTagger_v2.KEY_GRAY}{i}";
+                var key = $"{ColorTagger_v2.GRAY_C0}{ColorTagger_v2.GRAY_C1[i]}";
                 var score = tag_scores.GetValueOrDefault(key, 0);
                 var i_ = i;
                 report.DrawTagSquare(x, y, score, () =>
@@ -167,7 +170,7 @@ public static class ColorTagger_v2_Demo
             {
                 var x = xl + TAG_TABLE_W + PAD + LABEL_WH + TAG_WH + PAD + LABEL_WH;
                 var y = yl + i * TAG_WH;
-                var key = $"{ColorTagger_v2.KEY_MISC}{ColorTagger_v2.KEYS_X[i]}";
+                var key = $"{ColorTagger_v2.MISC_C0}{ColorTagger_v2.MISC_C1[i]}";
                 var score = tag_scores.GetValueOrDefault(key, 0);
                 var color = GetColorExtra(key);
                 report.DrawTagSquare(x, y, score, () => color, hatch: true, proportional: true);
@@ -178,8 +181,8 @@ public static class ColorTagger_v2_Demo
         {
             const string SML = "_SML";
             const int
-                x0 = CW,
-                y0 = CWR0,
+                x0 = C0,
+                y0 = C0R1,
                 xl = x0 + LABEL_WH,
                 yl = y0 + LABEL_WH;
 
@@ -213,10 +216,10 @@ public static class ColorTagger_v2_Demo
             // GENERAL TAGS
             {
                 x = C1   + LABEL_WH;
-                y = CWR0 + LABEL_WH;
+                y = C0R1 + LABEL_WH;
                 report.DrawASCII_Shady("#", colorText, colorTextS, new Point(C1, y + TAG_WH.GapInt(CHAR_WH)));
                 var tags_x = tags
-                    .Where(t => t.Term.StartsWith(ColorTagger_v2.KEY_MISC))
+                    .Where(t => t.Term.StartsWith(ColorTagger_v2.MISC_C0) && t.Score >= 10)
                     .OrderByDescending(t => t.Score);
                 foreach (var tag in tags_x)
                 {
@@ -234,19 +237,19 @@ public static class ColorTagger_v2_Demo
                 var M = groups.TryGetValue(2, out var a2) ? a2.Length : 0;
                 var S = groups.TryGetValue(1, out var a1) ? a1.Length : 0;
                 var p = new Point(x0, y0);
-                p = report.DrawASCII_Shady("Score: ",        colorText,  colorTextS, p);
-                p = report.DrawASCII_Shady($"{L,3}",         colorTextB, colorTextS, p);
-                p = report.DrawASCII_Shady("*L (1k-10k), ",  colorText,  colorTextS, p);
-                p = report.DrawASCII_Shady($"{M,3}",         colorTextB, colorTextS, p);
-                p = report.DrawASCII_Shady("*M (100-999), ", colorText,  colorTextS, p);
-                p = report.DrawASCII_Shady($"{S,3}",         colorTextB, colorTextS, p);
-                _ = report.DrawASCII_Shady("*S (10-99)",     colorText,  colorTextS, p);
+                p = report.DrawASCII_Shady("TAGS BY SCORE: ", colorText,  colorTextS, p);
+                p = report.DrawASCII_Shady($"{L,3}",          colorTextB, colorTextS, p);
+                p = report.DrawASCII_Shady("*L (1k-10k), ",   colorText,  colorTextS, p);
+                p = report.DrawASCII_Shady($"{M,3}",          colorTextB, colorTextS, p);
+                p = report.DrawASCII_Shady("*M (100-999), ",  colorText,  colorTextS, p);
+                p = report.DrawASCII_Shady($"{S,3}",          colorTextB, colorTextS, p);
+                _ = report.DrawASCII_Shady("*S (10-99)",      colorText,  colorTextS, p);
             }
         }
 
         // TAGS COUNT
         {
-            var p = new Point(C1, CWR0);
+            var p = new Point(C1, C0R1);
             var tagsCount_db = tags.TakeWhile(x => x.Score >= 10).Count();
             p = report.DrawASCII_Shady("TAGS: ",            colorText,  colorTextS, p);
             p = report.DrawASCII_Shady($"{tagsCount_db,2}", colorTextB, colorTextS, p);
@@ -367,25 +370,22 @@ public static class ColorTagger_v2_Demo
 
     private static Rgb24 GetColorByTag(string term)
     {
-        Rgb24 color;
-        if      (term[0] == ColorTagger_v2.KEY_GRAY)
+        if      (term.StartsWith(ColorTagger_v2.GRAY_C0))
         {
             var L = ColorAnalyzer_v2.GrayReferences_L[term[1] - '0'];
             var l = (L * 100).RoundInt().Cap(100);
-            color = new HSL(0, 0, (byte)l).ToRgb24();
+            return new HSL(0, 0, (byte)l).ToRgb24();
         }
-        else if (term[0] == ColorTagger_v2.KEY_MISC)
+        else if (term.StartsWith(ColorTagger_v2.MISC_C0))
         {
-            color = 0.ToRgb24();
+            return 0.ToRgb24();
         }
         else
         {
-            var hue_ix = ColorTagger_v2.KEYS_HUE.IndexOf(term[0]);
-            var opt_ix = ColorTagger_v2.KEYS_OPT.IndexOf(term[1]);
-            color = _palette_H[ColorAnalyzer_v2.N_OPS_H * hue_ix + opt_ix];
+            var hue_ix = ColorTagger_v2.HUES_C0.IndexOf(term[0]);
+            var opt_ix = ColorTagger_v2.HUES_C1.IndexOf(term[1]);
+            return _palette_H[ColorAnalyzer_v2.N_OPS_H * hue_ix + opt_ix];
         }
-
-        return color;
     }
 
     private static Rgb24 GetColorExtra(string term) => term[1] switch

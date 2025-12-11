@@ -42,6 +42,7 @@ switch (args.Length)
 
 IEnumerable<string> ArgsFromFile
     (string path) => File.ReadAllLines(path)
+    .TakeWhile(s => s.StartsWith("==").Janai())
     .Where (s => s.IsNotNull_NorWhiteSpace() && s.StartsWith('#').Janai())
     .Select(s => s.Trim('"'));
 

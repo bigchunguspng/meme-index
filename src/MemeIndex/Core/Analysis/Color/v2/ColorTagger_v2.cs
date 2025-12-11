@@ -7,7 +7,8 @@ public static class ColorTagger_v2
 {
     public const int MAX_SCORE = 10_000;
 
-    public static async Task<IEnumerable<TagContent>> AnalyzeImage(string path)
+    public static async Task<IEnumerable<TagContent>> AnalyzeImage
+        (string path, int minScore = 10)
     {
         var sw = Stopwatch.StartNew();
 
@@ -17,18 +18,16 @@ public static class ColorTagger_v2
         var report = ColorAnalyzer_v2.ScanImage(image);
         sw.LogCM(ConsoleColor.Yellow, "SCAN");
 
-        var tags = AnalyzeImageScan(report);
+        var tags = AnalyzeImageScan(report, minScore);
         sw.LogCM(ConsoleColor.Yellow, "ANALYZE");
 
         return tags
-            .Where(x => x.Value > 0)
-            //.Where(x => x.Value > 100)
-            // todo math to make tag scores logarithmic?
             .Select(x => new TagContent(x.Key, x.Value));
     }
 
     /// Returns a raw numbers for all possible tags.
-    private static Dictionary<string, int> AnalyzeImageScan(ImageScanReport_v22 report)
+    private static Dictionary<string, int> AnalyzeImageScan
+        (ImageScanReport_v22 report, int minScore = 10)
     {
         var tags = new Dictionary<string, int>();
 
@@ -39,16 +38,8 @@ public static class ColorTagger_v2
         // GRAY
         for (var i = 0; i < ColorAnalyzer_v2.N_OPS_G; i++)
         {
-            tags.Add(_tags_Y[i], GetRawScore_Opaque(report.Scores_Gray[i]));
+            AddTag(_tags_A[i], GetRawScore_Opaque(report.Scores_Gray[i]));
         }
-
-        // WEAK
-        /*{
-            tags.Add(_tags_W[0], GetRawScore_Opaque(report.WeakHot_D));
-            tags.Add(_tags_W[1], GetRawScore_Opaque(report.WeakHot_L));
-            tags.Add(_tags_W[2], GetRawScore_Opaque(report.WeakCoolD));
-            tags.Add(_tags_W[3], GetRawScore_Opaque(report.WeakCoolL));
-        }*/
 
         // BY HUE
         var hues = ColorAnalyzer_v2.N_HUES.Times(_ => new ImageScan_Hue_v22());
@@ -80,74 +71,61 @@ public static class ColorTagger_v2
             var hue_offset = hi * ColorAnalyzer_v2.N_OPS_H;
             for (var o = 0; o < ColorAnalyzer_v2.N_OPS_H; o++)
             {
-                tags.Add(_tags_H[hue_offset + o], GetRawScore_Opaque(hue[o]));
+                AddTag(_tags_H[hue_offset + o], GetRawScore_Opaque(hue[o]));
             }
         }
 
-        // GENERAL - opacity, saturated/pale/gray, light/dark
+        // GENERAL
         var transparent = MAX_SCORE - MAX_SCORE * opacityTotal / (samplesTotal * 255);
-        tags.Add(_tags_X[0], (int)transparent);
+        AddTag(_tags_X[0], (int)transparent);
 
-        tags.Add(_tags_X[1], GetRawScore_Opaque(report.Gray));
-        tags.Add(_tags_X[2], GetRawScore_Opaque(report.Bold));
-        tags.Add(_tags_X[3], GetRawScore_Opaque(report.Pale));
-        tags.Add(_tags_X[4], GetRawScore_Opaque(report.Dark));
-        tags.Add(_tags_X[5], GetRawScore_Opaque(report.Light));
+        AddTag(_tags_X[1], GetRawScore_Opaque(report.Gray));
+        AddTag(_tags_X[2], GetRawScore_Opaque(report.Bold));
+        AddTag(_tags_X[3], GetRawScore_Opaque(report.Pale));
+        AddTag(_tags_X[4], GetRawScore_Opaque(report.Dark));
+        AddTag(_tags_X[5], GetRawScore_Opaque(report.Light));
 
         return tags;
 
         // ==
 
         [MethodImpl(AggressiveInlining)]
+        void AddTag(string term, int score)
+        {
+            if (score >= minScore) tags.Add(term, score);
+        }
+
+        [MethodImpl(AggressiveInlining)]
         int GetRawScore_Opaque
             (double value) // value: color-tag score: 0..samplesOpaque
             => (MAX_SCORE * value / samplesOpaque).RoundInt();
-
-        [MethodImpl(AggressiveInlining)]
-        int GetRawScore_General_2
-            (double value) // value: 0..1
-            => value < 0.25
-                ? 0
-                : (MAX_SCORE * 0.0001.FastPow(1 - value)).RoundInt();
-
-        [MethodImpl(AggressiveInlining)]
-        int GetRawScore_General (int value)
-        {
-            var ratio = (double) value / samplesOpaque;
-            return ratio < 0.25
-                ? 0
-                : (MAX_SCORE * 0.0001.FastPow(1 - ratio)).RoundInt();
-        }
     }
 
     public const string
-        KEYS_HUE = "ROYLGCSBVP",
-        KEYS_OPT = "SPDL01", // RS RP RD RL R0 R1
-        KEYS_X   = "XASPDL",
-        KEYS_HC = "HC",
-        KEYS_DL = "DL";
-
-    public const char
-        KEY_GRAY = 'A', // A0 - A4
-        KEY_MISC = '#', // #D, #S, #X, …
-        KEY_WEAK = 'W'; // WHD - WCL
+        HUES_C0 = "ROYLGCSBVP",
+        GRAY_C0 = "A",
+        MISC_C0 = "#",
+        HUES_C1 = "SPDL01", // RS RP RD RL R0 R1
+        MISC_C1 = "XASPDL", // #X, #A, #S, …    Misc, general, extra.
+        GRAY_C1 = "01234";  // A0 - A4          Gray, achromatic, luma.
 
     private static readonly string[]
-        _tags_Y = ["A0", "A1", "A2", "A3", "A4", "A5"], // Luma (Y)
-        _tags_H = // Only hue full!
-        [
-            // ENSURE SAME OPT ORDER AS IN "HueOption" ENUM!
-            "RS", "RP", "RD", "RL", "R0", "R1",
-            "OS", "OP", "OD", "OL", "O0", "O1",
-            "YS", "YP", "YD", "YL", "Y0", "Y1",
-            "LS", "LP", "LD", "LL", "L0", "L1",
-            "GS", "GP", "GD", "GL", "G0", "G1",
-            "CS", "CP", "CD", "CL", "C0", "C1",
-            "SS", "SP", "SD", "SL", "S0", "S1",
-            "BS", "BP", "BD", "BL", "B0", "B1",
-            "VS", "VP", "VD", "VL", "V0", "V1",
-            "PS", "PP", "PD", "PL", "P0", "P1",
-        ],
-        _tags_W = ["WHD", "WHL", "WCD", "WCL"], // Weak
-        _tags_X = ["#X", "#A", "#S", "#P", "#D", "#L"]; // Extra
+        _tags_A = GetTagCombinations(GRAY_C0, GRAY_C1),
+        _tags_H = GetTagCombinations(HUES_C0, HUES_C1),
+        _tags_X = GetTagCombinations(MISC_C0, MISC_C1);
+
+    private static string[] GetTagCombinations
+        (ReadOnlySpan<char> rows, ReadOnlySpan<char> cols)
+    {
+        var w = cols.Length;
+        var h = rows.Length;
+        var array = new string[w * h];
+        for (var ih = 0; ih < h; ih++)
+        for (var iw = 0; iw < w; iw++)
+        {
+            array[iw + w * ih] = $"{rows[ih]}{cols[iw]}";
+        }
+
+        return array;
+    }
 }
