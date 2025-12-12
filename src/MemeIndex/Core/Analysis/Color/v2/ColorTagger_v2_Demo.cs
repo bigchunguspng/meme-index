@@ -6,6 +6,8 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using Spectre.Console;
+using static MemeIndex.Core.Analysis.Color.v2.ColorAnalyzer_v2;
+using static MemeIndex.Core.Analysis.Color.v2.ColorTagger_v2;
 
 namespace MemeIndex.Core.Analysis.Color.v2;
 
@@ -13,7 +15,7 @@ public static class ColorTagger_v2_Demo
 {
     public static void PrintPalette()
     {
-        var palette = ColorAnalyzer_v2.GetPalette();
+        var palette = GetPalette();
         foreach (var set in palette)
         {
             foreach (var point in set.Points)
@@ -37,8 +39,8 @@ public static class ColorTagger_v2_Demo
         PROFILE_H = 2 * PROFILE_TILE_WH,
         PROFILE_W = 3 * PROFILE_TILE_WH,
         TAG_WH = 18,
-        TAG_TABLE_W = ColorAnalyzer_v2.N_HUES  * TAG_WH,
-        TAG_TABLE_H = ColorAnalyzer_v2.N_OPS_H * TAG_WH,
+        TAG_TABLE_W = N_HUES  * TAG_WH,
+        TAG_TABLE_H = N_OPS_H * TAG_WH,
         CHAR_WH = 6,
         CHAR_PAD = (TAG_WH - CHAR_WH) / 2,
         LABEL_PAD = 3,
@@ -74,7 +76,7 @@ public static class ColorTagger_v2_Demo
     {
         // ANALYZE IMAGE
         var sw = Stopwatch.StartNew();
-        var analysis = ColorTagger_v2.AnalyzeImage(path, minScore: 1).Result;
+        var analysis = AnalyzeImage(path, minScore: 1).Result;
         sw.Log("1 - ANALYSIS");
 
         var tags = analysis.OrderByDescending(x => x.Score).ToArray();
@@ -98,28 +100,28 @@ public static class ColorTagger_v2_Demo
                 yl = y0 + LABEL_WH;
 
             // LABELS - CHROMATIC
-            for (var hi = 0; hi < ColorAnalyzer_v2.N_HUES; hi++)
+            for (var hi = 0; hi < N_HUES; hi++)
             {
-                var key = ColorTagger_v2.HUES_C0.AsSpan(hi, 1);
+                var key = HUES_C0.AsSpan(hi, 1);
                 var x = xl + hi * TAG_WH + CHAR_PAD;
                 report.DrawASCII_Shady(key, colorText, colorTextS, new Point(x, y0));
             }
-            for (var oi = 0; oi < ColorAnalyzer_v2.N_OPS_H; oi++)
+            for (var oi = 0; oi < N_OPS_H; oi++)
             {
-                var key = ColorTagger_v2.HUES_C1.AsSpan(oi, 1);
+                var key = HUES_C1.AsSpan(oi, 1);
                 var y = yl + oi * TAG_WH + CHAR_PAD;
                 report.DrawASCII_Shady(key, colorText, colorTextS, new Point(x0, y));
             }
 
             // LABELS - ACHROMATIC
             {
-                var key = ColorTagger_v2.GRAY_C0.AsSpan(0, 1);
+                var key = GRAY_C0.AsSpan(0, 1);
                 var x = x0 + TAG_TABLE_FULL_W + PAD + LABEL_WH + CHAR_PAD;
                 report.DrawASCII_Shady(key, colorText, colorTextS, new Point(x, y0));
             }
-            for (var i = 0; i < ColorAnalyzer_v2.N_OPS_G; i++)
+            for (var i = 0; i < N_OPS_G; i++)
             {
-                var key = ColorTagger_v2.GRAY_C1.AsSpan(i, 1);
+                var key = GRAY_C1.AsSpan(i, 1);
                 var x = x0 + TAG_TABLE_FULL_W + PAD;
                 var y = yl + i * TAG_WH + CHAR_PAD;
                 report.DrawASCII_Shady(key, colorText, colorTextS, new Point(x, y));
@@ -127,13 +129,13 @@ public static class ColorTagger_v2_Demo
 
             // LABELS - GENERAL
             {
-                var key = ColorTagger_v2.MISC_C0.AsSpan(0, 1);
+                var key = MISC_C0.AsSpan(0, 1);
                 var x = x0 + TAG_TABLE_FULL_W + PAD + LABEL_WH + TAG_WH + PAD + LABEL_WH + CHAR_PAD;
                 report.DrawASCII_Shady(key, colorText, colorTextS, new Point(x, y0));
             }
-            for (var i = 0; i < ColorAnalyzer_v2.N_GENERAL; i++)
+            for (var i = 0; i < N_GENERAL; i++)
             {
-                var key = ColorTagger_v2.MISC_C1.AsSpan(i, 1);
+                var key = MISC_C1.AsSpan(i, 1);
                 var x = x0 + TAG_TABLE_FULL_W + PAD + LABEL_WH + TAG_WH + PAD;
                 var y = yl + i * TAG_WH + CHAR_PAD;
                 report.DrawASCII_Shady(key, colorText, colorTextS, new Point(x, y));
@@ -142,39 +144,39 @@ public static class ColorTagger_v2_Demo
             var tag_scores = tags.ToDictionary(x => x.Term, x => x.Score);
 
             // TAGS - CHROMATIC
-            for (var oi = 0; oi < ColorAnalyzer_v2.N_OPS_H; oi++)
-            for (var hi = 0; hi < ColorAnalyzer_v2.N_HUES;  hi++)
+            for (var oi = 0; oi < N_OPS_H; oi++)
+            for (var hi = 0; hi < N_HUES;  hi++)
             {
                 var x = xl + TAG_WH * hi;
                 var y = yl + TAG_WH * oi;
-                var key = $"{ColorTagger_v2.HUES_C0[hi]}{ColorTagger_v2.HUES_C1[oi]}";
+                var key = $"{HUES_C0[hi]}{HUES_C1[oi]}";
                 var score = tag_scores.GetValueOrDefault(key, 0);
-                var i = ColorAnalyzer_v2.N_OPS_H * hi + oi;
+                var i = N_OPS_H * hi + oi;
                 report.DrawTagSquare(x, y, score, () => _palette_H[i]);
             }
 
             // TAGS - ACHROMATIC
-            for (var i = 0; i < ColorAnalyzer_v2.N_OPS_G; i++)
+            for (var i = 0; i < N_OPS_G; i++)
             {
                 var x = xl + TAG_TABLE_W + PAD + LABEL_WH;
                 var y = yl + i * TAG_WH;
-                var key = $"{ColorTagger_v2.GRAY_C0}{ColorTagger_v2.GRAY_C1[i]}";
+                var key = $"{GRAY_C0}{GRAY_C1[i]}";
                 var score = tag_scores.GetValueOrDefault(key, 0);
                 var i_ = i;
                 report.DrawTagSquare(x, y, score, () =>
                 {
-                    var L = ColorAnalyzer_v2.GrayReferences_L[i_];
+                    var L = GrayReferences_L[i_];
                     var l = (L * 100).RoundInt().Cap(100);
                     return new HSL(0, 0, (byte)l).ToRgb24();
                 });
             }
 
             // TAGS - GENERAL
-            for (var i = 0; i < ColorAnalyzer_v2.N_GENERAL; i++)
+            for (var i = 0; i < N_GENERAL; i++)
             {
                 var x = xl + TAG_TABLE_W + PAD + LABEL_WH + TAG_WH + PAD + LABEL_WH;
                 var y = yl + i * TAG_WH;
-                var key = $"{ColorTagger_v2.MISC_C0}{ColorTagger_v2.MISC_C1[i]}";
+                var key = $"{MISC_C0}{MISC_C1[i]}";
                 var score = tag_scores.GetValueOrDefault(key, 0);
                 var color = GetColorExtra(key);
                 report.DrawTagSquare(x, y, score, () => color, hatch: true, proportional: true);
@@ -223,7 +225,7 @@ public static class ColorTagger_v2_Demo
                 y = C0R1 + LABEL_WH;
                 report.DrawASCII_Shady("#", colorText, colorTextS, new Point(C1, y + TAG_WH.GapInt(CHAR_WH)));
                 var tags_x = tags
-                    .Where(t => t.Term.StartsWith(ColorTagger_v2.MISC_C0) && t.Score >= 10)
+                    .Where(t => t.Term.StartsWith(MISC_C0) && t.Score >= 10)
                     .OrderByDescending(t => t.Score);
                 foreach (var tag in tags_x)
                 {
@@ -384,21 +386,21 @@ public static class ColorTagger_v2_Demo
 
     private static Rgb24 GetColorByTag(string term)
     {
-        if      (term.StartsWith(ColorTagger_v2.GRAY_C0))
+        if      (term.StartsWith(GRAY_C0))
         {
-            var L = ColorAnalyzer_v2.GrayReferences_L[term[1] - '0'];
+            var L = GrayReferences_L[term[1] - '0'];
             var l = (L * 100).RoundInt().Cap(100);
             return new HSL(0, 0, (byte)l).ToRgb24();
         }
-        else if (term.StartsWith(ColorTagger_v2.MISC_C0))
+        else if (term.StartsWith(MISC_C0))
         {
             return 0.ToRgb24();
         }
         else
         {
-            var hue_ix = ColorTagger_v2.HUES_C0.IndexOf(term[0]);
-            var opt_ix = ColorTagger_v2.HUES_C1.IndexOf(term[1]);
-            return _palette_H[ColorAnalyzer_v2.N_OPS_H * hue_ix + opt_ix];
+            var hue_ix = HUES_C0.IndexOf(term[0]);
+            var opt_ix = HUES_C1.IndexOf(term[1]);
+            return _palette_H[N_OPS_H * hue_ix + opt_ix];
         }
     }
 
@@ -418,12 +420,12 @@ public static class ColorTagger_v2_Demo
 
     private static Rgb24[] GeneratePalette_Hue()
     {
-        var palette = new Rgb24[ColorAnalyzer_v2.N_HUES * ColorAnalyzer_v2.N_OPS_H];
-        var refs = ColorAnalyzer_v2.GetPalette().ToArray();
-        for (var h = 0; h < ColorAnalyzer_v2.N_HUES;  h++)
-        for (var o = 0; o < ColorAnalyzer_v2.N_OPS_H; o++)
+        var palette = new Rgb24[N_HUES * N_OPS_H];
+        var refs = GetPalette().ToArray();
+        for (var h = 0; h < N_HUES;  h++)
+        for (var o = 0; o < N_OPS_H; o++)
         {
-            palette[ColorAnalyzer_v2.N_OPS_H * h + o] = refs[h][o].ToRgb24();
+            palette[N_OPS_H * h + o] = refs[h][o].ToRgb24();
         }
 
         return palette;

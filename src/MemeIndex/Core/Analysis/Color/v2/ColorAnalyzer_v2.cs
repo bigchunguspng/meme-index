@@ -2,6 +2,7 @@ using ColorHelper;
 using MemeIndex.Tools.Geometry;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using static MemeIndex.Core.Analysis.Color.v2.ColorAnalyzer_v2;
 
 namespace MemeIndex.Core.Analysis.Color.v2;
 
@@ -33,7 +34,7 @@ public enum HueOption : byte
     S, P, D, L, XD, XL,
 }
 
-public class ImageScanReport_v22
+public class ImageScanReport_v2
 {
     public int
         SamplesTotal  = 0, // Say 10k
@@ -46,15 +47,15 @@ public class ImageScanReport_v22
 
     /// Black, 4 shades of gray, White.
     public readonly double[] Scores_Gray
-        = new double[ColorAnalyzer_v2.N_OPS_G];
+        = new double[N_OPS_G];
 
     /// Contains primary hues and their combinations.
     /// Red, R/O, Orange, …, Pink, P/R.
-    public readonly ImageScan_Hue_v22[] Hues
-        = ColorAnalyzer_v2.B_HUES.Times(_ => new ImageScan_Hue_v22());
+    public readonly ImageScan_Hue_v2[] Hues
+        = B_HUES.Times(_ => new ImageScan_Hue_v2());
 
     public readonly double[] GeneralBuckets
-        = new double[ColorAnalyzer_v2.B_GENERAL];
+        = new double[B_GENERAL];
 
     private double GetGB(GeneralBucket index) => GeneralBuckets[(int)index];
 
@@ -65,9 +66,9 @@ public class ImageScanReport_v22
     public double Light => GetGB(GeneralBucket.AL) + GetGB(GeneralBucket.PL) + GetGB(GeneralBucket.SL);
 }
 
-public readonly struct ImageScan_Hue_v22()
+public readonly struct ImageScan_Hue_v2()
 {
-    public readonly double[] Scores = new double[ColorAnalyzer_v2.N_OPS_H];
+    public readonly double[] Scores = new double[N_OPS_H];
 
     public double this[int i]
     {
@@ -81,9 +82,9 @@ public readonly struct ImageScan_Hue_v22()
         set => Scores[(int)i] = value;
     }
 
-    public void Combine(ImageScan_Hue_v22 other, double multiplier)
+    public void Combine(ImageScan_Hue_v2 other, double multiplier)
     {
-        for (var i = 0; i < ColorAnalyzer_v2.N_OPS_H; i++)
+        for (var i = 0; i < N_OPS_H; i++)
         {
             Scores[i] += multiplier * other.Scores[i];
         }
@@ -93,36 +94,26 @@ public readonly struct ImageScan_Hue_v22()
 public static class ColorAnalyzer_v2
 {
     public const int
-        N_OPS_G = 5,
-        N_OPS_H = 6,
+        N_OPS_G = 5, // Gray
+        N_OPS_H = 6, // Hues
         N_HUES = 10,
-        B_HUES = 20,
+        B_HUES = 20, // B = buckets
         B_GENERAL = 6,
         N_GENERAL = 6;
 
     public static readonly double[] u_limits_H = // hue upper limits
     [
-         15, // PINK, i: 0
-         18, // PINK-RED
-         30, // RED
-         35, // RED-ORANGE
-         83, // ORANGE
-         90, // ORANGE-YELLOW
-        110, // YELLOW
-        113, // YELLOW-LIME
-        125, // LIME
-        132, // LIME-GREEN
-        148, // GREEN
-        156, // GREEN-CYAN
-        190, // CYAN
-        194, // CYAN-SKY
-        245, // SKY
-        263, // SKY-BLUE
-        282, // BLUE
-        285, // BLUE-VIOLET
-        315, // VIOLET
-        329, // VIOLET-PINK
-        360, // PINK x2, i: 20
+         15,  18, // PINK   PINK-RED
+         30,  35, // RED    RED-ORANGE
+         83,  90, // ORANGE ORANGE-YELLOW
+        110, 113, // YELLOW YELLOW-LIME
+        125, 132, // LIME   LIME-GREEN
+        148, 156, // GREEN  GREEN-CYAN
+        190, 194, // CYAN   CYAN-SKY
+        245, 263, // SKY    SKY-BLUE
+        282, 285, // BLUE   BLUE-VIOLET
+        315, 329, // VIOLET VIOLET-PINK
+        360,      // PINK x2
     ];
 
     // DEBUG
@@ -145,13 +136,13 @@ public static class ColorAnalyzer_v2
         }
     }
 
-    // ACTUAL
+    // SCAN IMAGE
 
     /// Color analysis PART I <br/>
     /// Collect color samples, categorize them, count.
-    public static ImageScanReport_v22 ScanImage(Image<Rgba32> image)
+    public static ImageScanReport_v2 ScanImage(Image<Rgba32> image)
     {
-        var report = new ImageScanReport_v22();
+        var report = new ImageScanReport_v2();
 
         var size = image.Size;
         var step = CalculateIteratorStep(size);
@@ -184,7 +175,7 @@ public static class ColorAnalyzer_v2
         return d.RoundInt().EvenFloor().Clamp(4, 32);
     }
 
-    public static void CategorizeColor(this ImageScanReport_v22 report, Oklch color)
+    public static void CategorizeColor(this ImageScanReport_v2 report, Oklch color)
     {
         var li = color.L <= 0.5 ? 0 : 1;
         var ci = color.C > 0.10 ? 0 : color.C > 0.01 ? 2 : 4;
@@ -207,9 +198,11 @@ public static class ColorAnalyzer_v2
         }
     }
 
+    // GEOMETRY MAPPING
+
     [MethodImpl(AggressiveInlining)]
     public static void PutGray
-        (this ImageScanReport_v22 report, Oklch color)
+        (this ImageScanReport_v2 report, Oklch color)
     {
         // Get distances to all grayscale L values.
         var distances =
@@ -258,7 +251,7 @@ public static class ColorAnalyzer_v2
 
     [MethodImpl(AggressiveInlining)]
     public static void Put
-        (ref this ImageScan_Hue_v22 report, Oklch color)
+        (ref this ImageScan_Hue_v2 report, Oklch color)
     {
         // Get distances to all points for given hue.
         var points = HueReferences[color.IntH_safe >> 2].Points;

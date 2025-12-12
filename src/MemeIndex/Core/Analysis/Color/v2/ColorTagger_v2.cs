@@ -1,5 +1,6 @@
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using static MemeIndex.Core.Analysis.Color.v2.ColorAnalyzer_v2;
 
 namespace MemeIndex.Core.Analysis.Color.v2;
 
@@ -15,7 +16,7 @@ public static class ColorTagger_v2
         using var image = await Image.LoadAsync<Rgba32>(path);
         sw.LogCM(ConsoleColor.Yellow, "LOAD");
 
-        var report = ColorAnalyzer_v2.ScanImage(image);
+        var report = ScanImage(image);
         sw.LogCM(ConsoleColor.Yellow, "SCAN");
 
         var tags = AnalyzeImageScan(report, minScore);
@@ -27,7 +28,7 @@ public static class ColorTagger_v2
 
     /// Returns a raw numbers for all possible tags.
     private static Dictionary<string, int> AnalyzeImageScan
-        (ImageScanReport_v22 report, int minScore = 10)
+        (ImageScanReport_v2 report, int minScore = 10)
     {
         var tags = new Dictionary<string, int>();
 
@@ -36,14 +37,14 @@ public static class ColorTagger_v2
         var opacityTotal  = report.OpacityTotal;
 
         // GRAY
-        for (var i = 0; i < ColorAnalyzer_v2.N_OPS_G; i++)
+        for (var i = 0; i < N_OPS_G; i++)
         {
             AddTag(_tags_A[i], GetRawScore_Opaque(report.Scores_Gray[i]));
         }
 
         // BY HUE
-        var hues = ColorAnalyzer_v2.N_HUES.Times(_ => new ImageScan_Hue_v22());
-        for (var bi = 0; bi < ColorAnalyzer_v2.B_HUES; bi++)
+        var hues = N_HUES.Times(_ => new ImageScan_Hue_v2());
+        for (var bi = 0; bi < B_HUES; bi++)
         {
             // primary + vague -> primary
 
@@ -57,19 +58,19 @@ public static class ColorTagger_v2
             else
             {
                 // split samples between primary hues to the sides
-                var  hue_i2 = (hue_ix + 1) % ColorAnalyzer_v2.N_HUES;
+                var  hue_i2 = (hue_ix + 1) % N_HUES;
                 hues[hue_ix].Combine(samples, multiplier: 0.5);
                 hues[hue_i2].Combine(samples, multiplier: 0.5);
             }
         }
 
-        for (var hi = 0; hi < ColorAnalyzer_v2.N_HUES; hi++)
+        for (var hi = 0; hi < N_HUES; hi++)
         {
             // struct -> tags
 
             var hue = hues[hi];
-            var hue_offset = hi * ColorAnalyzer_v2.N_OPS_H;
-            for (var o = 0; o < ColorAnalyzer_v2.N_OPS_H; o++)
+            var hue_offset = hi * N_OPS_H;
+            for (var o = 0; o < N_OPS_H; o++)
             {
                 AddTag(_tags_H[hue_offset + o], GetRawScore_Opaque(hue[o]));
             }
