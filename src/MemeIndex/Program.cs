@@ -21,6 +21,7 @@ var wa_options = new WebApplicationOptions
 {
     Args = args,
     ApplicationName = "Meme-Index-Web",
+    WebRootPath = "web",
 };
 
 var builder = WebApplication.CreateSlimBuilder(wa_options);
@@ -62,5 +63,8 @@ foreach (var dir in dirs)
 Log("await connection.Insert();");*/
 
 LogCM(ConsoleColor.Magenta, "[Configuration]");
+
+app.UseDefaultFiles();
+app.UseStaticFiles();
 
 app.Run();

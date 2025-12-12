@@ -25,4 +25,8 @@
     <PackageReference Include="Spectre.Console" Version="0.53.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="web/**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
