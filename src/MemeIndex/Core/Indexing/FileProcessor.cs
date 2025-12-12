@@ -1,3 +1,4 @@
+using MemeIndex.Core.Analysis.Color.v2;
 using MemeIndex.DB;
 
 namespace MemeIndex.Core.Indexing;
@@ -47,23 +48,57 @@ public static class FileProcessor
         sw.Log("[DB] CLOSE");
 
         // trigger new files processing
+        await TriggerAnalysis();
     }
 
-    public static void TriggerAnalysis()
+    public static async Task TriggerAnalysis()
     {
-        // ask db for files to process (no adate | mdate > adate)
+        var sw = Stopwatch.StartNew();
+        await using var con = await DB.DB.ConnectTo_Main();
+        sw.Log("[DB] CONNECT");
+        var files = await con.Files_GetToBeAnalyzed();
+        sw.Log("[DB] FILES GET TBA");
+        await con.CloseAsync();
+        sw.Log("[DB] CLOSE");
+
         // pass paths to processor
+        await AnalyzeFiles(files);
     }
 
-    public static void AnalyzeFiles(IEnumerable<string> files)
+    public static async Task AnalyzeFiles(IEnumerable<DB_File_WithPath> files)
     {
-        // analyze each file
-        // send tags to db tag writer
-        // failed to analyze -> write file id to broken files
+        Log("AnalyzeFiles...");
+        foreach (var file in files)
+        {
+            try
+            {
+                var tags = await ColorTagger_v2.AnalyzeImage(file.GetPath());
+                var date = DateTime.UtcNow;
+
+                // send tags to db tag writer
+                await AddTagsToDB(tags, file.id, date);
+            }
+            catch (Exception e)
+            {
+                LogError(e);
+                // add file id to broken files
+            }
+        }
+        Log("AnalyzeFiles!");
     }
 
-    public static void AddTagsToDB()
+    public static async Task AddTagsToDB(IEnumerable<TagContent> tags, int file_id, DateTime date)
     {
+        var sw = Stopwatch.StartNew();
+        await using var con = await DB.DB.ConnectTo_Main();
+        sw.Log("[DB] CONNECT");
+        await con.Tags_CreateMany(tags.Select(x => new BD_Tag_Insert(x, file_id)));
+        sw.Log("[DB] TAGS ADD");
+        await con.File_UpdateDateAnalyzed(new DB_File_UpdateDate(file_id, date));
+        sw.Log("[DB] FILE UPDATE DATE");
+        await con.CloseAsync();
+        sw.Log("[DB] CLOSE");
+
         // write tags to db in batches
     }
 }
