@@ -30,7 +30,7 @@ public static class FileProcessor
         sw.Log("[IX] GET FILES INFO");
 
         // ADD DIRS
-        await using var con = await DB.DB.ConnectTo_Main();
+        await using var con = await AppDB.ConnectTo_Main();
         sw.Log("[DB] CONNECT");
         await con.Dirs_CreateMany(dirPaths);
         sw.Log("[DB] DIRS INSERT");
@@ -54,7 +54,7 @@ public static class FileProcessor
     public static async Task TriggerAnalysis()
     {
         var sw = Stopwatch.StartNew();
-        await using var con = await DB.DB.ConnectTo_Main();
+        await using var con = await AppDB.ConnectTo_Main();
         sw.Log("[DB] CONNECT");
         var files = await con.Files_GetToBeAnalyzed();
         sw.Log("[DB] FILES GET TBA");
@@ -90,7 +90,7 @@ public static class FileProcessor
     public static async Task AddTagsToDB(IEnumerable<TagContent> tags, int file_id, DateTime date)
     {
         var sw = Stopwatch.StartNew();
-        await using var con = await DB.DB.ConnectTo_Main();
+        await using var con = await AppDB.ConnectTo_Main();
         sw.Log("[DB] CONNECT");
         await con.Tags_CreateMany(tags.Select(x => new BD_Tag_Insert(x, file_id)));
         sw.Log("[DB] TAGS ADD");

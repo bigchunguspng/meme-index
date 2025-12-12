@@ -72,7 +72,7 @@ builder.Services
 var app = builder.Build();
 
 Log("_");
-var connection = await DB.ConnectTo_Main();
+var connection = await AppDB.ConnectTo_Main();
 Log("var connection = await DB.OpenConnection();");
 await connection.CreateDB_Main();
 Log("await connection.CreateTables();");

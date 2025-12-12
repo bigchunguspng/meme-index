@@ -5,7 +5,7 @@ using Microsoft.Data.Sqlite;
 
 namespace MemeIndex.DB;
 
-public static class DB
+public static class AppDB
 {
     // MAIN
 
