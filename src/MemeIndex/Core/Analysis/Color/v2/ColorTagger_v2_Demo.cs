@@ -288,7 +288,7 @@ public static class ColorTagger_v2_Demo
         sw.Log("2 - REPORT");
 
         // SAVE REPORT
-        var name = $"Profile-{DateTime.UtcNow.Ticks:x16}-{Desert.GetSand()}-Analysis.png";
+        var name = $"Analysis-{Desert.Clock():x}-{Desert.GetSand()}.png";
         var save = Dir_Debug_Mixed.EnsureDirectoryExist().Combine(name);
         report.SaveAsPng(save);
 

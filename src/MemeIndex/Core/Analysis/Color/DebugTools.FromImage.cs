@@ -86,7 +86,7 @@ public static partial class DebugTools
         }
         sw.Log("3. Collect samples.");
 
-        var name = $"Profile-{DateTime.UtcNow.Ticks:x16}-{Desert.GetSand()}-{suffix}.png";
+        var name = $"Profile-{Desert.Clock():x}-{Desert.GetSand()}-{suffix}.png";
         var save = Dir_Debug_Profiles.EnsureDirectoryExist().Combine(name);
         report.SaveAsPng(save);
         sw.Log($"4. Save report >> \"{name}\"");

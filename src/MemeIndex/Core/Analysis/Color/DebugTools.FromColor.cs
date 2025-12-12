@@ -83,7 +83,7 @@ public static partial class DebugTools
     public static void RenderHues_Oklch_v2()
     {
         var images = ColorAnalyzer_v2.N_HUES.Times(GetReportBackground_HxL);
-        var ticks = $"{DateTime.UtcNow.Ticks >> 24:x}";
+        var ticks = $"{Desert.Clock(24):x}";
 
         Span<int> hue_ixs = stackalloc int[2];
         for (byte s = 0; s < 100; s++)
@@ -209,8 +209,8 @@ public static partial class DebugTools
             report_2[OkLCH.H.RoundInt().Clamp(0, 360 - 1), (OkLCH.L * 100).RoundInt().Clamp(0, 100)] = rgb;
         }
 
-        var name_1 = $"Test-{DateTime.UtcNow.Ticks}-H-Full.png";
-        var name_2 = $"Test-{DateTime.UtcNow.Ticks}-O-Full.png";
+        var name_1 = $"Test-{Desert.Clock(24):x}-H-Full.png";
+        var name_2 = $"Test-{Desert.Clock(24):x}-O-Full.png";
         var save_1 = Dir_Debug_Color
             .EnsureDirectoryExist()
             .Combine(name_1);

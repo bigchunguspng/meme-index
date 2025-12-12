@@ -51,6 +51,13 @@ public static class Desert
 
         return new string(chars);
     }
+
+    /// Get <see cref="DateTime.Ticks"/> of <see cref="DateTime.UtcNow"/>
+    /// right-shifted by x bits.
+    /// 16 (default value) gives unique value every 6.5 ms.
+    /// 20 - every ~100 ms.
+    /// 24 - every 1.67 secons.
+    public static long Clock(int x = 16) => DateTime.UtcNow.Ticks >> x;
 }
 
 /*  .    _    +     .  ______   .          .

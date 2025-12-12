@@ -21,7 +21,7 @@ var wa_options = new WebApplicationOptions
 {
     Args = args,
     ApplicationName = "Meme-Index-Web",
-    WebRootPath = "web",
+    WebRootPath = Dir_WebRoot,
 };
 
 var builder = WebApplication.CreateSlimBuilder(wa_options);
