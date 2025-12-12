@@ -1,6 +1,7 @@
 using MemeIndex.Core.Analysis.Color;
-using MemeIndex.Core.Analysis.Color.v1;
 using MemeIndex.Core.Analysis.Color.v2;
+using MemeIndex.Core.Indexing;
+using MemeIndex.DB;
 using MemeIndex.Utils;
 
 LogCM(ConsoleColor.Magenta, "[Start]");
@@ -70,13 +71,20 @@ builder.Services
 
 var app = builder.Build();
 
-/*
+Log("_");
 var connection = await DB.ConnectTo_Main();
 Log("var connection = await DB.OpenConnection();");
 await connection.CreateDB_Main();
 Log("await connection.CreateTables();");
+await connection.CloseAsync();
+Log("await connection.CloseAsync();");
+
+var path = ArgsFromFile(args[0]).First();
+await FileProcessor.AddFilesToDB(path, recursive: true);
+Log($"await FileProcessor.AddFilesToDB(@\"{path}\", recursive: true);");
+return;
 //await connection.Test_Insert();
-await connection.Dirs_Create(@"D:\Documents\Balls");
+/*await connection.Dirs_Create(@"D:\Documents\Balls");
 LogDebug("await connection.Dirs_Create");
 var dirs = await connection.Dirs_GetAll();
 LogDebug("await connection.Dirs_GetAll");
@@ -84,9 +92,7 @@ foreach (var dir in dirs)
 {
     Print($"{dir.Id} -> {dir.Path}");
 }
-await connection.CloseAsync();
-Log("await connection.Insert();");
-*/
+Log("await connection.Insert();");*/
 
 LogCM(ConsoleColor.Magenta, "[Configuration]");
 

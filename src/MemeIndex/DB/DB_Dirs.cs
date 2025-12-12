@@ -18,6 +18,13 @@ public static class DB_Dirs
         await c.ExecuteAsync(SQL, new { path });
     }
     
+    public static async Task Dirs_CreateMany
+        (this SqliteConnection c, IEnumerable<string> paths)
+    {
+        const string SQL = "INSERT OR IGNORE INTO dirs (path) VALUES (@path)";
+        await c.ExecuteAsync(SQL, paths.Select(x => new { path = x }));
+    }
+    
     public static async Task<IEnumerable<DB_Dir>> Dirs_GetAll
         (this SqliteConnection c)
     {

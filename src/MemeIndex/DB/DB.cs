@@ -97,6 +97,12 @@ public static class DB
                 FOREIGN KEY (file_id)
                 REFERENCES files (id) ON DELETE CASCADE
             );
+            CREATE TABLE IF NOT EXISTS files_broken
+            (
+                file_id INTEGER NOT NULL,
+                FOREIGN KEY (file_id)
+                REFERENCES files (id) ON DELETE CASCADE
+            );
             CREATE INDEX IF NOT EXISTS ix_tags_term
             ON tags (term);
             """,

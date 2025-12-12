@@ -6,3 +6,6 @@ public record RankedWord(string Word, int Rank)
 }
 
 public record TagContent(string Term, int Score);
+
+// put entities to be used in app here
+// put db specific types in DB/
