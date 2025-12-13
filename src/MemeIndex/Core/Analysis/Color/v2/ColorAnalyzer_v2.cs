@@ -237,7 +237,7 @@ public static class ColorAnalyzer_v2
             scoreTotal += scores[i].value;
         }
 
-        // Increase score for 1-2 closest points.
+        // Split score between 1-2 closest points.
         for (var i = 0; i < take; i++)
         {
             var score  = scores[i].value;
@@ -295,7 +295,7 @@ public static class ColorAnalyzer_v2
             scoreTotal += scores[i].value;
         }
 
-        // Increase score for 1-3 closest points.
+        // Split score between 1-3 closest points.
         for (var i = 0; i < take; i++)
         {
             var score  = scores[i].value;

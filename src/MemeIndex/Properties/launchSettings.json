@@ -1,53 +1,40 @@
 {
   "$schema": "https://www.schemastore.org/launchsettings.json",
   "profiles": {
-    "http": {
-      "commandLineArgs": "",
+    "web": {
       "commandName": "Project",
-      "dotnetRunMessages": true,
       "launchBrowser": true,
       "launchUrl": "",
       "applicationUrl": "http://localhost:7373",
-      "workingDirectory": "../../out/bin/Release/net8.0",
+      "commandLineArgs": "",
+      "workingDirectory": "$(OutDir)",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
-    "check": {
-      "commandLineArgs": "files.txt",
+    "no-web": {
       "commandName": "Project",
-      "dotnetRunMessages": true,
-      "workingDirectory": "../../out/bin/Release/net8.0",
+      "applicationUrl": "http://localhost:7373",
+      "commandLineArgs": "args.txt",
+      "workingDirectory": "$(OutDir)",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
     "test": {
-      "commandLineArgs": "-t",
       "commandName": "Project",
-      "dotnetRunMessages": true,
-      "workingDirectory": "../../out/bin/Release/net8.0",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+      "commandLineArgs": "-t",
+      "workingDirectory": "$(OutDir)"
     },
     "files": {
-      "commandLineArgs": "-P files.txt",
       "commandName": "Project",
-      "dotnetRunMessages": true,
-      "workingDirectory": "../../out/bin/Release/net8.0",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+      "commandLineArgs": "-P args.txt",
+      "workingDirectory": "$(OutDir)"
     },
     "demo": {
-      "commandLineArgs": "-D files.txt",
       "commandName": "Project",
-      "dotnetRunMessages": true,
-      "workingDirectory": "../../out/bin/Release/net8.0",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+      "commandLineArgs": "-D args.txt",
+      "workingDirectory": "$(OutDir)"
     }
   }
 }
