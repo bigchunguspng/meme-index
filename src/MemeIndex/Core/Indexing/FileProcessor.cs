@@ -1,6 +1,7 @@
 using System.Threading.Channels;
 using MemeIndex.Core.Analysis.Color.v2;
 using MemeIndex.DB;
+using Size = SixLabors.ImageSharp.Size;
 
 namespace MemeIndex.Core.Indexing;
 
@@ -85,19 +86,6 @@ public static class FileProcessor
             }
         }
         Log("AnalyzeFiles", "DONE");
-
-        await Task.Delay(1000);
-        Log($"""
-             ANALYSIS DONE:
-                 Files: {N_files,3}
-                 Tags:  {N_tags ,3}
-                 Time:           {_time     .ReadableTime()} | {(_time      / N_files).ReadableTime()} per file
-                 DB    connect:  {con_open  .ReadableTime()} | {(con_open   / N_files).ReadableTime()} per file
-                 DB disconnect:  {con_close .ReadableTime()} | {(con_close  / N_files).ReadableTime()} per file
-                 DB write tags:  {time_tags .ReadableTime()} | {(time_tags  / N_files).ReadableTime()} per file
-                 DB write files: {time_files.ReadableTime()} | {(time_files / N_files).ReadableTime()} per file
-                 Color analysis: {time_ca   .ReadableTime()} | {(time_ca    / N_files).ReadableTime()} per file
-             """);
     }
 
     public static async Task AddTagsToDB(AnalysisResult result)
@@ -105,9 +93,9 @@ public static class FileProcessor
         var sw = Stopwatch.StartNew();
         await using var con = await AppDB.ConnectTo_Main();
         con_open += sw.GetElapsed_Restart();
-        var rows = await con.Tags_CreateMany(result.tags.Select(x => new BD_Tag_Insert(x, result.file_id)));
+        var rows = await con.Tags_CreateMany(result.ToDB_Tags());
         time_tags += sw.GetElapsed_Restart();
-        await con.File_UpdateDateAnalyzed(new DB_File_UpdateDate(result.file_id, result.date));
+        await con.File_UpdateDateAnalyzed(result.ToDB_File());
         time_files += sw.GetElapsed_Restart();
         await con.CloseAsync();
         con_close += sw.GetElapsed_Restart();
@@ -115,19 +103,63 @@ public static class FileProcessor
         _time = sw0.Elapsed;
     }
 
+    public static async Task UpdateFileThumbDateInDB(ThumbgenResult result)
+    {
+        var sw = Stopwatch.StartNew();
+        await using var con = await AppDB.ConnectTo_Main();
+        con_open += sw.GetElapsed_Restart();
+        await con.File_UpdateDateThumbGenerated(result.ToDB_File());
+        time_thumb += sw.GetElapsed_Restart();
+        await con.CloseAsync();
+        con_close += sw.GetElapsed_Restart();
+        _time = sw0.Elapsed;
+    }
+
     // STATS
-    private static int
+
+    public static void PrintStats()
+    {
+        Log($"""
+             ANALYSIS DONE:
+                 Files: {N_files,3}
+                 Tags:  {N_tags ,3}
+                 Time:           {_time     .ReadableTime(),10} | {(_time      / N_files).ReadableTime(),10} per file
+                 DB    connect:  {con_open  .ReadableTime(),10} | {(con_open   / N_files).ReadableTime(),10} per file
+                 DB disconnect:  {con_close .ReadableTime(),10} | {(con_close  / N_files).ReadableTime(),10} per file
+                 DB write tags:  {time_tags .ReadableTime(),10} | {(time_tags  / N_files).ReadableTime(),10} per file
+                 DB upd files A: {time_files.ReadableTime(),10} | {(time_files / N_files).ReadableTime(),10} per file
+                 DB upd files T: {time_thumb.ReadableTime(),10} | {(time_thumb / N_files).ReadableTime(),10} per file
+                 Color analysis: {time_ca   .ReadableTime(),10} | {(time_ca    / N_files).ReadableTime(),10} per file
+                 Thumb gen`tion: {time_tg   .ReadableTime(),10} | {(time_tg    / N_files).ReadableTime(),10} per file
+             """);
+    }
+
+    public static int
         N_files,
         N_tags;
-    private static readonly Stopwatch sw0 = new();
-    private static TimeSpan
+    public static readonly Stopwatch sw0 = new();
+    public static TimeSpan
         _time      = TimeSpan.Zero,
         con_open   = TimeSpan.Zero,
         con_close  = TimeSpan.Zero,
         time_tags  = TimeSpan.Zero,
         time_files = TimeSpan.Zero,
-        time_ca    = TimeSpan.Zero;
+        time_thumb = TimeSpan.Zero,
+        time_ca    = TimeSpan.Zero,
+        time_tg    = TimeSpan.Zero;
 }
 
-public record AnalysisResult(int file_id, DateTime date, IEnumerable<TagContent> tags);
-public record ThumbgenResult(int file_id, DateTime date);
+public record AnalysisResult(int file_id, DateTime date, IEnumerable<TagContent> tags)
+{
+    public DB_File_UpdateDate ToDB_File
+        () => new(file_id, date);
+
+    public IEnumerable<DB_Tag_Insert> ToDB_Tags
+        () => tags.Select(x => new DB_Tag_Insert(x, file_id));
+}
+
+public record ThumbgenResult(int file_id, DateTime date, Size size)
+{
+    public DB_File_UpdateDateSize ToDB_File
+        () => new(file_id, date, size);
+}

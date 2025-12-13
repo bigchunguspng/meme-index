@@ -36,10 +36,19 @@ public class DB_File_Insert(FileInfo info, int directory_id)
     public readonly long   mdate  = info.LastWriteTimeUtc.ToFileTimeUtc();
 }
 
-public class DB_File_UpdateDate(int file_id, DateTime date)
+public class DB_File_UpdateDate
+    (int file_id, DateTime date)
 {
     public readonly int    id     = file_id;
     public readonly long   date   = date.ToFileTimeUtc();
+}
+
+public class DB_File_UpdateDateSize
+    (int file_id, DateTime date, Size size)
+    : DB_File_UpdateDate(file_id, date)
+{
+    public readonly int image_w = size.Width;
+    public readonly int image_h = size.Height;
 }
 
 public static class DB_Files
@@ -65,10 +74,31 @@ public static class DB_Files
         return await c.QueryAsync<DB_File_WithPath>(SQL);
     }
 
+    public static async Task<IEnumerable<DB_File_WithPath>> Files_GetToBeThumbed
+        (this SqliteConnection c)
+    {
+        const string SQL =
+            "SELECT f.id, d.path, f.name "
+          + "FROM files f "
+          + "JOIN dirs d ON d.id = f.dir_id "
+          + "WHERE tdate IS NULL OR mdate > tdate";
+        return await c.QueryAsync<DB_File_WithPath>(SQL);
+    }
+
     public static async Task File_UpdateDateAnalyzed
         (this SqliteConnection c, DB_File_UpdateDate file)
     {
         const string SQL = "UPDATE files SET adate = @date WHERE id = @id";
+        await c.ExecuteAsync(SQL, file);
+    }
+
+    public static async Task File_UpdateDateThumbGenerated
+        (this SqliteConnection c, DB_File_UpdateDateSize file)
+    {
+        const string SQL =
+            "UPDATE files "
+          + "SET tdate = @date, image_w = @image_w, image_h = @image_h "
+          + "WHERE id = @id";
         await c.ExecuteAsync(SQL, file);
     }
 }

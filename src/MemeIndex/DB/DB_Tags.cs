@@ -4,7 +4,7 @@ using Microsoft.Data.Sqlite;
 
 namespace MemeIndex.DB;
 
-public class BD_Tag_Insert(TagContent tag, int file_id)
+public class DB_Tag_Insert(TagContent tag, int file_id)
 {
     public readonly int    file_id = file_id;
     public readonly string term    = tag.Term;
@@ -14,7 +14,7 @@ public class BD_Tag_Insert(TagContent tag, int file_id)
 public static class DB_Tags
 {
     public static async Task<int> Tags_CreateMany
-        (this SqliteConnection c, IEnumerable<BD_Tag_Insert> tags)
+        (this SqliteConnection c, IEnumerable<DB_Tag_Insert> tags)
     {
         const string SQL =
             "INSERT OR IGNORE "

@@ -1,5 +1,6 @@
 using MemeIndex.Core;
 using MemeIndex.Core.Indexing;
+using MemeIndex.Core.Thumbgen;
 using MemeIndex.DB;
 using MemeIndex.Utils;
 
@@ -11,8 +12,13 @@ AppDomain.CurrentDomain.UnhandledException += (_, e) =>
     Environment.Exit(1);
 };
 
+AppDomain.CurrentDomain.ProcessExit += (_, _) => FileProcessor.PrintStats();
+AppDomain.CurrentDomain.ProcessExit += (_, _) => ThumbGenerator.PrintStats();
+
 // BRANCH
 
+/*ThumbGenerator.Test(CLI.GetArgsFromFile(args[0]).First());
+return;*/
 if (CLI.TryHandleArgs(args)) return;
 
 // BUILDER
@@ -36,7 +42,9 @@ builder.Services
         .Insert(0, AppJsonSerializerContext.Default));
 
 builder.Services.AddHostedService<Job_Analysis>();
+builder.Services.AddHostedService<Job_Thumbgen>();
 builder.Services.AddHostedService<Job_AnalysisSave>();
+builder.Services.AddHostedService<Job_ThumbgenSave>();
 
 // APP
 
