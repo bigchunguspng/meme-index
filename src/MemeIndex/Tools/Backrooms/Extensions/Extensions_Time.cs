@@ -16,6 +16,13 @@ public static class Extensions_Time
             : t.TotalDays    <  2 ? $"{t:d' DAY'}"
             :                       $"{t:d' DAYS'}";
 
+    public static TimeSpan GetElapsed_Restart(this Stopwatch sw)
+    {
+        var elapsed = sw.Elapsed;
+        sw.Restart();
+        return elapsed;
+    }
+
     public static bool HappenedWithinLast
         (this DateTime date, TimeSpan span) => DateTime.Now - date < span;
 }

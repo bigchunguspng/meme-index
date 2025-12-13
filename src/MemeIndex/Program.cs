@@ -35,36 +35,36 @@ builder.Services
         .SerializerOptions.TypeInfoResolverChain
         .Insert(0, AppJsonSerializerContext.Default));
 
+builder.Services.AddHostedService<Job_Analysis>();
+builder.Services.AddHostedService<Job_AnalysisSave>();
+
 // APP
 
 var app = builder.Build();
-
-Log("_");
-var connection = await AppDB.ConnectTo_Main();
-Log("var connection = await DB.OpenConnection();");
-await connection.CreateDB_Main();
-Log("await connection.CreateTables();");
-await connection.CloseAsync();
-Log("await connection.CloseAsync();");
-
-var path = CLI.GetArgsFromFile(args[0]).First();
-await FileProcessor.AddFilesToDB(path, recursive: true);
-Log($"await FileProcessor.AddFilesToDB(@\"{path}\", recursive: true);");
-return;
-//await connection.Test_Insert();
-/*await connection.Dirs_Create(@"D:\Documents\Balls");
-LogDebug("await connection.Dirs_Create");
-var dirs = await connection.Dirs_GetAll();
-LogDebug("await connection.Dirs_GetAll");
-foreach (var dir in dirs)
-{
-    Print($"{dir.Id} -> {dir.Path}");
-}
-Log("await connection.Insert();");*/
 
 LogCM(ConsoleColor.Magenta, "[Configuration]");
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+_ = TestCode();
+
 app.Run();
+
+async Task TestCode()
+{
+    await Task.Delay(3000);
+    Log("_");
+    await using (var connection = await AppDB.ConnectTo_Main())
+    {
+        Log("var connection = await DB.OpenConnection();");
+        await connection.CreateDB_Main();
+        Log("await connection.CreateTables();");
+        await connection.CloseAsync();
+        Log("await connection.CloseAsync();");
+    }
+
+    var path = CLI.GetArgsFromFile(args[0]).First();
+    await FileProcessor.AddFilesToDB(path, recursive: false);
+    Log($"await FileProcessor.AddFilesToDB(@\"{path}\", recursive: false);");
+}
