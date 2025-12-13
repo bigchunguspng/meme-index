@@ -14,13 +14,13 @@ public static class ColorTagger_v2
         var sw = Stopwatch.StartNew();
 
         using var image = await Image.LoadAsync<Rgba32>(path);
-        sw.LogCM(ConsoleColor.Yellow, "LOAD");
+        sw.LogCM(ConsoleColor.Magenta, "LOAD");
 
         var report = ScanImage(image);
-        sw.LogCM(ConsoleColor.Yellow, "SCAN");
+        sw.LogCM(ConsoleColor.Magenta, "SCAN");
 
         var tags = AnalyzeImageScan(report, minScore);
-        sw.LogCM(ConsoleColor.Yellow, "ANALYZE");
+        sw.LogCM(ConsoleColor.Magenta, "ANALYZE");
 
         return tags
             .Select(x => new TagContent(x.Key, x.Value));

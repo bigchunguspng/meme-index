@@ -6,8 +6,6 @@ namespace MemeIndex.Core.Indexing;
 
 public static class FileProcessor
 {
-    // files.txt -> paths -> add files -> get files to process -> process -> add tags.
-
     public static Channel<int>
         C_Thumbgen = Channel.CreateUnbounded<int>(),
         C_Analysis = Channel.CreateUnbounded<int>();
@@ -57,6 +55,7 @@ public static class FileProcessor
 
     public static async Task AnalyzeFiles()
     {
+        N_files = N_tags = 0;
         sw0.Restart();
         Log("AnalyzeFiles", "START");
 
@@ -76,25 +75,23 @@ public static class FileProcessor
                 N_files++;
                 var date = DateTime.UtcNow;
 
-                // send tags to db tag writer
                 var result = new AnalysisResult(file.id, date, tags);
                 await C_AnalysisSave.Writer.WriteAsync(result);
             }
             catch (Exception e)
             {
                 LogError(e);
-                // add file id to broken files
+                // todo add file id to broken files
             }
         }
         Log("AnalyzeFiles", "DONE");
-        var time = sw0.Elapsed;
 
         await Task.Delay(1000);
         Log($"""
              ANALYSIS DONE:
                  Files: {N_files,3}
                  Tags:  {N_tags ,3}
-                 Time:           {time      .ReadableTime()} | {(time       / N_files).ReadableTime()} per file
+                 Time:           {_time     .ReadableTime()} | {(_time      / N_files).ReadableTime()} per file
                  DB    connect:  {con_open  .ReadableTime()} | {(con_open   / N_files).ReadableTime()} per file
                  DB disconnect:  {con_close .ReadableTime()} | {(con_close  / N_files).ReadableTime()} per file
                  DB write tags:  {time_tags .ReadableTime()} | {(time_tags  / N_files).ReadableTime()} per file
@@ -115,14 +112,16 @@ public static class FileProcessor
         await con.CloseAsync();
         con_close += sw.GetElapsed_Restart();
         N_tags += rows;
+        _time = sw0.Elapsed;
     }
 
     // STATS
     private static int
-        N_files = 0,
-        N_tags  = 0;
+        N_files,
+        N_tags;
     private static readonly Stopwatch sw0 = new();
     private static TimeSpan
+        _time      = TimeSpan.Zero,
         con_open   = TimeSpan.Zero,
         con_close  = TimeSpan.Zero,
         time_tags  = TimeSpan.Zero,
