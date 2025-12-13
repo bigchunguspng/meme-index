@@ -1,67 +1,104 @@
+using System.Threading.Channels;
 using MemeIndex.Core.Thumbgen;
 
 namespace MemeIndex.Core.Indexing;
 
-public class Job_Analysis : BackgroundService
+public abstract class ChannelJob<T>
+(
+    string code,
+    Channel<T> channel,
+    Func<T, Task> process_item,
+    Func<T, string>? log_item = null
+) : BackgroundService
 {
-    private const string CODE = "Job/Analysis";
-
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
-        Log(CODE, "STARTED");
-        await foreach (var _ in FileProcessor.C_Analysis.Reader.ReadAllAsync(ct))
+        Log(code, "STARTED");
+        await foreach (var item in channel.Reader.ReadAllAsync(ct))
         {
-            await FileProcessor.AnalyzeFiles();
-            Log(CODE, "Task done!");
+            await process_item(item);
+
+            if (log_item != null)
+                Log(code, log_item(item));
         }
-        Log(CODE, "COMPLETED");
+        Log(code, "COMPLETED");
     }
 }
 
-public class Job_AnalysisSave : BackgroundService
+public abstract class ChannelJob_X
+(
+    string code,
+    Channel<int> channel,
+    Func<Task> execute,
+    string? log_string = null
+) : BackgroundService
 {
-    private const string CODE = "Job/Analysis-Save";
-
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
-        Log(CODE, "STARTED");
-        await foreach (var result in FileProcessor.C_AnalysisSave.Reader.ReadAllAsync(ct))
+        Log(code, "STARTED");
+        await foreach (var _ in channel.Reader.ReadAllAsync(ct))
         {
-            await FileProcessor.AddTagsToDB(result);
-            Log(CODE, $"Updated file {result.file_id,5}!");
+            await execute();
+
+            if (log_string != null)
+                Log(code, log_string);
         }
-        Log(CODE, "COMPLETED");
+        Log(code, "COMPLETED");
     }
 }
 
-public class Job_Thumbgen : BackgroundService
-{
-    private const string CODE = "Job/Thumbgen";
+//
 
-    protected override async Task ExecuteAsync(CancellationToken ct)
-    {
-        Log(CODE, "STARTED");
-        await foreach (var _ in FileProcessor.C_Thumbgen.Reader.ReadAllAsync(ct))
-        {
-            await ThumbGenerator.GenerateThumbnails();
-            Log(CODE, "Task done!");
-        }
-        Log(CODE, "COMPLETED");
-    }
-}
+public class Job_Thumbgen()
+    : ChannelJob_X
+    (
+        "Job/Thumbgen",
+        FileProcessor.C_Thumbgen,
+        ThumbGenerator.GenerateThumbnails,
+        "Task done!"
+    );
 
-public class Job_ThumbgenSave : BackgroundService
-{
-    private const string CODE = "Job/Thumbgen-Save";
+public class Job_Analysis()
+    : ChannelJob_X
+    (
+        "Job/Analysis",
+        FileProcessor.C_Analysis,
+        FileProcessor.AnalyzeFiles,
+        "Task done!"
+    );
 
-    protected override async Task ExecuteAsync(CancellationToken ct)
-    {
-        Log(CODE, "STARTED");
-        await foreach (var result in FileProcessor.C_ThumbgenSave.Reader.ReadAllAsync(ct))
-        {
-            await FileProcessor.UpdateFileThumbDateInDB(result);
-            Log(CODE, $"Updated file {result.file_id,5}!");
-        }
-        Log(CODE, "COMPLETED");
-    }
-}
+//
+
+public class Job_ThumbgenResize()
+    : ChannelJob<ThumbgenContext>
+    (
+        "Job/Thumbgen-Resize",
+        ThumbGenerator.C_Resize,
+        ThumbGenerator.Thumbnail_Resize
+    );
+
+public class Job_ThumbgenSaveWebp()
+    : ChannelJob<ThumbgenContext>
+    (
+        "Job/Thumbgen-Save-Webp",
+        ThumbGenerator.C_SaveWebp,
+        ThumbGenerator.Thumbnail_Save
+    );
+
+public class Job_ThumbgenSave()
+    : ChannelJob<ThumbgenResult>
+    (
+        "Job/Thumbgen-Save-DB",
+        FileProcessor.C_ThumbgenSave,
+        FileProcessor.UpdateFileThumbDateInDB,
+        result => $"Update file {result.file_id,5}!"
+    );
+
+public class Job_AnalysisSave()
+    : ChannelJob<AnalysisResult>
+    (
+        "Job/Analysis-Save-DB",
+        FileProcessor.C_AnalysisSave,
+        FileProcessor.AddTagsToDB,
+        result => $"Update file {result.file_id,5}!"
+    );

@@ -130,7 +130,9 @@ public static class FileProcessor
                  DB upd files A: {time_files.ReadableTime(),10} | {(time_files / N_files).ReadableTime(),10} per file
                  DB upd files T: {time_thumb.ReadableTime(),10} | {(time_thumb / N_files).ReadableTime(),10} per file
                  Color analysis: {time_ca   .ReadableTime(),10} | {(time_ca    / N_files).ReadableTime(),10} per file
-                 Thumb gen`tion: {time_tg   .ReadableTime(),10} | {(time_tg    / N_files).ReadableTime(),10} per file
+                 Thumb load:     {time_tgl  .ReadableTime(),10} | {(time_tgl   / N_files).ReadableTime(),10} per file
+                 Thumb resize:   {time_tgr  .ReadableTime(),10} | {(time_tgr   / N_files).ReadableTime(),10} per file
+                 Thumb save:     {time_tgs  .ReadableTime(),10} | {(time_tgs   / N_files).ReadableTime(),10} per file
              """);
     }
 
@@ -146,7 +148,9 @@ public static class FileProcessor
         time_files = TimeSpan.Zero,
         time_thumb = TimeSpan.Zero,
         time_ca    = TimeSpan.Zero,
-        time_tg    = TimeSpan.Zero;
+        time_tgl   = TimeSpan.Zero,
+        time_tgr   = TimeSpan.Zero,
+        time_tgs   = TimeSpan.Zero;
 }
 
 public record AnalysisResult(int file_id, DateTime date, IEnumerable<TagContent> tags)

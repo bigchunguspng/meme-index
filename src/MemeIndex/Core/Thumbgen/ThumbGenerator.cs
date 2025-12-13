@@ -1,3 +1,4 @@
+using System.Threading.Channels;
 using MemeIndex.Core.Indexing;
 using MemeIndex.DB;
 using SixLabors.ImageSharp;
@@ -24,12 +25,12 @@ public static class ThumbGenerator
         {
             try
             {
-                var sw2 = Stopwatch.StartNew();
-                var result = await GenerateThumbnail(file.GetPath(), file.id);
-                Log($"Thumbed file {file.id,5}");
-                FileProcessor.time_tg += sw2.GetElapsed_Restart();
-
-                await FileProcessor.C_ThumbgenSave.Writer.WriteAsync(result);
+                var ctx = new ThumbgenContext
+                {
+                    Path = file.GetPath(),
+                    FileId = file.id,
+                };
+                await Thumbnail_Load(ctx);
             }
             catch (Exception e)
             {
@@ -53,20 +54,71 @@ public static class ThumbGenerator
         var sw = Stopwatch.StartNew();
         using var image = await Image.LoadAsync(path);
         t1 += sw.GetElapsed_Restart();
-        var sizeOG = image.Size;
-        var sizeTN = image.Size.FitSize(_fitSize);
-        image.Mutate(ctx => ctx.Resize(sizeTN, CubicResampler.RobidouxSharp, compand: false));
+        var size = image.Size.FitSize(_fitSize);
+        var thumb = image.Clone(ctx => ctx.Resize(size, LanczosResampler.Lanczos3, compand: false));
         t2 += sw.GetElapsed_Restart();
         var save = Dir_Thumbs
             .EnsureDirectoryExist()
             .Combine($"{file_id:x6}.webp");
-        await image.SaveAsWebpAsync(save, _encoder);
+        await thumb.SaveAsWebpAsync(save, _encoder);
         t3 += sw.GetElapsed_Restart();
+        //FileProcessor.N_files++;
 
-        return new ThumbgenResult(file_id, DateTime.UtcNow, sizeOG);
+        return new ThumbgenResult(file_id, DateTime.UtcNow, image.Size);
     }
 
+    public static async Task Thumbnail_Load(ThumbgenContext ctx)
+    {
+        //Log($"Thumbnail_Load {ctx.FileId} - start");
+        var sw = Stopwatch.StartNew();
+        ctx.Source = await Image.LoadAsync(ctx.Path);
+        var el = sw.Elapsed;
+        t1 += el;
+        FileProcessor.time_tgl += el;
+        await C_Resize.Writer.WriteAsync(ctx);
+        //Log($"Thumbnail_Load {ctx.FileId} - fin!");
+    }
+
+    public static async Task Thumbnail_Resize(ThumbgenContext ctx)
+    {
+        //Log($"Thumbnail_Resize {ctx.FileId} - start");
+        var sw = Stopwatch.StartNew();
+        var size = ctx.Source.Size.FitSize(_fitSize);
+        ctx.Thumb = ctx.Source.Clone(x => x.Resize(size, LanczosResampler.Lanczos3, compand: false));
+        var el = sw.Elapsed;
+        t2 += el;
+        FileProcessor.time_tgr += el;
+        await C_SaveWebp.Writer.WriteAsync(ctx);
+        //Log($"Thumbnail_Resize {ctx.FileId} - fin!");
+    }
+
+    public static async Task Thumbnail_Save(ThumbgenContext ctx)
+    {
+        //Log($"Thumbnail_Save {ctx.FileId} - start");
+        var sw = Stopwatch.StartNew();
+        var save = Dir_Thumbs
+            .EnsureDirectoryExist()
+            .Combine($"{ctx.FileId:x6}.webp");
+        await ctx.Thumb.SaveAsWebpAsync(save, _encoder);
+        var el = sw.Elapsed;
+        t3 += el;
+        FileProcessor.time_tgs += el;
+        //FileProcessor.N_files++;
+
+        t0 = sw0.Elapsed;
+        var res = new ThumbgenResult(ctx.FileId, DateTime.UtcNow, ctx.Source.Size);
+        await FileProcessor.C_ThumbgenSave.Writer.WriteAsync(res);
+        //Log($"Thumbnail_Save {ctx.FileId} - fin!");
+    }
+
+    public static Channel<ThumbgenContext>
+        C_Resize   = Channel.CreateUnbounded<ThumbgenContext>(),
+        C_SaveWebp = Channel.CreateUnbounded<ThumbgenContext>();
+
+    public static Stopwatch
+        sw0 = new ();
     public static TimeSpan
+        t0 = TimeSpan.Zero,
         t1 = TimeSpan.Zero,
         t2 = TimeSpan.Zero,
         t3 = TimeSpan.Zero;
@@ -75,6 +127,7 @@ public static class ThumbGenerator
     {
         Log($"""
              THUMBGEN DONE:
+                 Time: {t0.ReadableTime(),10}
                  LOAD: {t1.ReadableTime(),10} | {(t1 / FileProcessor.N_files).ReadableTime(),10} per file
                  SIZE: {t2.ReadableTime(),10} | {(t2 / FileProcessor.N_files).ReadableTime(),10} per file
                  SAVE: {t3.ReadableTime(),10} | {(t3 / FileProcessor.N_files).ReadableTime(),10} per file
@@ -150,4 +203,12 @@ public static class ThumbGenerator
             Log($"{(el / 10).ReadableTime(),-10} | {fileSize,5} |= {10_000.0 / (fileSize * el.TotalSeconds):F3} | {suffix} / {comp}");
         }
     }
+}
+
+public struct ThumbgenContext
+{
+    public string Path;
+    public int    FileId;
+    public Image  Source;
+    public Image  Thumb;
 }

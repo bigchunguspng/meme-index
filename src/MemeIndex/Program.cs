@@ -45,6 +45,8 @@ builder.Services.AddHostedService<Job_Analysis>();
 builder.Services.AddHostedService<Job_Thumbgen>();
 builder.Services.AddHostedService<Job_AnalysisSave>();
 builder.Services.AddHostedService<Job_ThumbgenSave>();
+builder.Services.AddHostedService<Job_ThumbgenResize>();
+builder.Services.AddHostedService<Job_ThumbgenSaveWebp>();
 
 // APP
 
