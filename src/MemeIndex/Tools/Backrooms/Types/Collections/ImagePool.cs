@@ -2,7 +2,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using LogLevel = MemeIndex.Tools.Logging.LogLevel;
 
-namespace MemeIndex.Core.Indexing;
+namespace MemeIndex.Tools.Backrooms.Types.Collections;
 
 /// Don't load the same image twice!
 public class ImagePool

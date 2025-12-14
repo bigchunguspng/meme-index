@@ -65,6 +65,6 @@ async Task TestCode()
     }
 
     var path = CLI.GetArgsFromFile(args[0]).First();
-    await FileProcessor.AddFilesToDB(path, recursive: false);
+    await Command_AddFilesToDB.Execute(path, recursive: false);
     Log($"await FileProcessor.AddFilesToDB(@\"{path}\", recursive: false);");
 }

@@ -7,11 +7,15 @@ using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 namespace MemeIndex.Core.Indexing;
 
-public partial class FileProcessingTask
+public partial class FileProcessor
 {
     private static readonly Size _fitSize = new (275, 180); // Similar to Google Images thumb size.
 
-    public async Task GenerateThumbnails()
+    public readonly Channel<ThumbgenContext>
+        //C_Resize   = Channel.CreateUnbounded<ThumbgenContext>(),
+        C_SaveWebp = Channel.CreateUnbounded<ThumbgenContext>();
+
+    private async Task GenerateThumbnails()
     {
         Log("GenerateThumbnails", "START");
 
@@ -89,17 +93,13 @@ public partial class FileProcessingTask
         await ctx.Thumb.SaveAsWebpAsync(save, _encoder);
         Tracer.LogEnd  (THUMB_SAVE, ctx.FileId);
         Log($"Save thumb {ctx.FileId,5}");
-        
-        var result = new ThumbgenResult(ctx.FileId, DateTime.UtcNow, ctx.Source.Size);
+
+        var result = ctx.ToDB_File();
         await C_DB_Write.Writer.WriteAsync(async connection =>
         {
-            await connection.File_UpdateDateThumbGenerated(result.ToDB_File());
+            await connection.File_UpdateDateThumbGenerated(result);
         });
     }
-
-    public Channel<ThumbgenContext>
-        //C_Resize   = Channel.CreateUnbounded<ThumbgenContext>(),
-        C_SaveWebp = Channel.CreateUnbounded<ThumbgenContext>();
 }
 
 public struct ThumbgenContext
@@ -108,4 +108,7 @@ public struct ThumbgenContext
     public int    FileId;
     public Image  Source;
     public Image  Thumb;
+
+    public DB_File_UpdateDateSize ToDB_File
+        () => new(FileId, DateTime.UtcNow, Source.Size);
 }

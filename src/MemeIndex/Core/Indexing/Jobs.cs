@@ -81,14 +81,14 @@ public class Job_DB_Write
     private int id = 10_000;
     private async Task ProcessQueue()
     {
-        tracer.LogStart(FileProcessingTask.DB_WRITE, id);
+        tracer.LogStart(FileProcessor.DB_WRITE, id);
         await using var con = await AppDB.ConnectTo_Main();
         foreach (var task in _queue)
         {
             await task(con);
         }
         await con.CloseAsync();
-        tracer.LogEnd  (FileProcessingTask.DB_WRITE, id++);
+        tracer.LogEnd  (FileProcessor.DB_WRITE, id++);
         Log(code, $"Processed {_queue.Count} items!");
     }
 }
@@ -99,10 +99,10 @@ public class Job_FileProcessing()
     : ChannelJob_X
     (
         "Job/FileProcessing",
-        FileProcessor.C_FileProcessing,
+        Command_AddFilesToDB.C_FileProcessing,
         async () =>
         {
-            await new FileProcessingTask().Run();
+            await new FileProcessor().Run();
         },
         "Task done!"
     );
@@ -117,7 +117,7 @@ public class Job_FileProcessing()
         task.Thumbnail_Resize
     );*/
 
-public class Job_ThumbgenSaveWebp(FileProcessingTask task)
+public class Job_ThumbgenSaveWebp(FileProcessor task)
     : ChannelJob<ThumbgenContext>
     (
         "Job/Thumbgen-Save-Webp",

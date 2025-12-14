@@ -11,11 +11,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="API\" />
-    <Folder Include="Background\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="ColorHelper" Version="1.8.1" />
     <PackageReference Include="Dapper" Version="2.1.66" />
     <PackageReference Include="Dapper.AOT" Version="1.0.48" />
