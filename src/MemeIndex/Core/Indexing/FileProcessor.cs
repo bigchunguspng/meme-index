@@ -7,6 +7,7 @@ namespace MemeIndex.Core.Indexing;
 
 public static class FileProcessor
 {
+    // todo make channels temporary - created once for task: add files to db -> trigger file processing
     public static Channel<int>
         C_Thumbgen = Channel.CreateUnbounded<int>(),
         C_Analysis = Channel.CreateUnbounded<int>();
@@ -15,8 +16,12 @@ public static class FileProcessor
     public static Channel<ThumbgenResult>
         C_ThumbgenSave = Channel.CreateUnbounded<ThumbgenResult>();
 
+    public static ImagePool ImagePool = new();
+
     private static readonly string[] _supported_extensions
         = [".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"];
+
+    // ADD FILES TO DB
 
     public static async Task AddFilesToDB(string directory, bool recursive)
     {
@@ -54,6 +59,8 @@ public static class FileProcessor
         await C_Thumbgen.Writer.WriteAsync(1);
     }
 
+    // ANALYZE
+
     public static async Task AnalyzeFiles()
     {
         N_files = N_tags = 0;
@@ -65,18 +72,22 @@ public static class FileProcessor
         await con.CloseAsync();
         Log("AnalyzeFiles", "GET FILES TBA");
 
-        foreach (var file in files)
+        var filesIP = files
+            .Select(x => new { Id = x.id, Path = x.GetPath() })
+            .ToArray();
+        ImagePool.Book(filesIP.Select(x => x.Path));
+        foreach (var file in filesIP)
         {
             try
             {
                 var sw2 = Stopwatch.StartNew();
-                var tags = await ColorTagger_v2.AnalyzeImage(file.GetPath());
-                Log($"Analyzed file {file.id,5}");
+                var tags = await AnalyzeImage(file.Path);
+                Log($"Analyze file {file.Id,5}");
                 time_ca += sw2.GetElapsed_Restart();
                 N_files++;
                 var date = DateTime.UtcNow;
 
-                var result = new AnalysisResult(file.id, date, tags);
+                var result = new AnalysisResult(file.Id, date, tags);
                 await C_AnalysisSave.Writer.WriteAsync(result);
             }
             catch (Exception e)
@@ -87,6 +98,22 @@ public static class FileProcessor
         }
         Log("AnalyzeFiles", "DONE");
     }
+
+    public static async Task<IEnumerable<TagContent>> AnalyzeImage
+        (string path, int minScore = 10)
+    {
+        var sw = Stopwatch.StartNew();
+        var image = await ImagePool.Load(path);
+        time_cal += sw.GetElapsed_Restart();
+        var report = ColorAnalyzer_v2.ScanImage(image);
+        time_cas += sw.GetElapsed_Restart();
+        var tags = ColorTagger_v2.AnalyzeImageScan(report, minScore);
+        time_caa += sw.GetElapsed_Restart();
+        return tags
+            .Select(x => new TagContent(x.Key, x.Value));
+    }
+
+    // DB UPDATE
 
     public static async Task AddTagsToDB(AnalysisResult result)
     {
@@ -106,7 +133,7 @@ public static class FileProcessor
     public static async Task UpdateFileThumbDateInDB(ThumbgenResult result)
     {
         var sw = Stopwatch.StartNew();
-        await using var con = await AppDB.ConnectTo_Main();
+        await using var con = await AppDB.ConnectTo_Main(); // todo try to reuse connection / batch queries
         con_open += sw.GetElapsed_Restart();
         await con.File_UpdateDateThumbGenerated(result.ToDB_File());
         time_thumb += sw.GetElapsed_Restart();
@@ -133,6 +160,9 @@ public static class FileProcessor
                  Thumb load:     {time_tgl  .ReadableTime(),10} | {(time_tgl   / N_files).ReadableTime(),10} per file
                  Thumb resize:   {time_tgr  .ReadableTime(),10} | {(time_tgr   / N_files).ReadableTime(),10} per file
                  Thumb save:     {time_tgs  .ReadableTime(),10} | {(time_tgs   / N_files).ReadableTime(),10} per file
+                 C/A load:       {time_cal  .ReadableTime(),10} | {(time_cal   / N_files).ReadableTime(),10} per file
+                 C/A scan:       {time_cas  .ReadableTime(),10} | {(time_cas   / N_files).ReadableTime(),10} per file
+                 C/A analyze:    {time_caa  .ReadableTime(),10} | {(time_caa   / N_files).ReadableTime(),10} per file
              """);
     }
 
@@ -150,7 +180,10 @@ public static class FileProcessor
         time_ca    = TimeSpan.Zero,
         time_tgl   = TimeSpan.Zero,
         time_tgr   = TimeSpan.Zero,
-        time_tgs   = TimeSpan.Zero;
+        time_tgs   = TimeSpan.Zero,
+        time_cal   = TimeSpan.Zero,
+        time_cas   = TimeSpan.Zero,
+        time_caa   = TimeSpan.Zero;
 }
 
 public record AnalysisResult(int file_id, DateTime date, IEnumerable<TagContent> tags)

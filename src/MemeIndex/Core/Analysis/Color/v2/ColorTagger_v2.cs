@@ -27,7 +27,7 @@ public static class ColorTagger_v2
     }
 
     /// Returns a raw numbers for all possible tags.
-    private static Dictionary<string, int> AnalyzeImageScan
+    public static Dictionary<string, int> AnalyzeImageScan
         (ImageScanReport_v2 report, int minScore = 10)
     {
         var tags = new Dictionary<string, int>();

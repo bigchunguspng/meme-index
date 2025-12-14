@@ -21,14 +21,19 @@ public static class ThumbGenerator
         await con.CloseAsync();
         Log("GenerateThumbnails", "GET FILES TBT");
 
-        foreach (var file in files)
+        var filesIP = files
+            .Select(x => new { Id = x.id, Path = x.GetPath() })
+            .ToArray();
+        FileProcessor.ImagePool.Book(filesIP.Select(x => x.Path));
+
+        foreach (var file in filesIP)
         {
             try
             {
                 var ctx = new ThumbgenContext
                 {
-                    Path = file.GetPath(),
-                    FileId = file.id,
+                    Path = file.Path,
+                    FileId = file.Id,
                 };
                 await Thumbnail_Load(ctx);
             }
@@ -49,7 +54,7 @@ public static class ThumbGenerator
         TransparentColorMode = WebpTransparentColorMode.Clear,
     };
 
-    public static async Task<ThumbgenResult> GenerateThumbnail(string path, int file_id)
+    /*public static async Task<ThumbgenResult> GenerateThumbnail(string path, int file_id)
     {
         var sw = Stopwatch.StartNew();
         using var image = await Image.LoadAsync(path);
@@ -65,13 +70,13 @@ public static class ThumbGenerator
         //FileProcessor.N_files++;
 
         return new ThumbgenResult(file_id, DateTime.UtcNow, image.Size);
-    }
+    }*/
 
     public static async Task Thumbnail_Load(ThumbgenContext ctx)
     {
         //Log($"Thumbnail_Load {ctx.FileId} - start");
         var sw = Stopwatch.StartNew();
-        ctx.Source = await Image.LoadAsync(ctx.Path);
+        ctx.Source = await FileProcessor.ImagePool.Load(ctx.Path);
         var el = sw.Elapsed;
         t1 += el;
         FileProcessor.time_tgl += el;
@@ -110,6 +115,8 @@ public static class ThumbGenerator
         await FileProcessor.C_ThumbgenSave.Writer.WriteAsync(res);
         //Log($"Thumbnail_Save {ctx.FileId} - fin!");
     }
+
+    // STATS
 
     public static Channel<ThumbgenContext>
         C_Resize   = Channel.CreateUnbounded<ThumbgenContext>(),
