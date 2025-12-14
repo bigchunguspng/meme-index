@@ -1,27 +1,19 @@
 using System.Threading.Channels;
 using MemeIndex.Core.Analysis.Color.v2;
 using MemeIndex.DB;
+using MemeIndex.Utils;
+using Microsoft.Data.Sqlite;
 using Size = SixLabors.ImageSharp.Size;
 
 namespace MemeIndex.Core.Indexing;
 
 public static class FileProcessor
 {
-    // todo make channels temporary - created once for task: add files to db -> trigger file processing
-    public static Channel<int>
-        C_Thumbgen = Channel.CreateUnbounded<int>(),
-        C_Analysis = Channel.CreateUnbounded<int>();
-    public static Channel<AnalysisResult>
-        C_AnalysisSave = Channel.CreateUnbounded<AnalysisResult>();
-    public static Channel<ThumbgenResult>
-        C_ThumbgenSave = Channel.CreateUnbounded<ThumbgenResult>();
-
-    public static ImagePool ImagePool = new();
+    public static readonly Channel<int>
+        C_FileProcessing = Channel.CreateUnbounded<int>();
 
     private static readonly string[] _supported_extensions
         = [".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"];
-
-    // ADD FILES TO DB
 
     public static async Task AddFilesToDB(string directory, bool recursive)
     {
@@ -55,40 +47,82 @@ public static class FileProcessor
         await con.CloseAsync();
         sw.Log("[AddFilesToDB] ADD DIRS & FILES");
 
-        await C_Analysis.Writer.WriteAsync(1);
-        await C_Thumbgen.Writer.WriteAsync(1);
+        await C_FileProcessing.Writer.WriteAsync(1);
+    }
+}
+
+public partial class FileProcessingTask
+{
+    private readonly Channel<Func<SqliteConnection, Task>>
+        C_DB_Write = Channel.CreateUnbounded<Func<SqliteConnection, Task>>();
+
+    private static readonly ImagePool ImagePool = new();
+
+    public async Task Run()
+    {
+        // START JOBS
+        var job_DB = new Job_DB_Write(C_DB_Write, Tracer);
+        var jobs = new BackgroundService[]
+        {
+            job_DB,
+            //new Job_ThumbgenResize(this),
+            new Job_ThumbgenSaveWebp(this),
+        };
+        foreach (var job in jobs)
+        {
+            await job.StartAsync(CancellationToken.None);
+        }
+
+        // LAUNCH TASKS
+        _ = GenerateThumbnails();
+        _ = AnalyzeFiles();
+
+        // WAIT FOR JOBS TO FINISH
+        var jobTasks = jobs
+            .Skip(1)
+            .Select(x => x.ExecuteTask)
+            .OfType<Task>();
+        await Task.WhenAll(jobTasks);
+
+        // WAIT FOR DB WRITER JOB TO FINISH
+        C_DB_Write.Writer.Complete();
+        if (null != job_DB.ExecuteTask)
+            await   job_DB.ExecuteTask;
+
+        SaveEventLog();
     }
 
     // ANALYZE
 
-    public static async Task AnalyzeFiles()
+    private async Task AnalyzeFiles()
     {
-        N_files = N_tags = 0;
-        sw0.Restart();
         Log("AnalyzeFiles", "START");
 
+        // GET FILES
         await using var con = await AppDB.ConnectTo_Main();
         var files = await con.Files_GetToBeAnalyzed();
         await con.CloseAsync();
-        Log("AnalyzeFiles", "GET FILES TBA");
+        Log("AnalyzeFiles", "GET FILES");
 
         var filesIP = files
             .Select(x => new { Id = x.id, Path = x.GetPath() })
             .ToArray();
-        ImagePool.Book(filesIP.Select(x => x.Path));
+        ImagePool.Book(filesIP.Select(x => x.Path), filesIP.Length);
+
         foreach (var file in filesIP)
         {
             try
             {
-                var sw2 = Stopwatch.StartNew();
-                var tags = await AnalyzeImage(file.Path);
+                var tags = await AnalyzeImage(file.Id, file.Path);
                 Log($"Analyze file {file.Id,5}");
-                time_ca += sw2.GetElapsed_Restart();
-                N_files++;
                 var date = DateTime.UtcNow;
 
                 var result = new AnalysisResult(file.Id, date, tags);
-                await C_AnalysisSave.Writer.WriteAsync(result);
+                await C_DB_Write.Writer.WriteAsync(async connection =>
+                {
+                    await connection.Tags_CreateMany        (result.ToDB_Tags());
+                    await connection.File_UpdateDateAnalyzed(result.ToDB_File());
+                });
             }
             catch (Exception e)
             {
@@ -99,91 +133,43 @@ public static class FileProcessor
         Log("AnalyzeFiles", "DONE");
     }
 
-    public static async Task<IEnumerable<TagContent>> AnalyzeImage
-        (string path, int minScore = 10)
+    private async Task<IEnumerable<TagContent>> AnalyzeImage
+        (int id, string path, int minScore = 10)
     {
-        var sw = Stopwatch.StartNew();
+        Tracer.LogStart(CA_LOAD, id);
         var image = await ImagePool.Load(path);
-        time_cal += sw.GetElapsed_Restart();
+        Tracer.LogBoth (CA_LOAD, id, CA_SCAN);
         var report = ColorAnalyzer_v2.ScanImage(image);
-        time_cas += sw.GetElapsed_Restart();
+        ImagePool.Return(path);
+        Tracer.LogBoth (CA_SCAN, id, CA_ANAL);
         var tags = ColorTagger_v2.AnalyzeImageScan(report, minScore);
-        time_caa += sw.GetElapsed_Restart();
+        Tracer.LogEnd  (CA_ANAL, id);
         return tags
             .Select(x => new TagContent(x.Key, x.Value));
     }
 
-    // DB UPDATE
-
-    public static async Task AddTagsToDB(AnalysisResult result)
-    {
-        var sw = Stopwatch.StartNew();
-        await using var con = await AppDB.ConnectTo_Main();
-        con_open += sw.GetElapsed_Restart();
-        var rows = await con.Tags_CreateMany(result.ToDB_Tags());
-        time_tags += sw.GetElapsed_Restart();
-        await con.File_UpdateDateAnalyzed(result.ToDB_File());
-        time_files += sw.GetElapsed_Restart();
-        await con.CloseAsync();
-        con_close += sw.GetElapsed_Restart();
-        N_tags += rows;
-        _time = sw0.Elapsed;
-    }
-
-    public static async Task UpdateFileThumbDateInDB(ThumbgenResult result)
-    {
-        var sw = Stopwatch.StartNew();
-        await using var con = await AppDB.ConnectTo_Main(); // todo try to reuse connection / batch queries
-        con_open += sw.GetElapsed_Restart();
-        await con.File_UpdateDateThumbGenerated(result.ToDB_File());
-        time_thumb += sw.GetElapsed_Restart();
-        await con.CloseAsync();
-        con_close += sw.GetElapsed_Restart();
-        _time = sw0.Elapsed;
-    }
-
     // STATS
 
-    public static void PrintStats()
-    {
-        Log($"""
-             ANALYSIS DONE:
-                 Files: {N_files,3}
-                 Tags:  {N_tags ,3}
-                 Time:           {_time     .ReadableTime(),10} | {(_time      / N_files).ReadableTime(),10} per file
-                 DB    connect:  {con_open  .ReadableTime(),10} | {(con_open   / N_files).ReadableTime(),10} per file
-                 DB disconnect:  {con_close .ReadableTime(),10} | {(con_close  / N_files).ReadableTime(),10} per file
-                 DB write tags:  {time_tags .ReadableTime(),10} | {(time_tags  / N_files).ReadableTime(),10} per file
-                 DB upd files A: {time_files.ReadableTime(),10} | {(time_files / N_files).ReadableTime(),10} per file
-                 DB upd files T: {time_thumb.ReadableTime(),10} | {(time_thumb / N_files).ReadableTime(),10} per file
-                 Color analysis: {time_ca   .ReadableTime(),10} | {(time_ca    / N_files).ReadableTime(),10} per file
-                 Thumb load:     {time_tgl  .ReadableTime(),10} | {(time_tgl   / N_files).ReadableTime(),10} per file
-                 Thumb resize:   {time_tgr  .ReadableTime(),10} | {(time_tgr   / N_files).ReadableTime(),10} per file
-                 Thumb save:     {time_tgs  .ReadableTime(),10} | {(time_tgs   / N_files).ReadableTime(),10} per file
-                 C/A load:       {time_cal  .ReadableTime(),10} | {(time_cal   / N_files).ReadableTime(),10} per file
-                 C/A scan:       {time_cas  .ReadableTime(),10} | {(time_cas   / N_files).ReadableTime(),10} per file
-                 C/A analyze:    {time_caa  .ReadableTime(),10} | {(time_caa   / N_files).ReadableTime(),10} per file
-             """);
-    }
+    private readonly TraceCollector Tracer = new();
 
-    public static int
-        N_files,
-        N_tags;
-    public static readonly Stopwatch sw0 = new();
-    public static TimeSpan
-        _time      = TimeSpan.Zero,
-        con_open   = TimeSpan.Zero,
-        con_close  = TimeSpan.Zero,
-        time_tags  = TimeSpan.Zero,
-        time_files = TimeSpan.Zero,
-        time_thumb = TimeSpan.Zero,
-        time_ca    = TimeSpan.Zero,
-        time_tgl   = TimeSpan.Zero,
-        time_tgr   = TimeSpan.Zero,
-        time_tgs   = TimeSpan.Zero,
-        time_cal   = TimeSpan.Zero,
-        time_cas   = TimeSpan.Zero,
-        time_caa   = TimeSpan.Zero;
+    public const string // event logger lanes
+        DB_WRITE = "DB Write",
+        CA_LOAD = "Color Analysis / Load",
+        CA_SCAN = "Color Analysis / Scan",
+        CA_ANAL = "Color Analysis / Analyze",
+        THUMB_LOAD = "Thumbnail / Load",
+        THUMB_SIZE = "Thumbnail / Resize",
+        THUMB_SAVE = "Thumbnail / Save";
+
+    private void SaveEventLog()
+    {
+        var save = Dir_Traces
+            .EnsureDirectoryExist()
+            .Combine($"File-processing-{Desert.Clock(24):x}.json");
+        Tracer.SaveAs(save, AppJsonSerializerContext.Default.DictionaryStringListTrace);
+        Tracer.PrintStats();
+        Log($"SaveEventLog - \"{save}\"!");
+    }
 }
 
 public record AnalysisResult(int file_id, DateTime date, IEnumerable<TagContent> tags)

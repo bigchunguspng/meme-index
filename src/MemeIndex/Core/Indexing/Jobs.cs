@@ -1,5 +1,6 @@
 using System.Threading.Channels;
-using MemeIndex.Core.Thumbgen;
+using MemeIndex.DB;
+using Microsoft.Data.Sqlite;
 
 namespace MemeIndex.Core.Indexing;
 
@@ -8,7 +9,8 @@ public abstract class ChannelJob<T>
     string code,
     Channel<T> channel,
     Func<T, Task> process_item,
-    Func<T, string>? log_item = null
+    Func<T, string>? log_item = null,
+    Channel<T>? channelToComplete = null
 ) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken ct)
@@ -21,6 +23,8 @@ public abstract class ChannelJob<T>
             if (log_item != null)
                 Log(code, log_item(item));
         }
+        if (channelToComplete != null)
+            channelToComplete.Writer.Complete();
         Log(code, "COMPLETED");
     }
 }
@@ -47,58 +51,76 @@ public abstract class ChannelJob_X
     }
 }
 
+public class Job_DB_Write
+(
+    Channel<Func<SqliteConnection, Task>> channel,
+    TraceCollector tracer
+) : BackgroundService
+{
+    private const string code = "Job/DB-Writer";
+    private readonly List<Func<SqliteConnection, Task>> _queue = new(16);
+
+    protected override async Task ExecuteAsync(CancellationToken ct)
+    {
+        Log(code, "STARTED");
+        await foreach (var task in channel.Reader.ReadAllAsync(ct))
+        {
+            if (_queue.Count == _queue.Capacity)
+            {
+                await ProcessQueue();
+                _queue.Clear();
+            }
+
+            _queue.Add(task);
+        }
+
+        await ProcessQueue();
+        Log(code, "COMPLETED");
+    }
+
+    private int id = 10_000;
+    private async Task ProcessQueue()
+    {
+        tracer.LogStart(FileProcessingTask.DB_WRITE, id);
+        await using var con = await AppDB.ConnectTo_Main();
+        foreach (var task in _queue)
+        {
+            await task(con);
+        }
+        await con.CloseAsync();
+        tracer.LogEnd  (FileProcessingTask.DB_WRITE, id++);
+        Log(code, $"Processed {_queue.Count} items!");
+    }
+}
+
 //
 
-public class Job_Thumbgen()
+public class Job_FileProcessing()
     : ChannelJob_X
     (
-        "Job/Thumbgen",
-        FileProcessor.C_Thumbgen,
-        ThumbGenerator.GenerateThumbnails,
+        "Job/FileProcessing",
+        FileProcessor.C_FileProcessing,
+        async () =>
+        {
+            await new FileProcessingTask().Run();
+        },
         "Task done!"
     );
 
-public class Job_Analysis()
-    : ChannelJob_X
-    (
-        "Job/Analysis",
-        FileProcessor.C_Analysis,
-        FileProcessor.AnalyzeFiles,
-        "Task done!"
-    );
-
 //
 
-public class Job_ThumbgenResize()
+/*public class Job_ThumbgenResize(FileProcessingTask task)
     : ChannelJob<ThumbgenContext>
     (
         "Job/Thumbgen-Resize",
-        ThumbGenerator.C_Resize,
-        ThumbGenerator.Thumbnail_Resize
-    );
+        task.C_Resize,
+        task.Thumbnail_Resize
+    );*/
 
-public class Job_ThumbgenSaveWebp()
+public class Job_ThumbgenSaveWebp(FileProcessingTask task)
     : ChannelJob<ThumbgenContext>
     (
         "Job/Thumbgen-Save-Webp",
-        ThumbGenerator.C_SaveWebp,
-        ThumbGenerator.Thumbnail_Save
-    );
-
-public class Job_ThumbgenSave()
-    : ChannelJob<ThumbgenResult>
-    (
-        "Job/Thumbgen-Save-DB",
-        FileProcessor.C_ThumbgenSave,
-        FileProcessor.UpdateFileThumbDateInDB,
-        result => $"Update file {result.file_id,5}!"
-    );
-
-public class Job_AnalysisSave()
-    : ChannelJob<AnalysisResult>
-    (
-        "Job/Analysis-Save-DB",
-        FileProcessor.C_AnalysisSave,
-        FileProcessor.AddTagsToDB,
-        result => $"Update file {result.file_id,5}!"
+        task.C_SaveWebp,
+        task.Thumbnail_Save
     );

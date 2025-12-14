@@ -1,18 +1,22 @@
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using LogLevel = MemeIndex.Tools.Logging.LogLevel;
 
 namespace MemeIndex.Core.Indexing;
 
 /// Don't load the same image twice!
 public class ImagePool
 {
-    private readonly Dictionary<string, ImageBooking> _cache    = new();
+    private readonly Dictionary<string, ImageBooking>         _cache    = new();
     private readonly Dictionary<string, Task<Image<Rgba32>>>  _loadings = new();
 
     [MethodImpl(Synchronized)]
-    public void Book(IEnumerable<string> paths)
+    public void Book(IEnumerable<string> paths, int ensureCapacity = 0)
     {
-        int i = 0, a = 0;
+        if (ensureCapacity > 0)
+            _cache.EnsureCapacity(ensureCapacity);
+
+        int b = 0, a = 0;
         foreach (var path in paths)
         {
             if (_cache.TryGetValue(path, out var booking))
@@ -23,9 +27,11 @@ public class ImagePool
                 a++;
             }
 
-            i++;
+            b++;
         }
-        Log("ImagePool", $"BOOKING: {a,5}/{i,5} (added/booked)");
+
+        Log("ImagePool", $"BOOKING: {a}/{b} (added/booked)",
+            LogLevel.Debug, ConsoleColor.DarkGray);
     }
 
     /// Make sure path was booked!
@@ -35,22 +41,17 @@ public class ImagePool
         var booking = _cache[path];
         if (booking.Loading)
         {
-            Log("ImagePool", "Load -> existing");
             return _loadings[path];
         }
         else
         {
             booking.Loading = true;
-            var task = Task.Run(async () => await LoadImage(booking, path));
-            _loadings.Add(path, task);
-            Log("ImagePool", "Load -> new");
-            return task;
+            return _loadings[path] = Task.Run(async () =>
+            {
+                return booking.Image
+                    = await Image.LoadAsync<Rgba32>(path);
+            });
         }
-    }
-
-    private async Task<Image<Rgba32>> LoadImage(ImageBooking booking, string path)
-    {
-        return booking.Image = await Image.LoadAsync<Rgba32>(path);
     }
 
     /// Make sure path was booked!
@@ -62,8 +63,9 @@ public class ImagePool
 
         if (booking.Bookings < 1)
         {
+            _cache   .Remove(path);
+            _loadings.Remove(path);
             booking.Image?.Dispose();
-            _cache.Remove(path);
         }
     }
 }
@@ -71,6 +73,6 @@ public class ImagePool
 public class ImageBooking
 {
     public Image<Rgba32>? Image;
-    public int Bookings;
+    public int Bookings = 1;
     public bool Loading;
 }

@@ -23,6 +23,9 @@ public static class Extensions_Time
         return elapsed;
     }
 
+    public static double TicksToSeconds
+        (this long ticks) => TimeSpan.FromTicks(ticks).TotalSeconds;
+
     public static bool HappenedWithinLast
         (this DateTime date, TimeSpan span) => DateTime.Now - date < span;
 }
