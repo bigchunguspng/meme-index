@@ -45,7 +45,7 @@ public partial class FileProcessor
         if (null != job_DB.ExecuteTask)
             await   job_DB.ExecuteTask;
 
-        SaveEventLog();
+        SaveTraceData();
     }
 
     // ANALYZE
@@ -109,22 +109,22 @@ public partial class FileProcessor
 
     private readonly TraceCollector Tracer = new();
 
-    public const string // event logger lanes
-        DB_WRITE = "DB Write",
-        CA_LOAD = "Color Analysis / Load",
-        CA_SCAN = "Color Analysis / Scan",
-        CA_ANAL = "Color Analysis / Analyze",
-        THUMB_LOAD = "Thumbnail / Load",
-        THUMB_SIZE = "Thumbnail / Resize",
-        THUMB_SAVE = "Thumbnail / Save";
+    public const string // LANES
+        THUMB_LOAD = "1. Thumbnail / Load",
+        THUMB_SIZE = "2. Thumbnail / Resize",
+        THUMB_SAVE = "3. Thumbnail / Save",
+        CA_LOAD    = "4. Color Analysis / Load",
+        CA_SCAN    = "5. Color Analysis / Scan",
+        CA_ANAL    = "6. Color Analysis / Analyze",
+        DB_WRITE   = "7. DB Write";
 
-    private void SaveEventLog()
+    private void SaveTraceData()
     {
         var save = Dir_Traces
             .EnsureDirectoryExist()
             .Combine($"File-processing-{Desert.Clock(24):x}.json");
-        Tracer.SaveAs(save, AppJsonSerializerContext.Default.DictionaryStringListTrace);
+        Tracer.SaveAs(save, AppJson.Default.DictionaryStringListTrace);
         Tracer.PrintStats();
-        Log($"SaveEventLog - \"{save}\"!");
+        Log($"Save trace data - \"{save}\"");
     }
 }

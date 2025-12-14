@@ -80,7 +80,7 @@ public class TraceCollector
                 lane,    t_min_t, t_max_t, d_len_s,
                 d_sum_s, d_avg_s, d_min_s, d_max_s, traces.Count,
             };
-        }).ToArray();
+        }).OrderBy(x => x.lane).ToArray();
 
         long // global min/max
             T_min_t = stats.Min(x => x.t_min_t),

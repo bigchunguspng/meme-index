@@ -34,7 +34,7 @@ builder.Logging
 builder.Services
     .ConfigureHttpJsonOptions(options => options
         .SerializerOptions.TypeInfoResolverChain
-        .Insert(0, AppJsonSerializerContext.Default))
+        .Insert(0, AppJson.Default))
     .AddHostedService<Job_FileProcessing>()
     ;
 
