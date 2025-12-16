@@ -22,6 +22,6 @@ public static class DB_Tags
           + "VALUES (@file_id, @term, @score)";
         await using var transaction = c.BeginTransaction();
         await c.ExecuteAsync(SQL, tags, transaction);
-        transaction.Commit();
+        await transaction.CommitAsync();
     }
 }

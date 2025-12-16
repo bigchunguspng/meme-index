@@ -17,14 +17,17 @@ public static class DB_Dirs
         const string SQL = "INSERT INTO dirs (path) VALUES (@path)";
         await c.ExecuteAsync(SQL, new { path });
     }
-    
+
     public static async Task Dirs_CreateMany
         (this SqliteConnection c, IEnumerable<string> paths)
     {
         const string SQL = "INSERT OR IGNORE INTO dirs (path) VALUES (@path)";
-        await c.ExecuteAsync(SQL, paths.Select(x => new { path = x }));
+        var insert = paths.Select(x => new { path = x });
+        await using var transaction = c.BeginTransaction();
+        await c.ExecuteAsync(SQL, insert, transaction);
+        await transaction.CommitAsync();
     }
-    
+
     public static async Task<IEnumerable<DB_Dir>> Dirs_GetAll
         (this SqliteConnection c)
     {

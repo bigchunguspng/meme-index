@@ -60,7 +60,9 @@ public static class DB_Files
             "INSERT OR IGNORE "
           + "INTO files (dir_id, name, size, cdate, mdate) "
           + "VALUES (@dir_id, @name, @size, @cdate, @mdate)";
-        await c.ExecuteAsync(SQL, files);
+        await using var transaction = c.BeginTransaction();
+        await c.ExecuteAsync(SQL, files, transaction);
+        await transaction.CommitAsync();
     }
 
     public static async Task<IEnumerable<DB_File_WithPath>> Files_GetToBeAnalyzed
