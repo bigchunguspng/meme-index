@@ -222,7 +222,7 @@ public static class ColorAnalyzer_v2
         }
 
         // Sort asc by distance (smaller distance = bigger score).
-        distances.Sort((x1, x2) => (int)(1_000_000 * (x1.value - x2.value)));
+        SortDistances(distances);
 
         // Take 2 smallest distances, or just 1 if there is a 2x drop.
         var take = distances[0].value * 2 
@@ -274,7 +274,7 @@ public static class ColorAnalyzer_v2
         }
 
         // Sort asc by distance (smaller distance = bigger score).
-        square_distances.Sort((x1, x2) => (int)(1_000_000 * (x1.value - x2.value)));
+        SortDistances(square_distances);
 
         // Take 3 smallest distances, or even less if there is a 2x drop.
         var take = 3;
@@ -301,6 +301,26 @@ public static class ColorAnalyzer_v2
             var score  = scores[i].value;
             var opt_ix = scores[i].index;
             report[opt_ix] += score / scoreTotal;
+        }
+    }
+
+    private static void SortDistances // Insertion sort
+        (Span<(int index, double value)> span)
+    {
+        var length = span.Length;
+        if (length <= 1) return;
+
+        for (var k = 1; k < length; k++)
+        {
+            var key = span[k];
+            var i = k - 1;
+
+            while (i >= 0 && (int)(1_000_000 * (span[i].value - key.value)) > 0)
+            {
+                span[i + 1] = span[i];
+                i--;
+            }
+            span[i + 1] = key;
         }
     }
 

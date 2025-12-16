@@ -58,18 +58,22 @@ public static class ConsoleLogger
 
     //
 
+    [MethodImpl(AggressiveInlining)]
     public static void LogError
         (Exception ex,   ConsoleColor color = ConsoleColor.DarkRed)
         => Log($"{ex}", LogLevel.Error, color);
 
+    [MethodImpl(AggressiveInlining)]
     public static void LogError
         (string message, ConsoleColor color = ConsoleColor.DarkRed)
         => Log(message, LogLevel.Error, color);
 
+    [MethodImpl(AggressiveInlining)]
     public static void LogWarn
         (string message, ConsoleColor color = ConsoleColor.DarkYellow)
         => Log(message, LogLevel.Warn, color);
 
+    [MethodImpl(AggressiveInlining)]
     public static void LogDebug
         (string message, ConsoleColor color = ConsoleColor.Blue)
         => Log(message, LogLevel.Debug, color);

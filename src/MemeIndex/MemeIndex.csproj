@@ -16,8 +16,8 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Publish'">
-    <DebugSymbols>false</DebugSymbols>
-    <DebugType>none</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <DefineConstants>TRACE;AOT</DefineConstants>
   </PropertyGroup>

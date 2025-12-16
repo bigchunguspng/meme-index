@@ -30,7 +30,8 @@ public class ImagePool
             b++;
         }
 
-        Log("ImagePool", $"BOOKING: {a}/{b} (added/booked)",
+        var a_padded = a.ToString().PadLeft(b.ToString().Length);
+        Log("ImagePool", $"BOOKING: {a_padded}/{b} (added/booked)",
             LogLevel.Debug, ConsoleColor.DarkGray);
     }
 
