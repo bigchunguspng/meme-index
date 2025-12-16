@@ -4,36 +4,38 @@ using System.Text.Json.Serialization.Metadata;
 
 namespace MemeIndex.Tools.Logging;
 
-/// Use this to gather traces of array processing tasks.
+/// Use this to gather traces of array-processing tasks.
 public class TraceCollector
 {
     private readonly Dictionary<string, List<TraceSpan>> _log = [];
 
+    /// Call this right before subtask is called.
     [MethodImpl(Synchronized)]
-    public void LogStart
-        (string lane, int id) => 
-        LogStart(lane, id, DateTime.UtcNow);
+    public void LogOpen
+        (int id, string lane) =>
+        LogOpen(lane, id, DateTime.UtcNow);
 
-    /// Make sure trace start      (lane, id) was logged!
+    /// Call this right after subtask is done.
     [MethodImpl(Synchronized)]
-    public void LogEnd
-        (string lane, int id) => 
-        LogEnd(lane, id, DateTime.UtcNow);
+    public void LogDone
+        (int id, string lane) =>
+        LogDone(lane, id, DateTime.UtcNow);
 
-    /// Make sure trace start (prev_lane, id) was logged!
+    /// Call this between 2 subtasks
+    /// to log one's end, and another one's start.
     [MethodImpl(Synchronized)]
-    public void LogBoth
-        (string lane_end, int id, string lane_start)
+    public void LogJoin
+        (int id, string lane_done, string lane_open)
     {
         var time = DateTime.UtcNow;
-        LogEnd  (lane_end,   id, time);
-        LogStart(lane_start, id, time);
+        LogDone(lane_done, id, time);
+        LogOpen(lane_open, id, time);
     }
 
     //
 
     [MethodImpl(AggressiveInlining)]
-    private void LogStart
+    private void LogOpen
         (string lane, int id, DateTime time)
     {
         var tid = Thread.CurrentThread.ManagedThreadId;
@@ -46,7 +48,7 @@ public class TraceCollector
     }
 
     [MethodImpl(AggressiveInlining)]
-    private void LogEnd
+    private void LogDone
         (string lane, int id, DateTime time)
     {
         var item = _log[lane].FindLast(x => x.Id == id)!;
@@ -57,7 +59,7 @@ public class TraceCollector
     // EXPORT
 
     public void SaveAs
-        (string path, JsonTypeInfo<Dictionary<string,List<TraceSpan>>> typeInfo)
+        (string path, JsonTypeInfo<Dictionary<string, List<TraceSpan>>> typeInfo)
     {
         File.WriteAllText(path, JsonSerializer.Serialize(_log, typeInfo));
     }

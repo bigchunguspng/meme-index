@@ -3,7 +3,6 @@ using MemeIndex.Core.Analysis.Color.v2;
 using MemeIndex.DB;
 using MemeIndex.Utils;
 using Microsoft.Data.Sqlite;
-using SixLabors.ImageSharp;
 
 namespace MemeIndex.Core.Indexing;
 
@@ -81,14 +80,14 @@ public partial class FileProcessor
     private async Task AnalyzeImage
         (int id, string path, int minScore = 10)
     {
-        Tracer.LogStart(CA_LOAD, id);
+        Tracer.LogOpen(id, CA_LOAD);
         var image = await ImagePool.Load(path);
-        Tracer.LogBoth (CA_LOAD, id, CA_SCAN);
+        Tracer.LogJoin(id, CA_LOAD, CA_SCAN);
         var report = ColorAnalyzer_v2.ScanImage(image);
         ImagePool.Return(path);
-        Tracer.LogBoth (CA_SCAN, id, CA_ANAL);
+        Tracer.LogJoin(id, CA_SCAN, CA_ANAL);
         var tags = ColorTagger_v2.AnalyzeImageScan(report, minScore);
-        Tracer.LogEnd  (CA_ANAL, id);
+        Tracer.LogDone(id, CA_ANAL);
         LogDebug($"File {id,6} -> color analysis done");
 
         var db_file = new DB_File_UpdateDate(id, DateTime.UtcNow);
@@ -98,11 +97,11 @@ public partial class FileProcessor
 
         await C_DB_Write.Writer.WriteAsync(async connection =>
         {
-            Tracer.LogStart(DB_W_TAGS, id);
+            Tracer.LogOpen(id, DB_W_TAGS);
             await connection.Tags_CreateMany        (db_tags);
-            Tracer.LogBoth (DB_W_TAGS, id, DB_W_FA);
+            Tracer.LogJoin(id, DB_W_TAGS, DB_W_FA);
             await connection.File_UpdateDateAnalyzed(db_file);
-            Tracer.LogEnd  (DB_W_FA,   id);
+            Tracer.LogDone(id, DB_W_FA);
         });
     }
 

@@ -81,14 +81,14 @@ public class Job_DB_Write
     private int id = 10_000;
     private async Task ProcessQueue()
     {
-        tracer.LogStart(FileProcessor.DB_WRITE, id);
+        tracer.LogOpen(id, FileProcessor.DB_WRITE);
         await using var con = await AppDB.ConnectTo_Main();
         foreach (var task in _queue)
         {
             await task(con);
         }
         await con.CloseAsync();
-        tracer.LogEnd  (FileProcessor.DB_WRITE, id++);
+        tracer.LogDone(id++, FileProcessor.DB_WRITE);
         Log(code, $"Processed {_queue.Count} items!");
     }
 }

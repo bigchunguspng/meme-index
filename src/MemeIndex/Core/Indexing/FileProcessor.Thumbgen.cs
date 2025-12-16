@@ -68,32 +68,32 @@ public partial class FileProcessor
     
     public async Task Thumbnail_Resize(ThumbgenContext ctx)
     {
-        Tracer.LogStart(THUMB_LOAD, ctx.FileId);
+        Tracer.LogOpen(ctx.FileId, THUMB_LOAD);
         ctx.Source = await ImagePool.Load(ctx.Path);
-        Tracer.LogBoth (THUMB_LOAD, ctx.FileId, THUMB_SIZE);
+        Tracer.LogJoin(ctx.FileId, THUMB_LOAD, THUMB_SIZE);
         var size = ctx.Source.Size.FitSize(_fitSize);
         ctx.Thumb = ctx.Source.Clone(x => x.Resize(size, LanczosResampler.Lanczos3, compand: false));
         ImagePool.Return(ctx.Path);
-        Tracer.LogEnd  (THUMB_SIZE, ctx.FileId);
+        Tracer.LogDone(ctx.FileId, THUMB_SIZE);
         await C_SaveWebp.Writer.WriteAsync(ctx);
     }
 
     public async Task Thumbnail_Save(ThumbgenContext ctx)
     {
-        Tracer.LogStart(THUMB_SAVE, ctx.FileId);
+        Tracer.LogOpen(ctx.FileId, THUMB_SAVE);
         var save = Dir_Thumbs
             .EnsureDirectoryExist()
             .Combine($"{ctx.FileId:x6}.webp");
         await ctx.Thumb.SaveAsWebpAsync(save, _encoder);
-        Tracer.LogEnd  (THUMB_SAVE, ctx.FileId);
+        Tracer.LogDone(ctx.FileId, THUMB_SAVE);
         LogDebug($"File {ctx.FileId,6} -> thumbnail generated");
 
         var result = ctx.ToDB_File();
         await C_DB_Write.Writer.WriteAsync(async connection =>
         {
-            Tracer.LogStart(DB_W_FT, ctx.FileId);
+            Tracer.LogOpen(ctx.FileId, DB_W_FT);
             await connection.File_UpdateDateThumbGenerated(result);
-            Tracer.LogEnd  (DB_W_FT, ctx.FileId);
+            Tracer.LogDone(ctx.FileId, DB_W_FT);
         });
     }
 }
