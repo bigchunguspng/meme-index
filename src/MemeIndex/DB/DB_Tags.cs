@@ -20,6 +20,8 @@ public static class DB_Tags
             "INSERT OR IGNORE "
           + "INTO tags (file_id, term, score) "
           + "VALUES (@file_id, @term, @score)";
-        await c.ExecuteAsync(SQL, tags);
+        await using var transaction = c.BeginTransaction();
+        await c.ExecuteAsync(SQL, tags, transaction);
+        transaction.Commit();
     }
 }
