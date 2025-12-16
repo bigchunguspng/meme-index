@@ -7,7 +7,7 @@ namespace MemeIndex.Tools.Logging;
 /// Use this to gather traces of array processing tasks.
 public class TraceCollector
 {
-    private readonly Dictionary<string, List<Trace>> _log = [];
+    private readonly Dictionary<string, List<TraceSpan>> _log = [];
 
     [MethodImpl(Synchronized)]
     public void LogStart
@@ -23,11 +23,11 @@ public class TraceCollector
     /// Make sure trace start (prev_lane, id) was logged!
     [MethodImpl(Synchronized)]
     public void LogBoth
-        (string prev_lane, int id, string lane)
+        (string lane_end, int id, string lane_start)
     {
         var time = DateTime.UtcNow;
-        LogEnd(prev_lane, id, time);
-        LogStart   (lane, id, time);
+        LogEnd  (lane_end,   id, time);
+        LogStart(lane_start, id, time);
     }
 
     //
@@ -36,7 +36,8 @@ public class TraceCollector
     private void LogStart
         (string lane, int id, DateTime time)
     {
-        var item = new Trace(id, time);
+        var tid = Thread.CurrentThread.ManagedThreadId;
+        var item = new TraceSpan(id, tid, time);
 
         if (_log.TryGetValue(lane, out var traces))
             traces.Add(item);
@@ -56,7 +57,7 @@ public class TraceCollector
     // EXPORT
 
     public void SaveAs
-        (string path, JsonTypeInfo<Dictionary<string,List<Trace>>> typeInfo)
+        (string path, JsonTypeInfo<Dictionary<string,List<TraceSpan>>> typeInfo)
     {
         File.WriteAllText(path, JsonSerializer.Serialize(_log, typeInfo));
     }
@@ -110,9 +111,10 @@ public class TraceCollector
     }
 }
 
-public class Trace(int id, DateTime time)
+public class TraceSpan(int id, int thread_id, DateTime time)
 {
-    [JsonPropertyName("task_id" )] public int      Id        { get; } = id;
-    [JsonPropertyName("start"   )] public DateTime TimeStart { get; } = time;
-    [JsonPropertyName("duration")] public TimeSpan Duration  { get; set; }
+    [JsonPropertyName("task_id"  )] public int      Id        { get; } = id;
+    [JsonPropertyName("thread_id")] public int      ThreadId  { get; } = thread_id;
+    [JsonPropertyName("start"    )] public DateTime TimeStart { get; } = time;
+    [JsonPropertyName("duration" )] public TimeSpan Duration  { get; set; }
 }

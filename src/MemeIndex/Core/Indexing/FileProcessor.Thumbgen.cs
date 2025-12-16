@@ -97,7 +97,9 @@ public partial class FileProcessor
         var result = ctx.ToDB_File();
         await C_DB_Write.Writer.WriteAsync(async connection =>
         {
+            Tracer.LogStart(DB_W_FT, ctx.FileId);
             await connection.File_UpdateDateThumbGenerated(result);
+            Tracer.LogEnd  (DB_W_FT, ctx.FileId);
         });
     }
 }

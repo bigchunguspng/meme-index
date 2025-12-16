@@ -77,8 +77,11 @@ public partial class FileProcessor
 
                 await C_DB_Write.Writer.WriteAsync(async connection =>
                 {
+                    Tracer.LogStart(DB_W_TAGS, file.Id);
                     await connection.Tags_CreateMany        (db_tags);
+                    Tracer.LogBoth (DB_W_TAGS, file.Id, DB_W_FA);
                     await connection.File_UpdateDateAnalyzed(db_file);
+                    Tracer.LogEnd  (DB_W_FA,   file.Id);
                 });
             }
             catch (Exception e)
@@ -116,14 +119,18 @@ public partial class FileProcessor
         CA_LOAD    = "4. Color Analysis / Load",
         CA_SCAN    = "5. Color Analysis / Scan",
         CA_ANAL    = "6. Color Analysis / Analyze",
-        DB_WRITE   = "7. DB Write";
+        DB_WRITE   = "7. DB Write",
+        DB_W_TAGS  = "8. DB Write / Tags",
+        DB_W_FA    = "9. DB Write / File Analysis",
+        DB_W_FT    = "A. DB Write / File Thumbgen";
 
     private void SaveTraceData()
     {
+        var mode = SystemHelpers.IsAOT() ? "AOT" : "JIT";
         var save = Dir_Traces
             .EnsureDirectoryExist()
-            .Combine($"File-processing-{Desert.Clock(24):x}.json");
-        Tracer.SaveAs(save, AppJson.Default.DictionaryStringListTrace);
+            .Combine($"File-processing-{Desert.Clock(24):x}_{mode}.json");
+        Tracer.SaveAs(save, AppJson.Default.DictionaryStringListTraceSpan);
         Tracer.PrintStats();
         Log($"Save trace data - \"{save}\"");
     }
