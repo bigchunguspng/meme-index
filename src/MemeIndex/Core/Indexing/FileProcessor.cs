@@ -124,7 +124,11 @@ public partial class FileProcessor
 
     private void SaveTraceData()
     {
-        var mode = SystemHelpers.IsAOT() ? "AOT" : "JIT";
+#if AOT
+        const string mode = "AOT";
+#else
+        const string mode = "JIT";
+#endif
         var save = Dir_Traces
             .EnsureDirectoryExist()
             .Combine($"File-processing-{Desert.Clock(24):x}_{mode}.json");

@@ -13,6 +13,9 @@ public readonly struct FilePath(string value)
     public static implicit operator string(FilePath path) => path._path;
     public static implicit operator FilePath(string path) => new (path);
 
+    public FilePath(Environment.SpecialFolder folder)
+        :      this(Environment.GetFolderPath(folder)) { }
+
 
     // COMBINE
 
