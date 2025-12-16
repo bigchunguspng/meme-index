@@ -1,10 +1,11 @@
 using Dapper;
+using MemeIndex.Core;
 using Microsoft.Data.Sqlite;
 using SixLabors.ImageSharp;
 
 namespace MemeIndex.DB;
 
-public class DB_File
+/*public class DB_File
 {
     public int       Id;
     public int       DirectoryId;
@@ -16,7 +17,7 @@ public class DB_File
     public DateTime? DateAnalyzed;
     public DateTime? DateThumbed;
     public Size?     ImageSize;
-}
+}*/
 
 public class DB_File_WithPath
 {
@@ -25,6 +26,8 @@ public class DB_File_WithPath
     public required string name;
 
     public string GetPath() => Path.Combine(path, name);
+
+    public FilePathRecord Compile() => new (id, GetPath());
 }
 
 public class DB_File_Insert(FileInfo info, int directory_id)

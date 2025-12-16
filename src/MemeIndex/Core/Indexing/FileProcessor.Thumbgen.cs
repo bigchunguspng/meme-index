@@ -21,24 +21,18 @@ public partial class FileProcessor
 
         // GET FILES
         await using var con = await AppDB.ConnectTo_Main();
-        var files = await con.Files_GetToBeThumbed();
+        var db_files = await con.Files_GetToBeThumbed();
         await con.CloseAsync();
         Log("GenerateThumbnails", "GET FILES");
 
-        var filesIP = files
-            .Select(x => new { Id = x.id, Path = x.GetPath() })
-            .ToArray();
-        ImagePool.Book(filesIP.Select(x => x.Path), filesIP.Length);
+        var files = db_files.Select(x => x.Compile()).ToArray();
+        ImagePool.Book(files.Select(x => x.Path), files.Length);
 
-        foreach (var file in filesIP)
+        foreach (var file in files)
         {
             try
             {
-                var ctx = new ThumbgenContext
-                {
-                    Path = file.Path,
-                    FileId = file.Id,
-                };
+                var ctx = new ThumbgenContext(file);
                 //await Thumbnail_Load(ctx);
                 await Thumbnail_Resize(ctx);
             }
@@ -92,7 +86,7 @@ public partial class FileProcessor
             .Combine($"{ctx.FileId:x6}.webp");
         await ctx.Thumb.SaveAsWebpAsync(save, _encoder);
         Tracer.LogEnd  (THUMB_SAVE, ctx.FileId);
-        Log($"Save thumb {ctx.FileId,5}");
+        LogDebug($"File {ctx.FileId,6} -> thumbnail generated");
 
         var result = ctx.ToDB_File();
         await C_DB_Write.Writer.WriteAsync(async connection =>
@@ -104,10 +98,10 @@ public partial class FileProcessor
     }
 }
 
-public struct ThumbgenContext
+public struct ThumbgenContext(FilePathRecord file)
 {
-    public string Path;
-    public int    FileId;
+    public readonly string Path   = file.Path;
+    public readonly int    FileId = file.Id;
     public Image  Source;
     public Image  Thumb;
 

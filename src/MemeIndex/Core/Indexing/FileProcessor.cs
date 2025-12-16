@@ -56,33 +56,18 @@ public partial class FileProcessor
 
         // GET FILES
         await using var con = await AppDB.ConnectTo_Main();
-        var files = await con.Files_GetToBeAnalyzed();
+        var db_files = await con.Files_GetToBeAnalyzed();
         await con.CloseAsync();
         Log("AnalyzeFiles", "GET FILES");
 
-        var filesIP = files
-            .Select(x => new { Id = x.id, Path = x.GetPath() })
-            .ToArray();
-        ImagePool.Book(filesIP.Select(x => x.Path), filesIP.Length);
+        var files = db_files.Select(x => x.Compile()).ToArray();
+        ImagePool.Book(files.Select(x => x.Path), files.Length);
 
-        foreach (var file in filesIP)
+        foreach (var file in files)
         {
             try
             {
-                var tags = await AnalyzeImage(file.Id, file.Path);
-                Log($"Analyze file {file.Id,5}");
-
-                var db_tags = tags.Select(x => new DB_Tag_Insert(x, file.Id));
-                var db_file = new DB_File_UpdateDate(file.Id, DateTime.UtcNow);
-
-                await C_DB_Write.Writer.WriteAsync(async connection =>
-                {
-                    Tracer.LogStart(DB_W_TAGS, file.Id);
-                    await connection.Tags_CreateMany        (db_tags);
-                    Tracer.LogBoth (DB_W_TAGS, file.Id, DB_W_FA);
-                    await connection.File_UpdateDateAnalyzed(db_file);
-                    Tracer.LogEnd  (DB_W_FA,   file.Id);
-                });
+                await AnalyzeImage(file.Id, file.Path);
             }
             catch (Exception e)
             {
@@ -93,7 +78,7 @@ public partial class FileProcessor
         Log("AnalyzeFiles", "DONE");
     }
 
-    private async Task<IEnumerable<TagContent>> AnalyzeImage
+    private async Task AnalyzeImage
         (int id, string path, int minScore = 10)
     {
         Tracer.LogStart(CA_LOAD, id);
@@ -104,8 +89,21 @@ public partial class FileProcessor
         Tracer.LogBoth (CA_SCAN, id, CA_ANAL);
         var tags = ColorTagger_v2.AnalyzeImageScan(report, minScore);
         Tracer.LogEnd  (CA_ANAL, id);
-        return tags
-            .Select(x => new TagContent(x.Key, x.Value));
+        LogDebug($"File {id,6} -> color analysis done");
+
+        var db_file = new DB_File_UpdateDate(id, DateTime.UtcNow);
+        var db_tags = tags
+            .Select(x => new TagContent(x.Key, x.Value))
+            .Select(x => new DB_Tag_Insert(x, id));
+
+        await C_DB_Write.Writer.WriteAsync(async connection =>
+        {
+            Tracer.LogStart(DB_W_TAGS, id);
+            await connection.Tags_CreateMany        (db_tags);
+            Tracer.LogBoth (DB_W_TAGS, id, DB_W_FA);
+            await connection.File_UpdateDateAnalyzed(db_file);
+            Tracer.LogEnd  (DB_W_FA,   id);
+        });
     }
 
     // STATS
