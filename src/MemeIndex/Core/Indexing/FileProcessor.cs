@@ -29,8 +29,7 @@ public partial class FileProcessor
         }
 
         // LAUNCH TASKS
-        _ = GenerateThumbnails();
-        _ = AnalyzeFiles();
+        await Task.WhenAll(GenerateThumbnails(), AnalyzeFiles());
 
         // WAIT FOR JOBS TO FINISH
         var jobTasks = jobs
@@ -123,14 +122,9 @@ public partial class FileProcessor
 
     private void SaveTraceData()
     {
-#if AOT
-        const string mode = "AOT";
-#else
-        const string mode = "JIT";
-#endif
         var save = Dir_Traces
             .EnsureDirectoryExist()
-            .Combine($"File-processing-{Desert.Clock(24):x}_{mode}.json");
+            .Combine($"File-processing-{Desert.Clock(24):x}_{Helpers.COMPILE_MODE}.json");
         Tracer.SaveAs(save, AppJson.Default.DictionaryStringListTraceSpan);
         Tracer.PrintStats();
         Log($"Save trace data - \"{save}\"");

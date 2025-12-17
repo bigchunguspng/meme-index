@@ -1,9 +1,15 @@
+using MemeIndex.API;
 using MemeIndex.Core;
 using MemeIndex.Core.Indexing;
 using MemeIndex.DB;
 using MemeIndex.Utils;
 
-LogCM(ConsoleColor.Magenta, "[Start]");
+// HELP | VERSION
+if (CLI.TryHandleArgs_HelpOrVersion(args)) return;
+
+LogCM(ConsoleColor.Magenta, "START");
+
+// HACKS
 
 AppDomain.CurrentDomain.UnhandledException += (_, e) =>
 {
@@ -12,16 +18,15 @@ AppDomain.CurrentDomain.UnhandledException += (_, e) =>
 };
 
 // BRANCH
+if (CLI.TryHandleArgs_Other(args)) return;
 
-if (CLI.TryHandleArgs(args)) return;
+LogCM(ConsoleColor.Magenta, "RUNNING NORMAL MODE (web server)");
 
 // BUILDER
 
 var wa_options = new WebApplicationOptions
 {
-    Args = args,
-    ApplicationName = "Meme-Index-Web",
-    WebRootPath = Dir_WebRoot,
+    Args = args, WebRootPath = Dir_WebRoot,
 };
 
 var builder = WebApplication.CreateSlimBuilder(wa_options);
@@ -36,16 +41,25 @@ builder.Services
         .SerializerOptions.TypeInfoResolverChain
         .Insert(0, AppJson.Default))
     .AddHostedService<Job_FileProcessing>()
+    .AddCors(options => options
+        .AddDefaultPolicy(policy => policy
+            .WithOrigins("*")
+            .AllowAnyHeader()
+            .AllowAnyMethod()))
     ;
 
 // APP
 
 var app = builder.Build();
 
-LogCM(ConsoleColor.Magenta, "[Configuration]");
-
 app.UseDefaultFiles();
 app.UseStaticFiles();
+
+app.MapGet(    "/logs",      Endpoints.GetPage_Logs);
+app.MapGet(    "/logs/{id}", Endpoints.GetPage_EventViewer);
+app.MapGet("/api/logs/{id}", Endpoints.GetJson_EventViewerData);
+
+LogCM(ConsoleColor.Magenta, "SETUP");
 
 _ = TestCode();
 
