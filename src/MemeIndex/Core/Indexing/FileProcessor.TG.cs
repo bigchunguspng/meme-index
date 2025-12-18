@@ -9,27 +9,21 @@ namespace MemeIndex.Core.Indexing;
 
 public partial class FileProcessor
 {
-    private static readonly Size _fitSize = new (275, 180); // Similar to Google Images thumb size.
-
-    public readonly Channel<ThumbgenContext>
-        //C_Resize   = Channel.CreateUnbounded<ThumbgenContext>(),
-        C_SaveWebp = Channel.CreateUnbounded<ThumbgenContext>();
-
-    private async Task GenerateThumbnails()
+    private async Task StartThumbnailGeneration()
     {
-        const string code = "GenerateThumbnails";
-        Log(code, "START");
+        const string CODE = "Tmb/Gen";
+        Log(CODE, "START");
 
         // GET FILES
         await using var con = await AppDB.ConnectTo_Main();
         var db_files = await con.Files_GetToBeThumbed();
         await con.CloseAsync();
-        Log(code, "GET FILES");
+        Log(CODE, "GET FILES");
 
         var files = db_files.Select(x => x.Compile()).ToArray();
         if (files.Length == 0)
         {
-            Log(code, "NOTHING TO PROCESS");
+            Log(CODE, "NOTHING TO PROCESS");
             return;
         }
 
@@ -56,10 +50,12 @@ public partial class FileProcessor
             }
         }
 
-        C_SaveWebp.Writer.Complete();
+        C_TG_SaveWebp.Writer.Complete();
 
-        Log(code, "DONE");
+        Log(CODE, "DONE");
     }
+
+    private static readonly Size _fitSize = new (275, 180); // Similar to Google Images thumb size.
 
     private static readonly WebpEncoder _encoder = new()
     {
@@ -77,8 +73,6 @@ public partial class FileProcessor
         await C_Resize.Writer.WriteAsync(ctx);
     }*/
 
-    // todo - thumb load logic -> thumb resize
-    
     public async Task Thumbnail_Resize(ThumbgenContext ctx)
     {
         Tracer.LogOpen(ctx.FileId, THUMB_LOAD);
@@ -88,7 +82,7 @@ public partial class FileProcessor
         ctx.Thumb = ctx.Source.Clone(x => x.Resize(size, LanczosResampler.Lanczos3, compand: false));
         ImagePool.Return(ctx.Path);
         Tracer.LogDone(ctx.FileId, THUMB_SIZE);
-        await C_SaveWebp.Writer.WriteAsync(ctx);
+        await C_TG_SaveWebp.Writer.WriteAsync(ctx);
     }
 
     public async Task Thumbnail_Save(ThumbgenContext ctx)

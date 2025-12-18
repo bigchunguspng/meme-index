@@ -149,6 +149,6 @@ public class Job_ThumbgenSaveWebp(FileProcessor task)
     : ChannelJob<ThumbgenContext>
     (
         "Job/Thumbgen-Save-Webp",
-        task.C_SaveWebp,
+        task.C_TG_SaveWebp,
         task.Thumbnail_Save
     );
