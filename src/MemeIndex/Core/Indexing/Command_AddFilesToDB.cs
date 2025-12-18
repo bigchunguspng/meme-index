@@ -11,6 +11,9 @@ public static class Command_AddFilesToDB
     private static readonly string[] _supported_extensions
         = [".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"];
 
+    /// this will be called when user
+    /// adds new tracking rules / directories
+    /// (once for each OR rewritten for many)
     public static async Task Execute(string directory, bool recursive)
     {
         var sw = Stopwatch.StartNew();
@@ -44,5 +47,22 @@ public static class Command_AddFilesToDB
         sw.Log("[AddFilesToDB] ADD DIRS & FILES");
 
         await C_FileProcessing.Writer.WriteAsync(1);
+        await EnsureStarted_Job_FileProcessing();
     }
+
+    private static Job_FileProcessing? Job;
+
+    private static async Task EnsureStarted_Job_FileProcessing()
+    {
+        var new_job = TryReloadJob();
+        if (new_job != null)
+            await new_job.StartAsync(CancellationToken.None);
+    }
+
+    [MethodImpl(Synchronized)]
+    private static Job_FileProcessing? TryReloadJob()
+        => Job == null
+        || Job.ExecuteTask is { IsCompleted: true }
+            ? Job = new Job_FileProcessing()
+            : null;
 }

@@ -9,6 +9,9 @@ public class TraceCollector
 {
     private readonly Dictionary<string, List<TraceSpan>> _log = [];
 
+    public bool Empty              => _log.Count == 0;
+    public int  Count(string lane) => _log[lane].Count;
+
     /// Call this right before subtask is called.
     [MethodImpl(Synchronized)]
     public void LogOpen

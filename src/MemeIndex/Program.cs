@@ -40,7 +40,6 @@ builder.Services
     .ConfigureHttpJsonOptions(options => options
         .SerializerOptions.TypeInfoResolverChain
         .Insert(0, AppJson.Default))
-    .AddHostedService<Job_FileProcessing>()
     .AddCors(options => options
         .AddDefaultPolicy(policy => policy
             .WithOrigins("*")

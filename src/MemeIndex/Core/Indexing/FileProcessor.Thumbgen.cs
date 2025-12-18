@@ -17,16 +17,28 @@ public partial class FileProcessor
 
     private async Task GenerateThumbnails()
     {
-        Log("GenerateThumbnails", "START");
+        const string code = "GenerateThumbnails";
+        Log(code, "START");
 
         // GET FILES
         await using var con = await AppDB.ConnectTo_Main();
         var db_files = await con.Files_GetToBeThumbed();
         await con.CloseAsync();
-        Log("GenerateThumbnails", "GET FILES");
+        Log(code, "GET FILES");
 
         var files = db_files.Select(x => x.Compile()).ToArray();
+        if (files.Length == 0)
+        {
+            Log(code, "NOTHING TO PROCESS");
+            return;
+        }
+
         ImagePool.Book(files.Select(x => x.Path), files.Length);
+
+        if (job_DB.ExecuteTask == null)
+            await job_DB.StartAsync(CancellationToken.None);
+
+        await job_thumbsWebp.StartAsync(CancellationToken.None);
 
         foreach (var file in files)
         {
@@ -45,7 +57,7 @@ public partial class FileProcessor
 
         C_SaveWebp.Writer.Complete();
 
-        Log("GenerateThumbnails", "DONE");
+        Log(code, "DONE");
     }
 
     private static readonly WebpEncoder _encoder = new()

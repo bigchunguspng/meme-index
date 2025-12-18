@@ -4,6 +4,8 @@ using Microsoft.Data.Sqlite;
 
 namespace MemeIndex.Core.Indexing;
 
+// GENERIC
+
 public abstract class ChannelJob<T>
 (
     string code,
@@ -29,7 +31,7 @@ public abstract class ChannelJob<T>
     }
 }
 
-public abstract class ChannelJob_X
+public abstract class ChannelJob_Execute
 (
     string code,
     Channel<int> channel,
@@ -50,6 +52,30 @@ public abstract class ChannelJob_X
         Log(code, "COMPLETED");
     }
 }
+
+public abstract class ChannelJob_ExecuteOrStop
+(
+    string code,
+    Channel<int> channel,
+    Func<Task> execute,
+    string? log_string = null
+) : BackgroundService
+{
+    protected override async Task ExecuteAsync(CancellationToken ct)
+    {
+        Log(code, "STARTED");
+        while (channel.Reader.TryRead(out _))
+        {
+            await execute();
+
+            if (log_string != null)
+                Log(code, log_string);
+        }
+        Log(code, "COMPLETED");
+    }
+}
+
+// SPECIFIC
 
 public class Job_DB_Write
 (
@@ -74,7 +100,9 @@ public class Job_DB_Write
             _queue.Add(task);
         }
 
-        await ProcessQueue();
+        if (_queue.Count > 0)
+            await ProcessQueue();
+
         Log(code, "COMPLETED");
     }
 
@@ -96,7 +124,7 @@ public class Job_DB_Write
 //
 
 public class Job_FileProcessing()
-    : ChannelJob_X
+    : ChannelJob_ExecuteOrStop
     (
         "Job/FileProcessing",
         Command_AddFilesToDB.C_FileProcessing,

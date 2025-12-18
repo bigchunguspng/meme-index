@@ -8,37 +8,31 @@ namespace MemeIndex.Core.Indexing;
 
 public partial class FileProcessor
 {
+    private static readonly ImagePool ImagePool = new();
+    
     private readonly Channel<Func<SqliteConnection, Task>>
         C_DB_Write = Channel.CreateUnbounded<Func<SqliteConnection, Task>>();
 
-    private static readonly ImagePool ImagePool = new();
+    private readonly BackgroundService job_DB, job_thumbsWebp;
+
+    public FileProcessor()
+    {
+        job_DB         = new Job_DB_Write(C_DB_Write, Tracer);
+        job_thumbsWebp = new Job_ThumbgenSaveWebp(this);
+    }
 
     public async Task Run()
     {
-        // START JOBS
-        var job_DB = new Job_DB_Write(C_DB_Write, Tracer);
-        var jobs = new BackgroundService[]
-        {
-            job_DB,
-            //new Job_ThumbgenResize(this),
-            new Job_ThumbgenSaveWebp(this),
-        };
-        foreach (var job in jobs)
-        {
-            await job.StartAsync(CancellationToken.None);
-        }
-
         // LAUNCH TASKS
         await Task.WhenAll(GenerateThumbnails(), AnalyzeFiles());
 
-        // WAIT FOR JOBS TO FINISH
-        var jobTasks = jobs
-            .Skip(1)
+        // WAIT FOR [OTHER] JOBS TO FINISH
+        var jobTasks = new [] { job_thumbsWebp }
             .Select(x => x.ExecuteTask)
             .OfType<Task>();
         await Task.WhenAll(jobTasks);
 
-        // WAIT FOR DB WRITER JOB TO FINISH
+        // WAIT FOR [DB WRITER] JOB TO FINISH
         C_DB_Write.Writer.Complete();
         if (null != job_DB.ExecuteTask)
             await   job_DB.ExecuteTask;
@@ -50,16 +44,26 @@ public partial class FileProcessor
 
     private async Task AnalyzeFiles()
     {
-        Log("AnalyzeFiles", "START");
+        const string CODE = "AnalyzeFiles";
+        Log(CODE, "START");
 
         // GET FILES
         await using var con = await AppDB.ConnectTo_Main();
         var db_files = await con.Files_GetToBeAnalyzed();
         await con.CloseAsync();
-        Log("AnalyzeFiles", "GET FILES");
+        Log(CODE, "GET FILES");
 
         var files = db_files.Select(x => x.Compile()).ToArray();
+        if (files.Length == 0)
+        {
+            Log(CODE, "NOTHING TO PROCESS");
+            return;
+        }
+
         ImagePool.Book(files.Select(x => x.Path), files.Length);
+
+        if (job_DB.ExecuteTask == null)
+            await job_DB.StartAsync(CancellationToken.None);
 
         foreach (var file in files)
         {
@@ -73,7 +77,7 @@ public partial class FileProcessor
                 // todo add file id to broken files
             }
         }
-        Log("AnalyzeFiles", "DONE");
+        Log(CODE, "DONE");
     }
 
     private async Task AnalyzeImage
@@ -122,9 +126,13 @@ public partial class FileProcessor
 
     private void SaveTraceData()
     {
+        if (Tracer.Empty) return;
+
+        var c1 = Tracer.Count(THUMB_LOAD);
+        var c2 = Tracer.Count(   CA_LOAD);
         var save = Dir_Traces
             .EnsureDirectoryExist()
-            .Combine($"File-processing-{Desert.Clock(24):x}_{Helpers.COMPILE_MODE}.json");
+            .Combine($"File-processing-{Desert.Clock(24):x}_{Helpers.COMPILE_MODE}_{c1}-{c2}.json");
         Tracer.SaveAs(save, AppJson.Default.DictionaryStringListTraceSpan);
         Tracer.PrintStats();
         Log($"Save trace data - \"{save}\"");
