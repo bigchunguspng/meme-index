@@ -11,6 +11,7 @@ public static class Helpers
         "JIT";
 #endif
 
-    public static readonly bool IsWindows =
-        RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+    public static readonly bool
+        IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows),
+        IsLinux   = RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
 }

@@ -7,9 +7,9 @@ namespace MemeIndex.Core;
 public static class CLI
 {
     private static readonly string
-        NAME = Helpers.IsWindows
-            ? "MemeIndex"
-            : "memeindex",
+        NAME = Helpers.IsLinux
+            ? "memeindex"
+            : "MemeIndex",
         VERSION = $"{NAME} 0.3.3 ({Helpers.COMPILE_MODE})",
         HELP =
             $"""

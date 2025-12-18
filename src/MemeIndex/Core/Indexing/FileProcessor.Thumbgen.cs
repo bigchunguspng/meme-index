@@ -35,9 +35,10 @@ public partial class FileProcessor
 
         ImagePool.Book(files.Select(x => x.Path), files.Length);
 
-        if (job_DB.ExecuteTask == null)
-            await job_DB.StartAsync(CancellationToken.None);
+        if (InitJob_DB_Write() is { } job)
+            await job.StartAsync(CancellationToken.None);
 
+        job_thumbsWebp = new Job_ThumbgenSaveWebp(this);
         await job_thumbsWebp.StartAsync(CancellationToken.None);
 
         foreach (var file in files)

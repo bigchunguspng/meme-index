@@ -13,29 +13,31 @@ public partial class FileProcessor
     private readonly Channel<Func<SqliteConnection, Task>>
         C_DB_Write = Channel.CreateUnbounded<Func<SqliteConnection, Task>>();
 
-    private readonly BackgroundService job_DB, job_thumbsWebp;
+    private Job_DB_Write?         job_DB;
+    private Job_ThumbgenSaveWebp? job_thumbsWebp;
 
-    public FileProcessor()
-    {
-        job_DB         = new Job_DB_Write(C_DB_Write, Tracer);
-        job_thumbsWebp = new Job_ThumbgenSaveWebp(this);
-    }
+    [MethodImpl(Synchronized)]
+    private Job_DB_Write? InitJob_DB_Write()
+        => job_DB == null
+        || job_DB.ExecuteTask is { IsCompleted: true }
+            ? job_DB = new Job_DB_Write(C_DB_Write, Tracer)
+            : null;
 
     public async Task Run()
     {
-        // LAUNCH TASKS
+        // LAUNCH TASKS (they create necessary jobs)
         await Task.WhenAll(GenerateThumbnails(), AnalyzeFiles());
 
         // WAIT FOR [OTHER] JOBS TO FINISH
         var jobTasks = new [] { job_thumbsWebp }
-            .Select(x => x.ExecuteTask)
+            .Select(x => x?.ExecuteTask)
             .OfType<Task>();
         await Task.WhenAll(jobTasks);
 
         // WAIT FOR [DB WRITER] JOB TO FINISH
         C_DB_Write.Writer.Complete();
-        if (null != job_DB.ExecuteTask)
-            await   job_DB.ExecuteTask;
+        if (null != job_DB?.ExecuteTask)
+            await   job_DB .ExecuteTask;
 
         SaveTraceData();
     }
@@ -62,8 +64,8 @@ public partial class FileProcessor
 
         ImagePool.Book(files.Select(x => x.Path), files.Length);
 
-        if (job_DB.ExecuteTask == null)
-            await job_DB.StartAsync(CancellationToken.None);
+        if (InitJob_DB_Write() is { } job)
+            await job.StartAsync(CancellationToken.None);
 
         foreach (var file in files)
         {
