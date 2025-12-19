@@ -25,6 +25,9 @@ public static class CLI
              DESCRIPTION:
                 This piece of software is in the development, please come back later.
 
+             OPTIONS (normal mode):
+                    --urls          URL;... Listen to other URLs.
+
              OPTIONS:
                 -t  --test                  Execute whatever is in the test method.
                 -d  --demo    IMAGE-PATH... Analyze images, print result to console, save HSL profile.

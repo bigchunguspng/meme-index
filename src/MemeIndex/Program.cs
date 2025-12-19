@@ -24,8 +24,6 @@ LogCM(ConsoleColor.Magenta, "RUNNING NORMAL MODE (web server)");
 
 // BUILDER
 
-var port = await HostingHelpers.GetFreePort();
-
 var wa_options = new WebApplicationOptions
 {
     Args = args, WebRootPath = Dir_WebRoot,
@@ -33,16 +31,21 @@ var wa_options = new WebApplicationOptions
 
 var builder = WebApplication.CreateSlimBuilder(wa_options);
 
-builder.WebHost
-    .ConfigureKestrel(options =>
-    {
-        options.Listen(HostingHelpers.IP, port);
-        if (port != HostingHelpers.DYNAMIC_PORT)
+if (args.Contains("--urls").Janai())
+{
+    var port = await HostingHelpers.GetFreePort();
+
+    builder.WebHost
+        .ConfigureKestrel(options =>
         {
-            options.ListenLocalhost(port);
-        }
-    })
-    ;
+            options.Listen(HostingHelpers.IP, port);
+            if (port != HostingHelpers.DYNAMIC_PORT)
+            {
+                options.ListenLocalhost(port);
+            }
+        })
+        ;
+}
 
 builder.Logging
     .ClearProviders()
