@@ -5,7 +5,7 @@ namespace MemeIndex.API;
 
 public static class HostingHelpers
 {
-    private const int RANDOM_PORT = 0;
+    public  const int DYNAMIC_PORT = 0;
 
     public  static readonly IPAddress IP = IPAddress.Any;
     private static readonly int[] _ports =
@@ -43,8 +43,8 @@ public static class HostingHelpers
         {
             // USER=PORT MAPPED
             return PortIsFree(mapped_port)
-                ? mapped_port  // typical for first process instance
-                : RANDOM_PORT; // typical for other instances
+                ? mapped_port   // typical for first process instance
+                : DYNAMIC_PORT; // typical for other instances
         }
 
         // NO USER=PORT MAPPING
@@ -70,7 +70,7 @@ public static class HostingHelpers
         }
 
         // NO FREE PORTS (unlikely)
-        return RANDOM_PORT;
+        return DYNAMIC_PORT;
     }
 
     private static bool PortIsFree(int port)

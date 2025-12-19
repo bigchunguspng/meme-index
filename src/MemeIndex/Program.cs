@@ -34,8 +34,14 @@ var wa_options = new WebApplicationOptions
 var builder = WebApplication.CreateSlimBuilder(wa_options);
 
 builder.WebHost
-    .ConfigureKestrel(options => options
-        .Listen(HostingHelpers.IP, port))
+    .ConfigureKestrel(options =>
+    {
+        options.Listen(HostingHelpers.IP, port);
+        if (port != HostingHelpers.DYNAMIC_PORT)
+        {
+            options.ListenLocalhost(port);
+        }
+    })
     ;
 
 builder.Logging
