@@ -24,12 +24,19 @@ LogCM(ConsoleColor.Magenta, "RUNNING NORMAL MODE (web server)");
 
 // BUILDER
 
+var port = await HostingHelpers.GetFreePort();
+
 var wa_options = new WebApplicationOptions
 {
     Args = args, WebRootPath = Dir_WebRoot,
 };
 
 var builder = WebApplication.CreateSlimBuilder(wa_options);
+
+builder.WebHost
+    .ConfigureKestrel(options => options
+        .Listen(HostingHelpers.IP, port))
+    ;
 
 builder.Logging
     .ClearProviders()

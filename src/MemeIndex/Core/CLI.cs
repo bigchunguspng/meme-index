@@ -6,7 +6,7 @@ namespace MemeIndex.Core;
 
 public static class CLI
 {
-    private static readonly string
+    public static readonly string
         NAME = Helpers.IsLinux
             ? "memeindex"
             : "MemeIndex",

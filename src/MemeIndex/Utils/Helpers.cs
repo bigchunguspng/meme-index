@@ -14,4 +14,7 @@ public static class Helpers
     public static readonly bool
         IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows),
         IsLinux   = RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
+
+    // WHEN adding support for other platforms,
+    // Find all ^ usages and edit conditions where necessary!
 }
