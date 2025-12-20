@@ -5,11 +5,10 @@ using FrequencySample = System.Collections.Generic.KeyValuePair<MemeIndex.Tools.
 
 namespace MemeIndex.Core.Analysis.Color.v1;
 
-public static class ColorTagService // todo rename
+public static class ColorTagService
 {
     public const int MAX_RANK = 10_000;
 
-    // todo text -> *better term*
     public static async Task<List<RankedWord>?> GetTextRepresentation(FilePath path)
     {
         try
@@ -244,8 +243,6 @@ public static class ColorTagService // todo rename
 
         // FUNNY
 
-        // todo treat WEAK-PALE more like GRAYSCALE if #Y is high enough
-
         var peaks = GetPeakLimits();
 
         for (var hue = 0; hue < ColorSearchProfile.HUE_COUNT; hue++)
@@ -355,7 +352,7 @@ internal class ColorFrequency : Dictionary<BytePoint, ushort>
 {
     public void AddOrIncrement(BytePoint point)
     {
-        if (ContainsKey(point)) this[point]++; // todo handle overflow
+        if (ContainsKey(point)) this[point]++;
         else /*               */ Add(point, 1);
     }
 }
