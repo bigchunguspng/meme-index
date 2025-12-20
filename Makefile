@@ -20,7 +20,7 @@ build-debug:
 	dotnet build $(PROJ) -c Debug
 
 clear:
-	rm "$(WDIR_BIN)/MemeIndex/meme-index.db"
+	rm "$(WDIR_BIN)/data/meme-index.db"
 	rm "$(WDIR_BIN)/web/thumb" -r
 
 clear-pub:
