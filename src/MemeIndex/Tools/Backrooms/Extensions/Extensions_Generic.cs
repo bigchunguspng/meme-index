@@ -134,4 +134,19 @@ public static class Extensions_Generic
             }
         }
     }
+
+    public static void ForEachTry<T>(this Span<T> source, Action<T> action)
+    {
+        foreach (var item in source)
+        {
+            try
+            {
+                action(item);
+            }
+            catch (Exception e)
+            {
+                LogError(e);
+            }
+        }
+    }
 }

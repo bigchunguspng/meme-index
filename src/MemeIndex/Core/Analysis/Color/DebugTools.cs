@@ -12,40 +12,45 @@ public static partial class DebugTools
 {
     public static readonly JpegEncoder JpegEncoder_Q80 = new() { Quality = 80 };
 
+    public static string[] _test_names =
+    [
+        "RenderStepCalculation",
+        "RenderHueReferences_Frames",
+        "RenderFullOklch_Frames",
+        "RenderFullOklch_On3x2",
+        "RenderHues_Oklch_v2",
+        "HSL(step: 30)",
+        "Oklch(step: 30)",
+        "Oklch_HxL",
+        "CompareHLS_ToOklch",
+    ];
+
     public static void Test(int number)
     {
         var sw = Stopwatch.StartNew();
+        if (number > 0 && number <= _test_names.Length)
+            sw.Log($"TEST: {_test_names[number - 1]}");
         switch (number)
         {
-            case 1: sw.Log("TEST: RenderStepCalculation");
-                RenderStepCalculation();
-                break;
-            case 2: sw.Log("TEST: RenderHueReferences_Frames");
-                RenderHueReferences_Frames();
-                break;
-            case 3: sw.Log("TEST: RenderFullOklch_Frames");
-                RenderFullOklch_Frames();
-                break;
-            case 4: sw.Log("TEST: RenderFullOklch_On3x2");
-                RenderFullOklch_On3x2();
-                break;
-            case 5: sw.Log("TEST: RenderHues_Oklch_v2");
-                RenderHues_Oklch_v2();
-                break;
-            case 6: sw.Log("TEST: HSL(step: 30)");
-                HSL(30);
-                break;
-            case 7: sw.Log("TEST: Oklch(step: 30)");
-                Oklch(30);
-                break;
-            case 8: sw.Log("TEST: Oklch_HxL");
-                Oklch_HxL();
-                break;
-            case 9: sw.Log("TEST: CompareHLS_ToOklch");
-                CompareHLS_ToOklch();
-                break;
+            case 1: RenderStepCalculation();           break;
+            case 2: RenderHueReferences_Frames();      break;
+            case 3: RenderFullOklch_Frames();          break;
+            case 4: RenderFullOklch_On3x2();           break;
+            case 5: RenderHues_Oklch_v2();             break;
+            case 6: HSL  (30);                         break;
+            case 7: Oklch(30);                         break;
+            case 8: Oklch_HxL();                       break;
+            case 9: CompareHLS_ToOklch();              break;
         }
         sw.Log("DONE");
+    }
+
+    public static void PrintTestOptions()
+    {
+        for (var i = 0; i < _test_names.Length; i++)
+        {
+            Print($"{i,3} -> {_test_names[i]}");
+        }
     }
 
     public static void RenderAllProfiles(string path)

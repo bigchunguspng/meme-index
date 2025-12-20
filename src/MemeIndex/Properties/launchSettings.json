@@ -5,7 +5,7 @@
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "",
-      "commandLineArgs": "",
+      "commandLineArgs": "-l",
       "workingDirectory": "$(OutDir)",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
@@ -21,17 +21,17 @@
     },
     "test": {
       "commandName": "Project",
-      "commandLineArgs": "-t",
+      "commandLineArgs": "lab -t",
       "workingDirectory": "$(OutDir)"
     },
     "files": {
       "commandName": "Project",
-      "commandLineArgs": "-P args.txt",
+      "commandLineArgs": "lab -P args.txt",
       "workingDirectory": "$(OutDir)"
     },
     "demo": {
       "commandName": "Project",
-      "commandLineArgs": "-D args.txt",
+      "commandLineArgs": "lab -D args.txt",
       "workingDirectory": "$(OutDir)"
     }
   }

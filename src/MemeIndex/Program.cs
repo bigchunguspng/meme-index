@@ -4,25 +4,33 @@ using MemeIndex.Core.Indexing;
 using MemeIndex.DB;
 using MemeIndex.Utils;
 
+// Log("ARGS: " + string.Join(", ", args), color: ConsoleColor.Yellow);
+
 // HELP | VERSION
-if (CLI.TryHandleArgs_HelpOrVersion(args)) return;
+if (CLI.TryHandleArgs_Info(args)) return;
 
 LogCM(ConsoleColor.Magenta, "START");
 
 // HACKS
 
-AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+Console.CancelKeyPress        += (_, _) => App.SaveAndExit();
+App.Domain.ProcessExit        += (_, _) => App.SaveAndExit();
+App.Domain.UnhandledException += (_, e) =>
 {
     LogError($"UNHANDLED EXCEPTION! {e.ExceptionObject}");
+    App.LogException((Exception)e.ExceptionObject, ExceptionCategory.CRASH);
     Environment.Exit(1);
 };
 
 // BRANCH
-if (CLI.TryHandleArgs_Other(args)) return;
+if (CLI.TryHandleArgs_Action(args)) return;
 
 LogCM(ConsoleColor.Magenta, "RUNNING NORMAL MODE (web server)");
 
 // BUILDER
+
+var flag_url = args.Any(x => x.StartsWith("--urls"));
+var flag_log = args.Any(x => x is "-l" or "--log");
 
 var wa_options = new WebApplicationOptions
 {
@@ -31,7 +39,7 @@ var wa_options = new WebApplicationOptions
 
 var builder = WebApplication.CreateSlimBuilder(wa_options);
 
-if (args.Contains("--urls").Janai())
+if (flag_url.Janai())
 {
     var port = await HostingHelpers.GetFreePort();
 
@@ -53,6 +61,8 @@ builder.Logging
     ;
 
 builder.Services
+    .AddSingleton<Mw_Logging>()
+    .AddSingleton<Mw_ExceptionHandling>()
     .ConfigureHttpJsonOptions(options => options
         .SerializerOptions.TypeInfoResolverChain
         .Insert(0, AppJson.Default))
@@ -66,6 +76,10 @@ builder.Services
 // APP
 
 var app = builder.Build();
+
+app.UseMiddleware<Mw_ExceptionHandling>();
+if (flag_log)
+    app.UseMiddleware<Mw_Logging>();
 
 app.UseDefaultFiles();
 app.UseStaticFiles();

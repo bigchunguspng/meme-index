@@ -6,7 +6,7 @@ namespace MemeIndex.Core;
 public static class Paths
 {
     public static readonly FilePath
-#if !DEVELOP
+#if DEVELOP
         Dir_AppData         = "data",
 #else
         Dir_AppData         = new FilePath(SpecialFolder. LocalApplicationData).Combine(CLI.NAME),
@@ -24,6 +24,8 @@ public static class Paths
         //  LOGS
         Dir_Logs            = Helpers.IsWindows ? Dir_AppData.Combine("logs") : $"/var/log/{CLI.NAME}",
         Dir_Traces          = Dir_Logs.Combine("traces"),
+        File_Log            = Dir_Logs.Combine("log.txt"),
+        File_Err            = Dir_Logs.Combine("err.txt"),
 
         //  DEBUG
         Dir_Debug           = Dir_AppData.Combine("debug-artifacts"),

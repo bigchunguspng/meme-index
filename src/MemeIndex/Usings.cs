@@ -18,3 +18,4 @@ global using MemeIndex.Tools.Logging;
 global using static System.Runtime.CompilerServices.MethodImplOptions;
 global using static MemeIndex.Core.Paths;
 global using static MemeIndex.Tools.Logging.ConsoleLogger;
+global using static MemeIndex.Utils.Extensions;
