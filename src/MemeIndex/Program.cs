@@ -31,10 +31,17 @@ LogCM(ConsoleColor.Magenta, "RUNNING NORMAL MODE (web server)");
 
 var flag_url = args.Any(x => x.StartsWith("--urls"));
 var flag_log = args.Any(x => x is "-l" or "--log");
+var opt_web  = args.FindIndex(x => x is "-w" or "--web") + 1 is var i
+            && i > 0
+            && i < args.Length
+    ? args[i]
+    : Dir_WebRoot.Value;
+
+Log($"Web root path: {opt_web}");
 
 var wa_options = new WebApplicationOptions
 {
-    Args = args, WebRootPath = Dir_WebRoot,
+    Args = args, WebRootPath = opt_web,
 };
 
 var builder = WebApplication.CreateSlimBuilder(wa_options);

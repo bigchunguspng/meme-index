@@ -27,6 +27,7 @@ public static class CLI
 
              OPTIONS (normal mode):
                     --urls           URL;.. Listen to other URLs.
+                -w  --web            PATH   Use other static web content directory.
                 -l  --log                   Log all HTTP requests (might be slower).
                 -!  --version               Show version info.
                 -?  --help                  Show this screen.
