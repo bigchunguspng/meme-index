@@ -259,4 +259,25 @@ public static partial class DebugTools
 
         image.SaveAsPng(Dir_Debug_Color.EnsureDirectoryExist().Combine($"step-{Desert.GetSand()}.png"));
     }
+
+    public static void PrintPalette()
+    {
+        Console.WriteLine("const palette_hue =\n[");
+        var palette_H = ColorAnalyzer_v2.GetPalette();
+        foreach (var set in palette_H)
+        {
+            // 012345
+            // SPDL01
+            // D0SPL1
+            var indices = new [] { 2, 4, 0, 1, 3, 5 };
+            for (var i = 0; i < ColorAnalyzer_v2.N_OPS_H; i++)
+            {
+                if (i % 2 == 0) Console.Write("    ");
+                var color = set[indices[i]];
+                Console.Write($"'oklch({color.L:F2} {color.C:F2} {color.H:000})', ");
+                if (i % 2 == 1) Console.WriteLine();
+            }
+        }
+        Console.WriteLine("];");
+    }
 }

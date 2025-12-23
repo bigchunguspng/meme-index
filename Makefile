@@ -18,17 +18,20 @@ build:
 	dotnet build $(PROJ) -c Release
 build-debug:
 	dotnet build $(PROJ) -c Debug
+build-fast:
+	dotnet build $(PROJ) -c Release --no-restore
+
 pub:
 	dotnet publish $(PROJ) -r $(RUNTIME) -c Publish --self-contained
 
-run-web:	build
+run-web:	build-fast
 	-$(OPEN) "http://localhost:7373"
 	cd $(WDIR_BIN) && $(BIN) -l
-run:		build
+run:		build-fast
 	cd $(WDIR_BIN) && $(BIN) args.txt
-run-test:	build
+run-test:	build-fast
 	cd $(WDIR_BIN) && $(BIN) lab -t
-run-demo:	build
+run-demo:	build-fast
 	cd $(WDIR_BIN) && $(BIN) lab -D args.txt
 
 clear:

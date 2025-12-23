@@ -39,6 +39,7 @@ public static class CLI
                 -D  --demo-list     FILE    Same as ^, take image paths from FILE.
                 -p  --profile IMAGE-PATH... Save color profiles (all kinds).
                 -P  --profile-list  FILE    Same as ^, take image paths from FILE.
+                    --palette               Print color palette (JS syntax).
              """;
 
     private static Span<string> FilterArgs
@@ -85,6 +86,9 @@ public static class CLI
                 case > 0 when args[0] is "-t" or "--test":
                     var number = args.Length > 1 && int.TryParse(args[1], out var n) ? n : 1;
                     DebugTools.Test(number);
+                    return true;
+                case > 0 when args[0] is "--palette":
+                    DebugTools.PrintPalette();
                     return true;
                 case > 1 when args[0] is "-p" or "--profile":
                     args.Slice(start: 1)
