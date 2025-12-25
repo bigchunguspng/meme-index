@@ -6,7 +6,7 @@ namespace MemeIndex.Core.Search;
 
 public static class Jarvis
 {
-    public static async Task<IEnumerable<File_UI>> Search(string[] terms)
+    public static async Task<SearchResponse> Search(string[] terms)
     {
         const int TAKE = 100;
         var con  = await AppDB.ConnectTo_Main();
@@ -23,9 +23,16 @@ public static class Jarvis
             .Take(TAKE)
             .ToDictionary(x => x.FileId, x => x.Score);
 
-        var files = await con.Files_UI_ByIds(score_byFile.Keys);
-        var files_sorted = files.OrderByDescending(x => score_byFile[x.id]);
-        return files_sorted.Select(x => new File_UI(x));
+        var files_db = await con.Files_UI_ByIds(score_byFile.Keys);
+        var files = files_db.ToArray();
+        var dirs = await con.Dirs_GetByIds(files.Select(x => x.dir_id).Distinct());
+        return new SearchResponse
+        {
+            d = dirs.ToDictionary(x => x.Id, x => x.Path),
+            f = files
+                .OrderByDescending(x => score_byFile[x.id])
+                .Select(x => new File_UI(x)),
+        };
     }
 
     private static int CalculateScore(IEnumerable<int> scores)
@@ -40,14 +47,20 @@ public static class Jarvis
     }
 }
 
+public class SearchResponse
+{
+    public required Dictionary<int, string> d { get; set; }
+    public required IEnumerable   <File_UI> f { get; set; }
+}
+
 public class File_UI(DB_File_UI file)
 {
-    public int      Id { get; } = file.id;
-    public string Path { get; } = System.IO.Path.Combine(file.path, file.name);
-    public string Webp { get; } = $"{Dir_Thumbs_WEB}/{file.id:x6}.webp";
-    public long   Size { get; } = file.size;
-    public DateTime DM { get; } = DateTime.FromFileTimeUtc(file.mdate);
-    public Size? Image { get; } = file is { image_w: not null, image_h: not null }
+    public int      i { get; } = file.id;
+    public int      d { get; } = file.dir_id;
+    public string   t { get; } = $"{Dir_Thumbs_WEB}/{file.id:x6}.webp";
+    public long     s { get; } = file.size;
+    public DateTime m { get; } = DateTime.FromFileTimeUtc(file.mdate);
+    public Size?    x { get; } = file is { image_w: not null, image_h: not null }
         ? new Size(file.image_w.Value, file.image_h.Value)
         : null;
 }

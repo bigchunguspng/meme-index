@@ -5,21 +5,20 @@ using SixLabors.ImageSharp;
 
 namespace MemeIndex.Utils;
 
-[JsonSerializable(typeof(IEnumerable<File_UI>))]
+[JsonSerializable(typeof(SearchResponse))]
 [JsonSerializable(typeof(Dictionary<string, List<TraceSpan>>))]
 internal partial class
     AppJson
     :  JsonSerializerContext
 {
-    public new static readonly JsonSerializerOptions Options;
+    private new static readonly JsonSerializerOptions Options;
 
     static AppJson()
     {
         Options = new JsonSerializerOptions
         {
             TypeInfoResolver = Default,
-            PropertyNamingPolicy   = JsonNamingPolicy.SnakeCaseLower,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
         };
         Options.Converters.Add(new SizeConverter());
     }
@@ -37,8 +36,8 @@ public sealed class SizeConverter : JsonConverter<Size>
         (Utf8JsonWriter writer, Size value, JsonSerializerOptions options)
     {
         writer.WriteStartObject();
-        writer.WriteNumber("width", value.Width);
-        writer.WriteNumber("height", value.Height);
+        writer.WriteNumber("w", value.Width);
+        writer.WriteNumber("h", value.Height);
         writer.WriteEndObject();
     }
 }

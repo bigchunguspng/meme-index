@@ -34,4 +34,12 @@ public static class DB_Dirs
         const string SQL = "SELECT * FROM dirs";
         return await c.QueryAsync<DB_Dir>(SQL);
     }
+
+    public static async Task<IEnumerable<DB_Dir>> Dirs_GetByIds
+        (this SqliteConnection c, IEnumerable<int> ids)
+    {
+        // todo anti-injection
+        var SQL = $"SELECT * FROM dirs WHERE id IN ({string.Join(',', ids)})";
+        return await c.QueryAsync<DB_Dir>(SQL);
+    }
 }

@@ -21,8 +21,8 @@ namespace MemeIndex.DB;
 
 public class DB_File_UI
 {
-    public required int    id;
-    public required string path;
+    public required int      id;
+    public required int  dir_id;
     public required string name;
     public required long   size;
     public required long   mdate;
@@ -105,10 +105,9 @@ public static class DB_Files
         (this SqliteConnection c, IEnumerable<int> ids)
     {
         var SQL = // todo handle injection
-            "SELECT f.id, d.path, f.name, f.size, f.mdate, f.image_w, f.image_h "
-          + "FROM files f "
-          + "JOIN dirs d ON d.id = f.dir_id "
-          + $"WHERE f.id IN ({string.Join(',', ids)})";
+            "SELECT id, dir_id, name, size, mdate, image_w, image_h "
+          + "FROM files "
+          + $"WHERE id IN ({string.Join(',', ids)})";
         return await c.QueryAsync<DB_File_UI>(SQL);
     }
 
