@@ -57,6 +57,7 @@ public class File_UI(DB_File_UI file)
 {
     public int      i { get; } = file.id;
     public int      d { get; } = file.dir_id;
+    public string   n { get; } = file.name;
     public string   t { get; } = $"{Dir_Thumbs_WEB}/{file.id:x6}.webp";
     public long     s { get; } = file.size;
     public DateTime m { get; } = DateTime.FromFileTimeUtc(file.mdate);
