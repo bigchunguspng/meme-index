@@ -16,6 +16,7 @@ public static class Paths
         //  WEB
         Dir_WebRoot         = "web", // WHEN changing - also change in MemeIndex.csproj!
         Dir_Thumbs          = Dir_WebRoot.Combine("thumb"),
+        Dir_Thumbs_WEB      = "/thumb",
 
         //   CONFIG
         File_Config         = GetConfigLocation().Combine("config.json"),

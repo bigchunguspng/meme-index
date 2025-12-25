@@ -19,6 +19,17 @@ namespace MemeIndex.DB;
     public Size?     ImageSize;
 }*/
 
+public class DB_File_UI
+{
+    public required int    id;
+    public required string path;
+    public required string name;
+    public required long   size;
+    public required long   mdate;
+    public required int?   image_w;
+    public required int?   image_h;
+}
+
 public class DB_File_WithPath
 {
     public required int    id;
@@ -88,6 +99,17 @@ public static class DB_Files
           + "JOIN dirs d ON d.id = f.dir_id "
           + "WHERE tdate IS NULL OR mdate > tdate";
         return await c.QueryAsync<DB_File_WithPath>(SQL);
+    }
+
+    public static async Task<IEnumerable<DB_File_UI>> Files_UI_ByIds
+        (this SqliteConnection c, IEnumerable<int> ids)
+    {
+        var SQL = // todo handle injection
+            "SELECT f.id, d.path, f.name, f.size, f.mdate, f.image_w, f.image_h "
+          + "FROM files f "
+          + "JOIN dirs d ON d.id = f.dir_id "
+          + $"WHERE f.id IN ({string.Join(',', ids)})";
+        return await c.QueryAsync<DB_File_UI>(SQL);
     }
 
     public static async Task File_UpdateDateAnalyzed

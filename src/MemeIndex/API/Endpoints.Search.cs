@@ -14,7 +14,7 @@ public static partial class Endpoints
             // ignore mulipliers for now
 
             var tags = await Jarvis.Search(colors);
-            var json = JsonSerializer.Serialize(tags, AppJson.Default.IEnumerableDB_Tag);
+            var json = JsonSerializer.Serialize(tags, AppJson.Default.IEnumerableFile_UI);
             return Results.Content(json, "application/json");
         }
 

@@ -4,11 +4,11 @@ using Microsoft.Data.Sqlite;
 
 namespace MemeIndex.DB;
 
-public class DB_Tag
+public class DB_Tag_Get
 {
-    public int    file_id { get; set; }
-    public string term    { get; set; } = null!;
-    public int    score   { get; set; }
+    public required int    file_id;
+    public required string term;
+    public required int    score;
 }
 
 public class DB_Tag_Insert(TagContent tag, int file_id)
@@ -32,7 +32,7 @@ public static class DB_Tags
         await transaction.CommitAsync();
     }
 
-    public static async Task<IEnumerable<DB_Tag>> Tags_GetByTerms
+    public static async Task<IEnumerable<DB_Tag_Get>> Tags_GetByTerms
         (this SqliteConnection c, string[] terms)
     {
         // todo - add anti sql injection measures since we can't use params
@@ -40,6 +40,6 @@ public static class DB_Tags
             = "SELECT file_id, term, score "
             + "FROM tags "
             + $"WHERE term IN ({string.Join(',', terms.Select(x => $"'{x}'"))})";
-        return await c.QueryAsync<DB_Tag>(SQL);
+        return await c.QueryAsync<DB_Tag_Get>(SQL);
     }
 }
