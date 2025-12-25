@@ -84,13 +84,13 @@ builder.Services
 
 var app = builder.Build();
 
+if (flag_log) app.UseMiddleware<Mw_Logging>();
 app.UseMiddleware<Mw_ExceptionHandling>();
-if (flag_log)
-    app.UseMiddleware<Mw_Logging>();
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+app.MapGet("/api/find",      Endpoints.GetJson_Find);
 app.MapGet(    "/logs",      Endpoints.GetPage_Logs);
 app.MapGet(    "/logs/{id}", Endpoints.GetPage_EventViewer);
 app.MapGet("/api/logs/{id}", Endpoints.GetJson_EventViewerData);

@@ -1,6 +1,6 @@
 namespace MemeIndex.API;
 
-public static class Endpoints
+public static partial class Endpoints
 {
     public static IResult GetPage_Logs()
     {
