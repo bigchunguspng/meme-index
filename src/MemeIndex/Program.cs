@@ -87,6 +87,7 @@ var app = builder.Build();
 if (flag_log) app.UseMiddleware<Mw_Logging>();
 app.UseMiddleware<Mw_ExceptionHandling>();
 
+app.UseCors();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
