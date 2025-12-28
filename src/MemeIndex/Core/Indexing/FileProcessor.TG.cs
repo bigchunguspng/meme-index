@@ -55,7 +55,7 @@ public partial class FileProcessor
         Log(CODE, "DONE");
     }
 
-    private static readonly Size _fitSize = new (275, 180); // Similar to Google Images thumb size.
+    private static readonly Size _fitSize = new (174, 174);
 
     private static readonly WebpEncoder _encoder = new()
     {
