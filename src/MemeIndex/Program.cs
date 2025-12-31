@@ -91,10 +91,14 @@ app.UseCors();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-app.MapGet("/api/find",      Endpoints.GetJson_Find);
-app.MapGet(    "/logs",      Endpoints.GetPage_Logs);
-app.MapGet(    "/logs/{id}", Endpoints.GetPage_EventViewer);
-app.MapGet("/api/logs/{id}", Endpoints.GetJson_EventViewerData);
+app.MapGet (    "/logs",      Endpoints.GetPage_Logs);
+app.MapGet (    "/logs/{id}", Endpoints.GetPage_EventViewer);
+app.MapGet ("/api/find",      Endpoints.GetJson_Find);
+app.MapGet ("/api/logs/{id}", Endpoints.GetJson_EventViewerData);
+app.MapGet ("/api/files/{id}/image",   Endpoints.Get_Image);
+app.MapPost("/api/files/{id}/open",    Endpoints.Image_Open);
+app.MapPost("/api/files/{id}/explore", Endpoints.Image_OpenInExplorer);
+//app.MapPost("/api/files/{id}/run",     Endpoints.NAME);
 
 LogCM(ConsoleColor.Magenta, "SETUP");
 

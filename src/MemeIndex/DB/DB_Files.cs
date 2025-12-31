@@ -79,6 +79,17 @@ public static class DB_Files
         await transaction.CommitAsync();
     }
 
+    public static async Task<DB_File_WithPath?> File_GetPath
+        (this SqliteConnection c, string id)
+    {
+        const string SQL =
+            "SELECT f.id, d.path, f.name "
+          + "FROM files f "
+          + "JOIN dirs d ON d.id = f.dir_id "
+          + "WHERE f.id = @id";
+        return await c.QuerySingleOrDefaultAsync<DB_File_WithPath>(SQL, new { id });
+    }
+
     public static async Task<IEnumerable<DB_File_WithPath>> Files_GetToBeAnalyzed
         (this SqliteConnection c)
     {
