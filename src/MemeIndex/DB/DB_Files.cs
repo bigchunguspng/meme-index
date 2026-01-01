@@ -80,7 +80,7 @@ public static class DB_Files
     }
 
     public static async Task<DB_File_WithPath?> File_GetPath
-        (this SqliteConnection c, string id)
+        (this SqliteConnection c, int id)
     {
         const string SQL =
             "SELECT f.id, d.path, f.name "

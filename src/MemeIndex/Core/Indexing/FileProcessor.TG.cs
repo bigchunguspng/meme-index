@@ -90,7 +90,7 @@ public partial class FileProcessor
         Tracer.LogOpen(ctx.FileId, THUMB_SAVE);
         var save = Dir_Thumbs
             .EnsureDirectoryExist()
-            .Combine($"{ctx.FileId:x6}.webp");
+            .Combine(GetThumbFilename(ctx.FileId));
         await ctx.Thumb.SaveAsWebpAsync(save, _encoder);
         Tracer.LogDone(ctx.FileId, THUMB_SAVE);
         LogDebug($"File {ctx.FileId,6} -> thumbnail generated");
@@ -103,6 +103,9 @@ public partial class FileProcessor
             Tracer.LogDone(ctx.FileId, DB_W_FT);
         });
     }
+
+    [MethodImpl(AggressiveInlining)]
+    public static string GetThumbFilename(int id) => $"{id:x6}.webp";
 }
 
 public struct ThumbgenContext(FilePathRecord file)

@@ -1,3 +1,4 @@
+using MemeIndex.Core.Indexing;
 using MemeIndex.DB;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -6,7 +7,7 @@ namespace MemeIndex.API;
 
 public static partial class Endpoints
 {
-    public static async Task<IResult> Get_Image(string id)
+    public static async Task<IResult> Get_Image(int id)
     {
         var con = await AppDB.ConnectTo_Main();
         var file = await con.File_GetPath(id);
@@ -17,6 +18,20 @@ public static partial class Endpoints
         if (File.Exists(path).Janai())
             return Results.NotFound();
 
+        return await GetImage_AsPng(path);
+    }
+
+    public static async Task<IResult> Get_Thumb(int id)
+    {
+        var path = Dir_Thumbs.Combine(FileProcessor.GetThumbFilename(id));
+        if (File.Exists(path).Janai())
+            return Results.NotFound();
+
+        return await GetImage_AsPng(path);
+    }
+
+    private static async Task<IResult> GetImage_AsPng(string path)
+    {
         using var image = Image.Load<Rgba32>(path);
         var memory = new MemoryStream();
         await image.SaveAsPngAsync(memory);
