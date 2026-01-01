@@ -3,6 +3,7 @@ using MemeIndex.Core;
 using MemeIndex.Core.Indexing;
 using MemeIndex.DB;
 using MemeIndex.Utils;
+using Microsoft.Extensions.FileProviders;
 
 // Log("ARGS: " + string.Join(", ", args), color: ConsoleColor.Yellow);
 
@@ -90,6 +91,16 @@ app.UseMiddleware<Mw_ExceptionHandling>();
 app.UseCors();
 app.UseDefaultFiles();
 app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(Dir_Thumbs),
+    RequestPath = Dir_Thumbs_WEB.Value,
+    ServeUnknownFileTypes = false,
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.CacheControl = "public,max-age=31536000,immutable";
+    },
+});
 
 app.MapGet (    "/logs",      Endpoints.GetPage_Logs);
 app.MapGet (    "/logs/{id}", Endpoints.GetPage_EventViewer);

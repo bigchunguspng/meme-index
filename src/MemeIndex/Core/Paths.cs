@@ -7,7 +7,7 @@ public static class Paths
 {
     public static readonly FilePath
 #if DEVELOP
-        Dir_AppData         = "data",
+        Dir_AppData         = new FilePath(CurrentDirectory).Combine("data"),
 #else
         Dir_AppData         = new FilePath(SpecialFolder. LocalApplicationData).Combine(CLI.NAME),
 #endif
@@ -15,7 +15,9 @@ public static class Paths
 
         //  WEB
         Dir_WebRoot         = "web", // WHEN changing - also change in MemeIndex.csproj!
-        Dir_Thumbs          = Dir_WebRoot.Combine("thumb"),
+
+        //  THUMBS
+        Dir_Thumbs          = Dir_AppData.Combine("thumbs"),
         Dir_Thumbs_WEB      = "/thumb",
 
         //   CONFIG
@@ -59,6 +61,7 @@ WINDOWS:
         MemeIndex.exe
     ~\AppData\Local\MemeIndex\
         logs\*
+        thumbs\*.webp
         config.json
         meme-index.db
 */
