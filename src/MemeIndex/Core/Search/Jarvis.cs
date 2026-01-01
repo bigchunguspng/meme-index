@@ -28,7 +28,7 @@ public static class Jarvis
         var dirs = await con.Dirs_GetByIds(files.Select(x => x.dir_id).Distinct());
         return new SearchResponse
         {
-            d = dirs.ToDictionary(x => x.Id, x => x.Path),
+            d = dirs.ToDictionary(x => x.Id, x => x.Path + Path.DirectorySeparatorChar),
             f = files
                 .OrderByDescending(x => score_byFile[x.id])
                 .Select(x => new File_UI(x)),
@@ -58,7 +58,6 @@ public class File_UI(DB_File_UI file)
     public int      i { get; } = file.id;
     public int      d { get; } = file.dir_id;
     public string   n { get; } = file.name;
-    public string   t { get; } = $"{Dir_Thumbs_WEB}/{file.id:x6}.webp";
     public long     s { get; } = file.size;
     public DateTime m { get; } = DateTime.FromFileTimeUtc(file.mdate);
     public Size?    x { get; } = file is { image_w: not null, image_h: not null }
