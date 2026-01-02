@@ -42,28 +42,56 @@ public static class Paths
         : new FilePath(SpecialFolder.ApplicationData);
 }
 
-// TODO - is this user or system app?
+// TODO implement scheme below
 /*
 LINUX:
-    /bin/memeindex ->
-    /usr/lib/memeindex
-        libe_sqlite3.so
+    /bin/                       // == FOR ALL USERS, readonly, on PATH
+        memeindex ->
+    /usr/lib/memeindex/         // == FOR ALL USERS, readonly, architecture-__dependent
         memeindex
-    /usr/share/memeindex/web/*
-    /var/log/memeindex/*
-    ~/.config/memeindex/config.json
-    ~/.local/share/memeindex/
+        libe_sqlite3.so
+        web/ ->
+    /usr/share/memeindex/       // == FOR ALL USERS, readonly, architecture-independent
+        web/*
+    /var/lib/memeindex/         // == FOR ALL USERS, runtime-writen
+        ports.txt
+    ~/.local/share/memeindex/   // == FOR ONE USER,  runtime-writen, data
+        debug-artifacts/*
+        thumbs/*.webp
+        web/*
         meme-index.db
-WINDOWS:
-    C:\Program Files\MemeIndex\
-        web\*
-        e_sqlite3.dll
-        MemeIndex.exe
-    ~\AppData\Local\MemeIndex\
-        logs\*
-        thumbs\*.webp
+    ~/.config/memeindex/        // == FOR ONE USER,  runtime-writen, config
         config.json
-        meme-index.db
+    ~/.cache/memeindex/         // == FOR ONE USER,  runtime-writen, disposable
+        logs/*
+WINDOWS:
+    C:\Program Files\MemeIndex\ // == FOR ALL USERS, readonly
+        web\*                   // frontend files, statically hosted
+        e_sqlite3.dll           //  backend libs
+        MemeIndex.exe           //  backend executable
+    C:\ProgramData\MemeIndex\   // == FOR ALL USERS, runtime-writen
+        ports.txt               // mapping users to http ports,
+    ~\AppData\Local\MemeIndex\  // == FOR ONE USER,  runtime-writen
+        debug-artifacts\*       // for development purpose
+        logs\*                  // logs
+        thumbs\*.webp           // thumbnails,     statically hosted
+        web\*                   // frontend files, statically hosted, alternative [^1]
+        config.json             // user config
+        meme-index.db           // user db
+DEVELOPMENT:
+    …\out\bin\…
+        MemeIndex.exe
+        e_sqlite3.dll
+        web\*
+        data\
+            debug-artifacts\*
+            logs\*
+            thumbs\*.webp
+            config.json
+            meme-index.db
+            ports.txt
+
+[^1]: user can configure app to use another directory for frontend content.
 */
 
 /* == NOTES:
