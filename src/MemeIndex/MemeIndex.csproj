@@ -42,7 +42,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="web/**" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="web/**"
+             Exclude="web/**/.**;web/**/.*/**;web/.*"
+             CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

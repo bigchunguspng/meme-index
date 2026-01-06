@@ -26,13 +26,13 @@ pub:
 
 run-web:	build-fast
 	-$(OPEN) "http://localhost:7373"
-	cd $(WDIR_BIN) && $(BIN) -l
+	cd $(WDIR_BIN) && $(BIN) --dev -l
 run:		build-fast
-	cd $(WDIR_BIN) && $(BIN) args.txt
+	cd $(WDIR_BIN) && $(BIN) --dev args.txt
 run-test:	build-fast
-	cd $(WDIR_BIN) && $(BIN) lab -t
+	cd $(WDIR_BIN) && $(BIN) --dev lab -t
 run-demo:	build-fast
-	cd $(WDIR_BIN) && $(BIN) lab -D args.txt
+	cd $(WDIR_BIN) && $(BIN) --dev lab -D args.txt
 
 clear:
 	rm "$(WDIR_BIN)/data/meme-index.db"

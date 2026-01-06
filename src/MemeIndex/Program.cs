@@ -5,14 +5,16 @@ using MemeIndex.DB;
 using MemeIndex.Utils;
 using Microsoft.Extensions.FileProviders;
 
-// Log("ARGS: " + string.Join(", ", args), color: ConsoleColor.Yellow);
+// Print("ARGS: " + string.Join(", ", args), color: ConsoleColor.Yellow);
 
-// HELP | VERSION
+Config.ConfigureDirectories(args);
+
+// BRANCH (INFO)
 if (CLI.TryHandleArgs_Info(args)) return;
 
 LogCM(ConsoleColor.Magenta, "START");
 
-// HACKS
+// EVENT HANDLERS SETUP
 
 Console.CancelKeyPress        += (_, _) => App.SaveAndExit();
 App.Domain.ProcessExit        += (_, _) => App.SaveAndExit();
@@ -23,31 +25,24 @@ App.Domain.UnhandledException += (_, e) =>
     Environment.Exit(1);
 };
 
-// BRANCH
+// BRANCH (LAB)
 if (CLI.TryHandleArgs_Action(args)) return;
 
 LogCM(ConsoleColor.Magenta, "RUNNING NORMAL MODE (web server)");
 
-// BUILDER
+// WEB APP BUILDER
 
 var flag_url = args.Any(x => x.StartsWith("--urls"));
 var flag_log = args.Any(x => x is "-l" or "--log");
-var opt_web  = args.FindIndex(x => x is "-w" or "--web") + 1 is var i
-            && i > 0
-            && i < args.Length
-    ? args[i]
-    : Dir_WebRoot.Value;
-
-Log($"Web root path: {opt_web}");
 
 var wa_options = new WebApplicationOptions
 {
-    Args = args, WebRootPath = opt_web,
+    Args = args, WebRootPath = Dir_WebRoot,
 };
 
 var builder = WebApplication.CreateSlimBuilder(wa_options);
 
-if (flag_url.Janai())
+if (flag_url.IsOff())
 {
     var port = await HostingHelpers.GetFreePort();
 
@@ -81,7 +76,7 @@ builder.Services
             .AllowAnyMethod()))
     ;
 
-// APP
+// REQUEST PIPELINE
 
 var app = builder.Build();
 
@@ -93,7 +88,7 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseStaticFiles(new StaticFileOptions
 {
-    FileProvider = new PhysicalFileProvider(Dir_Thumbs),
+    FileProvider = new PhysicalFileProvider(Dir_Thumbs.EnsureDirectoryExist()),
     RequestPath = Dir_Thumbs_WEB.Value,
     ServeUnknownFileTypes = false,
     OnPrepareResponse = ctx =>
@@ -101,6 +96,8 @@ app.UseStaticFiles(new StaticFileOptions
         ctx.Context.Response.Headers.CacheControl = "public,max-age=31536000,immutable";
     },
 });
+
+// API
 
 app.MapGet (    "/logs",      Endpoints.GetPage_Logs);
 app.MapGet (    "/logs/{id}", Endpoints.GetPage_EventViewer);
@@ -112,7 +109,7 @@ app.MapPost("/api/files/{id}/open",    Endpoints.Image_Open);
 app.MapPost("/api/files/{id}/explore", Endpoints.Image_OpenInExplorer);
 //app.MapPost("/api/files/{id}/run",     Endpoints.NAME);
 
-LogCM(ConsoleColor.Magenta, "SETUP");
+LogCM(ConsoleColor.Magenta, "SETUP DONE");
 
 _ = TestCode();
 

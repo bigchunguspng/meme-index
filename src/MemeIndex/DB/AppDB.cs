@@ -12,7 +12,7 @@ public static class AppDB
     private static string?  _DB_Path_Main;
     private static string    DB_Path_Main => _DB_Path_Main ??= GetDB_Path_Main();
     private static string GetDB_Path_Main
-        () => Dir_AppData.EnsureDirectoryExist().Combine("meme-index.db");
+        () => Dir_UserData.EnsureDirectoryExist().Combine("meme-index.db");
 
     public static Task<SqliteConnection> ConnectTo_Main
         () => OpenConnection(DB_Path_Main);
@@ -29,7 +29,7 @@ public static class AppDB
     private static string?  _DB_Path_Raw;
     private static string    DB_Path_Raw => _DB_Path_Raw ??= GetDB_Path_Raw();
     private static string GetDB_Path_Raw
-        () => Dir_AppData.EnsureDirectoryExist().Combine("raw.db");
+        () => Dir_UserData.EnsureDirectoryExist().Combine("raw.db");
 
     public static Task<SqliteConnection> ConnectTo_Raw
         () => OpenConnection(DB_Path_Raw);

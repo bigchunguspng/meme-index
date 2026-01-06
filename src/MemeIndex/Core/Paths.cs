@@ -5,44 +5,69 @@ namespace MemeIndex.Core;
 
 public static class Paths
 {
+    private static readonly FilePath Dir_App = AppContext.BaseDirectory;
+
+    private static FilePath Linux_Dir_AppData    => new FilePath("/var/lib").Combine(CLI.NAME);
+    private static FilePath Linux_Dir_UserHome   => new (SpecialFolder.UserProfile);
+    private static FilePath Linux_Dir_UserConfig => Linux_Dir_UserHome.Combine(".config",      CLI.NAME);
+    private static FilePath Linux_Dir_UserCache  => Linux_Dir_UserHome.Combine(".cache",       CLI.NAME);
+    private static FilePath Linux_Dir_UserData   => Linux_Dir_UserHome.Combine(".local/share", CLI.NAME);
+
+    private static FilePath Windows_Dir_AppData  => new FilePath(SpecialFolder.CommonApplicationData).Combine(CLI.NAME);
+    private static FilePath Windows_Dir_UserData => new FilePath(SpecialFolder. LocalApplicationData).Combine(CLI.NAME);
+
+    private static FilePath DEV_Dir_Data         => Dir_App.Combine("data");
+
     public static readonly FilePath
-#if DEVELOP
-        Dir_AppData         = new FilePath(CurrentDirectory).Combine("data"),
-#else
-        Dir_AppData         = new FilePath(SpecialFolder. LocalApplicationData).Combine(CLI.NAME),
-#endif
-        Dir_Common          = new FilePath(SpecialFolder.CommonApplicationData).Combine(CLI.NAME),
+
+        //  ROOT
+        Dir_AppData         = Config.DEVELOPMENT ? DEV_Dir_Data : Helpers.IsLinux ? Linux_Dir_AppData    : Windows_Dir_AppData,
+        Dir_UserConfig      = Config.DEVELOPMENT ? DEV_Dir_Data : Helpers.IsLinux ? Linux_Dir_UserConfig : Windows_Dir_UserData,
+        Dir_UserCache       = Config.DEVELOPMENT ? DEV_Dir_Data : Helpers.IsLinux ? Linux_Dir_UserCache  : Windows_Dir_UserData,
+        Dir_UserData        = Config.DEVELOPMENT ? DEV_Dir_Data : Helpers.IsLinux ? Linux_Dir_UserData   : Windows_Dir_UserData,
 
         //  WEB
-        Dir_WebRoot         = "web", // WHEN changing - also change in MemeIndex.csproj!
+        Dir_WebRoot         = Config.WEB_ROOT ?? Dir_App.Combine("web"),
 
         //  THUMBS
-        Dir_Thumbs          = Dir_AppData.Combine("thumbs"),
+        Dir_Thumbs          = Dir_UserData.Combine("thumbs"),
         Dir_Thumbs_WEB      = "/thumb",
 
         //   CONFIG
-        File_Config         = GetConfigLocation().Combine("config.json"),
-        File_Ports          = Dir_Common.Combine("ports.txt"),
+        File_Ports          = Dir_AppData.Combine("ports.txt"),
+        File_Config         = Dir_UserConfig.Combine("config.json"),
 
         //  LOGS
-        Dir_Logs            = Helpers.IsWindows ? Dir_AppData.Combine("logs") : $"/var/log/{CLI.NAME}",
+        Dir_Logs            = Dir_UserCache.Combine("logs"),
         Dir_Traces          = Dir_Logs.Combine("traces"),
         File_Log            = Dir_Logs.Combine("log.txt"),
         File_Err            = Dir_Logs.Combine("err.txt"),
 
         //  DEBUG
-        Dir_Debug           = Dir_AppData.Combine("debug-artifacts"),
+        Dir_Debug           = Dir_UserData.Combine("debug-artifacts"),
         Dir_Debug_Color     = Dir_Debug.Combine("Color"),    // Color model visualizations.
         Dir_Debug_Profiles  = Dir_Debug.Combine("Profiles"), // Image -> plot  + data.s
         Dir_Debug_Image     = Dir_Debug.Combine("Image"),    // Image -> image + data.
         Dir_Debug_Mixed     = Dir_Debug.Combine("Mixed");    // Image -> image + data + plot.
 
-    private static FilePath GetConfigLocation() => Helpers.IsWindows
-        ? Dir_AppData
-        : new FilePath(SpecialFolder.ApplicationData);
+    public static void InspectDirectories()
+    {
+        var G = ConsoleColor.Green;
+        var R = ConsoleColor.Red;
+        Print("== DIRECTORIES ==");
+        Print("= PROGRAM");
+        Print($"   files    {Dir_App}",        Dir_App        .DirectoryExists ? G : R);
+        Print($"   data     {Dir_AppData}",    Dir_AppData    .DirectoryExists ? G : R);
+        Print("= USER");
+        Print($"   config   {Dir_UserConfig}", Dir_UserConfig .DirectoryExists ? G : R);
+        Print($"   cache    {Dir_UserCache}",  Dir_UserCache  .DirectoryExists ? G : R);
+        Print($"   data     {Dir_UserData}",   Dir_UserData   .DirectoryExists ? G : R);
+        Print("= UI");
+        Print($"   static   {Dir_WebRoot}",    Dir_WebRoot    .DirectoryExists ? G : R);
+        Print($"   thumbs   {Dir_Thumbs}",     Dir_Thumbs     .DirectoryExists ? G : R);
+    }
 }
 
-// TODO implement scheme below
 /*
 LINUX:
     /bin/                       // == FOR ALL USERS, readonly, on PATH
