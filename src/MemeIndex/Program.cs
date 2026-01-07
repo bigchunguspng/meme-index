@@ -3,6 +3,8 @@ using MemeIndex.Core;
 using MemeIndex.Core.Indexing;
 using MemeIndex.DB;
 using MemeIndex.Utils;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.FileProviders;
 
 // Print("ARGS: " + string.Join(", ", args), color: ConsoleColor.Yellow);
@@ -47,14 +49,8 @@ if (flag_url.IsOff())
     var port = await HostingHelpers.GetFreePort();
 
     builder.WebHost
-        .ConfigureKestrel(options =>
-        {
-            options.Listen(HostingHelpers.IP, port);
-            if (port != HostingHelpers.DYNAMIC_PORT)
-            {
-                options.ListenLocalhost(port);
-            }
-        })
+        .ConfigureKestrel(options => options
+            .Listen(HostingHelpers.IP, port))
         ;
 }
 
@@ -71,7 +67,7 @@ builder.Services
         .Insert(0, AppJson.Default))
     .AddCors(options => options
         .AddDefaultPolicy(policy => policy
-            .WithOrigins("*")
+            .AllowAnyOrigin()
             .AllowAnyHeader()
             .AllowAnyMethod()))
     ;
@@ -108,6 +104,20 @@ app.MapGet ("/api/files/{id}/thumb",   Endpoints.Get_Thumb);
 app.MapPost("/api/files/{id}/open",    Endpoints.Image_Open);
 app.MapPost("/api/files/{id}/explore", Endpoints.Image_OpenInExplorer);
 //app.MapPost("/api/files/{id}/run",     Endpoints.NAME);
+
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+    app.Logger.LogInformation("Yo!");
+    var server = app.Services.GetRequiredService<IServer>();
+    var urls = server.Features.Get<IServerAddressesFeature>()?.Addresses;
+    urls?.ForEach(url =>
+    {
+        var localhost = url.Replace("0.0.0.0", "localhost");
+        var aka = url != localhost ? $" a.k.a. {localhost}" : null;
+        app.Logger.LogInformation("Listening on {URL}{aka}", url, aka);
+    });
+});
+app.Lifetime.ApplicationStopping.Register(() => app.Logger.LogInformation("Exit…"));
 
 LogCM(ConsoleColor.Magenta, "SETUP DONE");
 
