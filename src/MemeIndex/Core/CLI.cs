@@ -53,7 +53,7 @@ public static class CLI
         while (reader.ReadLine() is { } line)
         {
             if (line.StartsWith(' ')) Print(line);
-            else Print(line, ConsoleColor.White);
+            else Print(line, ConsoleColor.Yellow);
         }
     }
 
