@@ -138,7 +138,8 @@ async Task TestCode()
         Log("await connection.CloseAsync();");
     }
 
-    var path = CLI.GetArgsFromFile(args[0]).First();
-    await Command_AddFilesToDB.Execute(path, recursive: false);
-    Log($"await FileProcessor.AddFilesToDB(@\"{path}\", recursive: false);");
+    var path = CLI.GetArgsFromFile(args.First(x => x.StartsWith('-').Janai())).First();
+    var recursive = args.Contains("-r");
+    await Command_AddFilesToDB.Execute(path, recursive);
+    LogCM(ConsoleColor.Green, $"await Command_AddFilesToDB.Execute(@\"{path}\", recursive: {(recursive ? "true" : "false")});");
 }
