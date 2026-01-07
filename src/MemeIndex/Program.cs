@@ -114,7 +114,7 @@ app.Lifetime.ApplicationStarted.Register(() =>
     {
         var localhost = url.Replace("0.0.0.0", "localhost");
         var aka = url != localhost ? $" a.k.a. {localhost}" : null;
-        app.Logger.LogInformation("Listening on {URL}{aka}", url, aka);
+        app.Logger.LogInformation($"Listening on {url}{aka}", url);
     });
 });
 app.Lifetime.ApplicationStopping.Register(() => app.Logger.LogInformation("Exit…"));
