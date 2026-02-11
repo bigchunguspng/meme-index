@@ -72,6 +72,7 @@ public static class Jarvis_v2
         var len = tokens.Count;
         for (var i = 0; i < len; i++)
         {
+            var expr_start = i == 0 || tokens[i - 1].Type == GROUP_OP;
             var token = tokens[i];
             var type  = token.Type;
             if (type == OP)
@@ -79,16 +80,17 @@ public static class Jarvis_v2
                 var value = token.Value;
                 if (value == "-")
                 {
-                    var expr_start = i == 0 || tokens[i - 1].Type == GROUP_OP;
                     _ = expr_start
-                        ? sb.Append("\nNOT ")
+                        ? sb.Append("\n    NOT ")
                         : sb.Append("\nAND NOT ");
                 }
-                else if (value == "+") sb.Append("\nAND ");
-                else if (value == "|") sb.Append("\nOR ");
+                else if (value == "+") sb.Append("\nAND     ");
+                else if (value == "|") sb.Append("\nOR      ");
             }
             else if (type == TERM)
             {
+                if (expr_start) sb.Append("        ");
+
                 sb.Append($"SUM(t.term = '{token.Value}'");
                 var negative = false;
                 if (i + 1 < len && tokens[i + 1] is { Type: MOD } modifier)
@@ -120,7 +122,12 @@ public static class Jarvis_v2
                 var sign = negative ? '=' : '>';
                 sb.Append($") {sign} 0");
             }
-            else if (type == GROUP_OP) sb.Append("\n(");
+            else if (type == GROUP_OP)
+            {
+                _ = expr_start
+                    ? sb.Append  ("(\n")
+                    : sb.Append("\n(\n");
+            }
             else if (type == GROUP_ED) sb.Append("\n)");
         }
 
@@ -142,7 +149,7 @@ public enum TokenType
     TERM_PREV     = NONE | OP  | GROUP_OP,
     OP_ANY_PREV   = TERM | MOD | GROUP_ED,
     OP_SUB_PREV   = TERM | MOD | GROUP_ED | NONE | GROUP_OP,
-    MOD_PREV      = TERM | GROUP_ED,
+    MOD_PREV      = TERM,
     GROUP_OP_PREV = NONE | OP,
     GROUP_ED_PREV = TERM | MOD,
     //    `X_PREV = A | B` means `X can go after A and B`
