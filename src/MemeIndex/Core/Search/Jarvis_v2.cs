@@ -8,6 +8,8 @@ public static class Jarvis_v2
     public static async Task<SearchResponse> Search_ByColor(string expression)
     {
         var tokens = Lex(expression);
+        var sql = Build_SQL(tokens);
+        Console.WriteLine(sql);
         // expr -lexer-> tokens
         // tokens -compiler-> SQL
 
@@ -41,6 +43,7 @@ public static class Jarvis_v2
                     : 1;
                 Take(l, MOD);
             }
+            // todo throw if braces messed up
             else if (GROUP_OP_PREV.HasFlag(prev) && c is '(') Take(1, GROUP_OP);
             else if (GROUP_ED_PREV.HasFlag(prev) && c is ')') Take(1, GROUP_ED);
             else if (c != ' ')
@@ -59,16 +62,120 @@ public static class Jarvis_v2
         return result;
     }
 
-    private static StringBuilder Build_SQL_sort   (List<Token> tokens)
+    private static string Build_SQL
+        (List<Token> tokens)
     {
-        var sb = new StringBuilder();
-        // TODO
+        const string
+            sql_1 =
+                """
+                SELECT
+                f.id, f.dir_id, f.name,
+                f.size, f.mdate,
+                f.image_w, f.image_h,
+                exp
+                (
+                    SUM
+                    (
+                CASE t.term
+                
+                """,
+            sql_2 =
+                """
+                END
+                    )
+                ) AS sort
+                FROM files f
+                JOIN tags t ON t.file_id = f.id
+                GROUP BY f.id
+                HAVING
+                (
+                
+                """,
+            sql_3 =
+                """
+                )
+                ORDER BY f.id;
+                """;
+
+        return new StringBuilder()
+            .Append(sql_1)
+            .Build_SQL_sort  (tokens)
+            .Append(sql_2)
+            .Build_SQL_HAVING(tokens)
+            .Append(sql_3)
+            .ToString();
+    }
+
+    private static StringBuilder Build_SQL_sort
+        (this StringBuilder sb, List<Token> tokens)
+    {
+        var terms_to_sort = tokens
+            .Where(x => x.Type == TERM)
+            .Select(x => x.Value)
+            .GroupBy(x => x)
+            .Where(x => x.Count() == 1)
+            .Select(x => x.Key)
+            .ToArray();
+
+        foreach (var term in terms_to_sort)
+        {
+            var i_token = tokens.FindIndex(x => x.Type is TERM && x.Value == term);
+
+            // find out if it's negative
+            var negative = false;
+            var negative_count = 0;
+            var side_quest = 0; // how deep we are in other groups
+            for (var i = i_token - 1; i >= 0; i--)
+            {
+                var token      = tokens[i];
+                var token_next = tokens[i + 1];
+                var minus = token is { Type: OP, Value: "-" };
+
+                if      (minus && i == i_token - 1) /*  1ST ITER ONLY! before term  */ negative_count++;
+                else if (minus && side_quest == 0 && token_next is { Type: GROUP_OP }) negative_count++;
+                else if (token is { Type: GROUP_ED })                                  side_quest++;
+                else if (token is { Type: GROUP_OP } && side_quest > 0)
+                {
+                    side_quest--;
+                    i--; // skip potential "-"
+                }
+            }
+            if ((negative_count & 1) == 1) negative = true;
+
+            // account for mods
+            var target_log_score = negative ? 1.0 : 4.0;
+            var both_S_or_L = false;
+            var i_mod = i_token + 1;
+            if (i_mod < tokens.Count && tokens[i_mod] is { Type: MOD } modifier)
+            {
+                var mod_set = modifier.Value;
+                var S = mod_set.Contains('S') != negative;
+                var M = mod_set.Contains('M') != negative;
+                var L = mod_set.Contains('L') != negative;
+                if (mod_set.Length == 1 != negative)
+                {
+                    if      (S) target_log_score = 1.0;
+                    else if (M) target_log_score = 2.5;
+                    else if (L) target_log_score = 4.0;
+                }
+                else
+                {
+                    if      (!S) target_log_score = 3.0;
+                    else if (!L) target_log_score = 2.0;
+                    else if (!M) both_S_or_L = true;
+                }
+            }
+
+            if (both_S_or_L) sb.Append($"WHEN '{term}' THEN min(ln(abs(1.0 - log(t.score))), ln(abs(4.0 - log(t.score))))\n");
+            else             sb.Append($"WHEN '{term}' THEN ln(abs({target_log_score:F1} - log(t.score)))\n");
+        }
+
         return sb;
     }
 
-    private static StringBuilder Build_SQL_HAVING (List<Token> tokens)
+    private static StringBuilder Build_SQL_HAVING
+        (this StringBuilder sb, List<Token> tokens)
     {
-        var sb = new StringBuilder();
         var len = tokens.Count;
         for (var i = 0; i < len; i++)
         {
@@ -81,11 +188,11 @@ public static class Jarvis_v2
                 if (value == "-")
                 {
                     _ = expr_start
-                        ? sb.Append("\n    NOT ")
-                        : sb.Append("\nAND NOT ");
+                        ? sb.Append("    NOT ")
+                        : sb.Append("AND NOT ");
                 }
-                else if (value == "+") sb.Append("\nAND     ");
-                else if (value == "|") sb.Append("\nOR      ");
+                else if (value == "+") sb.Append("AND     ");
+                else if (value == "|") sb.Append("OR      ");
             }
             else if (type == TERM)
             {
@@ -120,15 +227,10 @@ public static class Jarvis_v2
                 }
 
                 var sign = negative ? '=' : '>';
-                sb.Append($") {sign} 0");
+                sb.Append($") {sign} 0\n");
             }
-            else if (type == GROUP_OP)
-            {
-                _ = expr_start
-                    ? sb.Append  ("(\n")
-                    : sb.Append("\n(\n");
-            }
-            else if (type == GROUP_ED) sb.Append("\n)");
+            else if (type == GROUP_OP) sb.Append("\n(\n");
+            else if (type == GROUP_ED) sb.Append  (")\n");
         }
 
         return sb;
@@ -150,7 +252,7 @@ public enum TokenType
     OP_ANY_PREV   = TERM | MOD | GROUP_ED,
     OP_SUB_PREV   = TERM | MOD | GROUP_ED | NONE | GROUP_OP,
     MOD_PREV      = TERM,
-    GROUP_OP_PREV = NONE | OP,
-    GROUP_ED_PREV = TERM | MOD,
+    GROUP_OP_PREV = GROUP_OP | NONE | OP,
+    GROUP_ED_PREV = GROUP_ED | TERM | MOD,
     //    `X_PREV = A | B` means `X can go after A and B`
 }
