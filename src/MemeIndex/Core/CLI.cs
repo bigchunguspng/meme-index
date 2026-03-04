@@ -38,8 +38,8 @@ public static class CLI
                 -l  --log                   Log all HTTP requests (might be slower).
 
              OPTIONS-LAB:
-                -t  --test           INT    Execute method  from test list [1-9].
-                -T  --test-list             List    methods from test list.
+                -t  --test           INT    Execute test method by its number.
+                -T  --test-list             List    test methods.
                 -d  --demo    IMAGE-PATH... Analyze images, save report (image, tags, color profile).
                 -D  --demo-list     FILE    Same as ^, take image paths from FILE.
                 -p  --profile IMAGE-PATH... Save color profiles (all kinds).

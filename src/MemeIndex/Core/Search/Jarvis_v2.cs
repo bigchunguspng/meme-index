@@ -5,6 +5,32 @@ namespace MemeIndex.Core.Search;
 
 public static class Jarvis_v2
 {
+    public static void Test_SQL()
+    {
+        while (true)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.Write("Expression: ");
+            Console.ForegroundColor = ConsoleColor.Green;
+            var input = Console.ReadLine();
+            Console.ResetColor();
+            Console.WriteLine();
+            try
+            {
+                if (input == null) return;
+
+                var tokens = Lex(input);
+                var sql = Build_SQL(tokens);
+                Console.WriteLine(sql);
+                Console.WriteLine();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+        }
+    }
+
     public static async Task<SearchResponse> Search_ByColor(string expression)
     {
         var tokens = Lex(expression);

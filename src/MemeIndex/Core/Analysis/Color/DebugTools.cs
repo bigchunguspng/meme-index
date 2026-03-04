@@ -1,5 +1,6 @@
 using MemeIndex.Core.Analysis.Color.v1;
 using MemeIndex.Core.Analysis.Color.v2;
+using MemeIndex.Core.Search;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
@@ -23,6 +24,7 @@ public static partial class DebugTools
         "Oklch(step: 30)",
         "Oklch_HxL",
         "CompareHLS_ToOklch",
+        "Expression -> SQL (Jarvis v2)",
     ];
 
     public static void Test(int number)
@@ -32,15 +34,16 @@ public static partial class DebugTools
             sw.Log($"TEST: {_test_names[number - 1]}");
         switch (number)
         {
-            case 1: RenderStepCalculation();           break;
-            case 2: RenderHueReferences_Frames();      break;
-            case 3: RenderFullOklch_Frames();          break;
-            case 4: RenderFullOklch_On3x2();           break;
-            case 5: RenderHues_Oklch_v2();             break;
-            case 6: HSL  (30);                         break;
-            case 7: Oklch(30);                         break;
-            case 8: Oklch_HxL();                       break;
-            case 9: CompareHLS_ToOklch();              break;
+            case  1: RenderStepCalculation();           break;
+            case  2: RenderHueReferences_Frames();      break;
+            case  3: RenderFullOklch_Frames();          break;
+            case  4: RenderFullOklch_On3x2();           break;
+            case  5: RenderHues_Oklch_v2();             break;
+            case  6: HSL  (30);                         break;
+            case  7: Oklch(30);                         break;
+            case  8: Oklch_HxL();                       break;
+            case  9: CompareHLS_ToOklch();              break;
+            case 10: Jarvis_v2.Test_SQL();              break;
         }
         sw.Log("DONE");
     }
@@ -49,7 +52,7 @@ public static partial class DebugTools
     {
         for (var i = 0; i < _test_names.Length; i++)
         {
-            Print($"{i,3} -> {_test_names[i]}");
+            Print($"{i + 1,3} -> {_test_names[i]}");
         }
     }
 
