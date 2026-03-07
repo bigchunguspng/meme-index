@@ -26,7 +26,7 @@ public static class Jarvis_v2
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Print($"{e}", ConsoleColor.DarkRed);
             }
         }
     }
@@ -42,7 +42,7 @@ public static class Jarvis_v2
         throw new NotImplementedException();
     }
 
-    // RSM+#L+BP-A0LM+(A3|A4)L
+    // RSM+#L+BP-A0LM+(A3|A4S)
     // All terms 2 chars long!
     // Mod is 1..2 chars long!
     private static List<Token> Lex(string expression)
@@ -51,6 +51,7 @@ public static class Jarvis_v2
         var i = 0;
         var len = expression.Length;
         var prev = NONE;
+        var depth = 0; // 0(1(2)1)0)-1
         while (i < len)
         {
             var c = expression[i];
@@ -69,11 +70,20 @@ public static class Jarvis_v2
                     : 1;
                 Take(l, MOD);
             }
-            // todo throw if braces messed up
-            else if (GROUP_OP_PREV.HasFlag(prev) && c is '(') Take(1, GROUP_OP);
-            else if (GROUP_ED_PREV.HasFlag(prev) && c is ')') Take(1, GROUP_ED);
-            else if (c != ' ')
-                throw new Exception($"UNEXPECTED TOKEN {c} at position {i}");
+            else if (GROUP_OP_PREV.HasFlag(prev) && c is '(')
+            {
+                Take(1, GROUP_OP);
+                depth++;
+            }
+            else if (GROUP_ED_PREV.HasFlag(prev) && c is ')')
+            {
+                Take(1, GROUP_ED);
+                depth--;
+
+                if (depth < 0) Fail(); // ')' closes nothing
+            }
+            else if (c == ' ') i++;    // allow optional spaces
+            else               Fail();
 
             void Take(int chars, TokenType type)
             {
@@ -83,7 +93,12 @@ public static class Jarvis_v2
                 i += chars;
                 prev = type;
             }
+
+            [StackTraceHidden] void Fail
+                () => throw new Exception($"UNEXPECTED TOKEN '{c}' at position {i}");
         }
+
+        if (depth > 0) throw new Exception($"{depth} UNMATCHED '('");
 
         return result;
     }
@@ -107,6 +122,7 @@ public static class Jarvis_v2
                 """,
             sql_2 =
                 """
+                ELSE 0
                 END
                     )
                 ) AS sort
@@ -195,6 +211,8 @@ public static class Jarvis_v2
             if (both_S_or_L) sb.Append($"WHEN '{term}' THEN min(ln(abs(1.0 - log(t.score))), ln(abs(4.0 - log(t.score))))\n");
             else             sb.Append($"WHEN '{term}' THEN ln(abs({target_log_score:F1} - log(t.score)))\n");
         }
+
+        if (terms_to_sort.Length == 0) sb.Append("WHEN '*' THEN 0\n"); // stub for valid SQL
 
         return sb;
     }
