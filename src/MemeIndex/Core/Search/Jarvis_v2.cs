@@ -1,4 +1,7 @@
+using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using MemeIndex.DB;
 using static MemeIndex.Core.Search.TokenType;
 
 namespace MemeIndex.Core.Search;
@@ -31,15 +34,67 @@ public static class Jarvis_v2
         }
     }
 
-    public static async Task<SearchResponse> Search_ByColor(string expression)
-    {
-        var tokens = Lex(expression);
-        var sql = Build_SQL(tokens);
-        Console.WriteLine(sql);
-        // expr -lexer-> tokens
-        // tokens -compiler-> SQL
+    // CACHE
 
-        throw new NotImplementedException();
+    // todo limited cache (size + time)
+    private static readonly ConcurrentDictionary<string, File_UI[]> _cache = new();
+
+    public  static void Cache_Clear() => _cache.Clear();
+
+    private static void Cache
+        (string expression, File_UI[] files)
+        =>
+        _cache[expression] = files;
+
+    private static bool Cache_TryGetValue
+        (string expression, [MaybeNullWhen(false)] out File_UI[] files)
+        =>
+        (files = _cache.GetValueOrDefault(expression)) != null;
+
+    // SEARCH
+
+    public static async Task<SearchResponse> Search_ByColor(string expression, int skip = 0, int take = 100)
+    {
+        LogDebug($"[Jv2] Expression: {expression}");
+
+        var sw = Stopwatch.StartNew();
+        var con = await AppDB.ConnectTo_Main();
+        sw.Log("db connnect");
+
+        if (Cache_TryGetValue(expression, out var files) == false)
+        {
+            sw.Log("check cache");
+            var tokens = Lex(expression);
+            var sql = Build_SQL(tokens);
+            sw.Log("expr -> SQL");
+            var files_db = await con.Files_UI_GetBySQL(sql);
+            sw.Log("db get files");
+
+            files = files_db
+                .OrderBy(x => x.sort)
+                .Select(x => new File_UI(x))
+                .ToArray();
+            sw.Log("sort files");
+
+            Cache(expression, files);
+            sw.Log("cache files");
+        }
+        else
+            sw.Log("check cache (false)");
+
+        var files_slice = files.Skip(skip).Take(take).ToArray();
+        sw.Log("slice files");
+        var dir_ids = files_slice.Select(x => x.d).Distinct();
+        var dirs_db = await con.Dirs_GetByIds(dir_ids);
+        var dirs = dirs_db.ToDictionary(x => x.Id, x => x.Path + Path.DirectorySeparatorChar);
+        sw.Log("db get dirs");
+
+        return new SearchResponse
+        {
+            p = new Pagination(skip, files_slice.Length, files.Length),
+            d = dirs,
+            f = files_slice,
+        };
     }
 
     // RSM+#L+BP-A0LM+(A3|A4S)
@@ -102,6 +157,8 @@ public static class Jarvis_v2
 
         return result;
     }
+
+    // SQL
 
     private static string Build_SQL
         (List<Token> tokens)
@@ -280,6 +337,8 @@ public static class Jarvis_v2
         return sb;
     }
 }
+
+// TOKENS
 
 public record struct Token(string Value, TokenType Type);
 

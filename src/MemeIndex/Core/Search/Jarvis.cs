@@ -8,9 +8,12 @@ public static class Jarvis
 {
     public static async Task<SearchResponse> Search(string[] terms)
     {
+        var sw = Stopwatch.StartNew();
         const int TAKE = 100;
         var con  = await AppDB.ConnectTo_Main();
+        sw.Log("db connect");
         var tags = await con.Tags_GetByTerms(terms);
+        sw.Log("get tags");
 
         var tags_byFile = tags
             .GroupBy(x => x.file_id)
@@ -22,12 +25,17 @@ public static class Jarvis
             .OrderByDescending(x => x.Score)
             .Take(TAKE)
             .ToDictionary(x => x.FileId, x => x.Score);
+        sw.Log("get score by file");
 
-        var files_db = await con.Files_UI_ByIds(score_byFile.Keys);
+        var files_db = await con.Files_UI_GetByIds(score_byFile.Keys);
+        sw.Log("get files");
         var files = files_db.ToArray();
+        sw.Log($"files to array -> {files.Length}");
         var dirs = await con.Dirs_GetByIds(files.Select(x => x.dir_id).Distinct());
+        sw.Log("get dirs");
         return new SearchResponse
         {
+            p = new Pagination(0, files.Length, -1),
             d = dirs.ToDictionary(x => x.Id, x => x.Path + Path.DirectorySeparatorChar),
             f = files
                 .OrderByDescending(x => score_byFile[x.id])
@@ -47,8 +55,11 @@ public static class Jarvis
     }
 }
 
+public record struct Pagination(int o, int r, int t); // offset, returned, total
+
 public class SearchResponse
 {
+    public required Pagination              p { get; set; }
     public required Dictionary<int, string> d { get; set; }
     public required IEnumerable   <File_UI> f { get; set; }
 }

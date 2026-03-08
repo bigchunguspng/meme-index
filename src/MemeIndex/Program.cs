@@ -98,12 +98,13 @@ app.UseStaticFiles(new StaticFileOptions
 app.MapGet (    "/logs",      Endpoints.GetPage_Logs);
 app.MapGet (    "/logs/{id}", Endpoints.GetPage_EventViewer);
 app.MapGet ("/api/find",      Endpoints.GetJson_Find);
+app.MapGet ("/api/find/v2/",  Endpoints.GetJson_Find_v2);
 app.MapGet ("/api/logs/{id}", Endpoints.GetJson_EventViewerData);
 app.MapGet ("/api/files/{id}/image",   Endpoints.Get_Image);
 app.MapGet ("/api/files/{id}/thumb",   Endpoints.Get_Thumb);
 app.MapPost("/api/files/{id}/open",    Endpoints.Image_Open);
 app.MapPost("/api/files/{id}/explore", Endpoints.Image_OpenInExplorer);
-//app.MapPost("/api/files/{id}/run",     Endpoints.NAME);
+//app.MapPost("/api/files/{id}/run",     Endpoints.NAME); // user defined actions
 
 app.Lifetime.ApplicationStarted.Register(() =>
 {

@@ -30,6 +30,7 @@ public static class DB_Tags
         await using var transaction = c.BeginTransaction();
         await c.ExecuteAsync(SQL, tags, transaction);
         await transaction.CommitAsync();
+        AppDB.Main_RegisterUpdate();
     }
 
     public static async Task<IEnumerable<DB_Tag_Get>> Tags_GetByTerms

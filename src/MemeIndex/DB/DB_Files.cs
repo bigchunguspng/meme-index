@@ -30,6 +30,11 @@ public class DB_File_UI
     public required int?   image_h;
 }
 
+public class DB_File_UI_v2 : DB_File_UI
+{
+    public required double sort;
+}
+
 public class DB_File_WithPath
 {
     public required int    id;
@@ -112,7 +117,7 @@ public static class DB_Files
         return await c.QueryAsync<DB_File_WithPath>(SQL);
     }
 
-    public static async Task<IEnumerable<DB_File_UI>> Files_UI_ByIds
+    public static async Task<IEnumerable<DB_File_UI>> Files_UI_GetByIds
         (this SqliteConnection c, IEnumerable<int> ids)
     {
         var SQL = // todo handle injection
@@ -120,6 +125,12 @@ public static class DB_Files
           + "FROM files "
           + $"WHERE id IN ({string.Join(',', ids)})";
         return await c.QueryAsync<DB_File_UI>(SQL);
+    }
+
+    public static async Task<IEnumerable<DB_File_UI_v2>> Files_UI_GetBySQL
+        (this SqliteConnection c, string SQL)
+    {
+        return await c.QueryAsync<DB_File_UI_v2>(SQL);
     }
 
     public static async Task File_UpdateDateAnalyzed

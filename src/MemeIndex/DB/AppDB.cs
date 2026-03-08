@@ -1,4 +1,5 @@
 using Dapper;
+using MemeIndex.Core.Search;
 using Microsoft.Data.Sqlite;
 
 [module: DapperAot] // https://aot.dapperlib.dev/rules/DAP005
@@ -23,6 +24,11 @@ public static class AppDB
         await connection.ExecuteAsync(_SQL_PRAGMAS_PER_DB);
         await connection.ExecuteAsync(_SQL_CREATE_TABLES_MAIN);
     }
+
+    // MAIN >> CACHE CONTROL
+
+    /// Call this on any updates to tags, files metadata, directory names.
+    public static void Main_RegisterUpdate() => Jarvis_v2.Cache_Clear();
 
     // RAW
 
