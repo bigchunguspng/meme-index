@@ -28,7 +28,7 @@ public static class AppDB
     // MAIN >> CACHE CONTROL
 
     /// Call this on any updates to tags, files metadata, directory names.
-    public static void Main_RegisterUpdate() => Jarvis_v2.Cache_Clear();
+    public static void Main_RegisterUpdate() => Jarvis.Cache_Clear();
 
     // RAW
 

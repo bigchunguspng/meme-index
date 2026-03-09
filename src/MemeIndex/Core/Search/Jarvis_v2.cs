@@ -6,7 +6,7 @@ using static MemeIndex.Core.Search.TokenType;
 
 namespace MemeIndex.Core.Search;
 
-public static class Jarvis_v2
+public static class Jarvis
 {
     public static void Test_SQL()
     {

@@ -24,7 +24,7 @@ public static partial class DebugTools
         "Oklch(step: 30)",
         "Oklch_HxL",
         "CompareHLS_ToOklch",
-        "Expression -> SQL (Jarvis v2)",
+        "Expression -> SQL (Jarvis)",
     ];
 
     public static void Test(int number)
@@ -43,7 +43,7 @@ public static partial class DebugTools
             case  7: Oklch(30);                         break;
             case  8: Oklch_HxL();                       break;
             case  9: CompareHLS_ToOklch();              break;
-            case 10: Jarvis_v2.Test_SQL();              break;
+            case 10: Jarvis.Test_SQL();                 break;
         }
         sw.Log("DONE");
     }
