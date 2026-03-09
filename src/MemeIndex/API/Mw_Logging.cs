@@ -1,3 +1,5 @@
+using System.Net;
+
 namespace MemeIndex.API;
 
 public class Mw_Logging : IMiddleware
@@ -80,7 +82,7 @@ public class Mw_Logging : IMiddleware
             Console.ForegroundColor = method_color;
             Console.Write($"{method,4} ");
             Console.ForegroundColor = content_color;
-            Console.WriteLine($"{req.Path}{req.QueryString}");
+            Console.WriteLine($"{req.Path}{WebUtility.UrlDecode(req.QueryString.Value)}");
             Console.ResetColor();
         }
     }
