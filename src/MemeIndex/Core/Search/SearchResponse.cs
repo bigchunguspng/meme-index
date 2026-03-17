@@ -3,14 +3,14 @@ using SixLabors.ImageSharp;
 
 namespace MemeIndex.Core.Search;
 
-public record struct Pagination(int o, int r, int t); // offset, returned, total
-
 public class SearchResponse
 {
     public required Pagination              p { get; set; }
     public required Dictionary<int, string> d { get; set; }
     public required List<File_UI>           f { get; set; }
 }
+
+public record struct Pagination(int o, int r, int t); // offset, returned, total
 
 public class File_UI(DB_File_UI file)
 {
