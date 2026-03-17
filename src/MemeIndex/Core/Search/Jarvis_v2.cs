@@ -37,17 +37,17 @@ public static class Jarvis
     // CACHE
 
     // todo limited cache (size + time)
-    private static readonly ConcurrentDictionary<string, File_UI[]> _cache = new();
+    private static readonly ConcurrentDictionary<string, File_UI_SoA> _cache = new();
 
     public  static void Cache_Clear() => _cache.Clear();
 
     private static void Cache
-        (string expression, File_UI[] files)
+        (string expression, File_UI_SoA files)
         =>
         _cache[expression] = files;
 
     private static bool Cache_TryGetValue
-        (string expression, [MaybeNullWhen(false)] out File_UI[] files)
+        (string expression, [MaybeNullWhen(false)] out File_UI_SoA files)
         =>
         (files = _cache.GetValueOrDefault(expression)) != null;
 
@@ -69,12 +69,10 @@ public static class Jarvis
             sw.Log("expr -> SQL");
             var files_db = await con.Files_UI_GetBySQL(sql);
             sw.Log("db get files");
-
-            files = files_db
-                .OrderBy(x => x.sort)
-                .Select(x => new File_UI(x))
-                .ToArray();
-            sw.Log("sort files");
+            files = new File_UI_SoA();
+            foreach (var file in files_db) files.Add(file);
+            sw.Log("map files");
+            Log($"[Jv2] Files: {files.I.Count}/{files.I.Capacity} ({files.I.Capacity * 40} bytes)");
 
             Cache(expression, files);
             sw.Log("cache files");
@@ -82,16 +80,16 @@ public static class Jarvis
         else
             sw.Log("check cache (false)");
 
-        var files_slice = files.Skip(skip).Take(take).ToArray();
+        var files_slice = new File_UI_SoA_Slice(files, skip, take);
         sw.Log("slice files");
-        var dir_ids = files_slice.Select(x => x.d).Distinct();
+        var dir_ids = files_slice.GetDirIds();
         var dirs_db = await con.Dirs_GetByIds(dir_ids);
         var dirs = dirs_db.ToDictionary(x => x.Id, x => x.Path + Path.DirectorySeparatorChar);
         sw.Log("db get dirs");
 
         return new SearchResponse
         {
-            p = new Pagination(skip, files_slice.Length, files.Length),
+            p = files_slice.GetPagination(),
             d = dirs,
             f = files_slice,
         };
@@ -193,7 +191,7 @@ public static class Jarvis
             sql_3 =
                 """
                 )
-                ORDER BY f.id;
+                ORDER BY sort;
                 """;
 
         return new StringBuilder()
