@@ -105,6 +105,12 @@ public static class DB_Files
         return await c.QueryAsync<DB_File_UI>(SQL);
     }
 
+    public static async Task<int> Files_UI_CountBySQL
+        (this SqliteConnection c, string SQL)
+    {
+        return await c.QuerySingleAsync<int>(SQL);
+    }
+
     public static async Task File_UpdateDateAnalyzed
         (this SqliteConnection c, DB_File_UpdateDate file)
     {

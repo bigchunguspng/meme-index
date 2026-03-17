@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using MemeIndex.DB;
@@ -23,7 +22,7 @@ public static class Jarvis
                 if (input == null) return;
 
                 var tokens = Lex(input);
-                var sql = Build_SQL(tokens);
+                var sql = Build_SQL_GetFiles(tokens);
                 Console.WriteLine(sql);
                 Console.WriteLine();
             }
@@ -35,63 +34,139 @@ public static class Jarvis
     }
 
     // CACHE
+    // todo - partial class Jarvis.Cache
 
-    // todo limited cache (size + time)
-    private static readonly ConcurrentDictionary<string, File_UI_SoA> _cache = new();
+    private const int
+        Config_CACHE_QUERIES_COUNT   = 32, // 1024
+        Config_CACHE_QUERIES_MINUTES = 15; // 30 todo implement time based eviction
 
-    public  static void Cache_Clear() => _cache.Clear();
+    private record struct CacheKey(string Expression, int Skip, int Take);
+
+    private static readonly LimitedCache<CacheKey, List<int>> _cache_file_ids  = new(Config_CACHE_QUERIES_COUNT);
+    private static readonly Dictionary  <int,      File_UI>   _cache_files     = new(); // by file id
+    private static readonly Dictionary  <int,      int>       _cache_relevance = new(); // reference count by file id
+
+    public static void Cache_Clear()
+    {
+        Log("[Jv2/$]", $"CLEARING >> F: {_cache_files.Count,5} | Q: {_cache_file_ids.Count,5}");
+        _cache_file_ids .Clear();
+        _cache_files    .Clear();
+        _cache_relevance.Clear();
+        Log("[Jv2/$]", "CLEARED!");
+    }
 
     private static void Cache
-        (string expression, File_UI_SoA files)
-        =>
-        _cache[expression] = files;
+        (CacheKey key, IEnumerable<File_UI> files)
+    {
+        var count_pages_old = _cache_file_ids.Count;
+        var count_files_old = _cache_files   .Count;
+
+        var file_ids = new List<int>(100);
+        foreach (var file in files)
+        {
+            var id = file.I;
+            file_ids.Add(id);
+            if (_cache_files.ContainsKey(id).Janai())
+            {
+                _cache_files    [id] = file;
+                _cache_relevance[id] = 1;
+            }
+            else
+                _cache_relevance[id]++;
+        }
+
+        _cache_file_ids.Add(key, file_ids, out var file_ids_evicted);
+
+        var diff_pages = _cache_file_ids.Count - count_pages_old;
+        var diff_files = _cache_files   .Count - count_files_old;
+        Log("[Jv2/$]", $"UPDATE >> F: {diff_files,5:+0} -> {_cache_files.Count,5} | Q: {diff_pages,5:+0} -> {_cache_file_ids.Count,5}");
+
+        if (file_ids_evicted != null)
+        {
+            count_files_old = _cache_files.Count;
+            foreach (var id in file_ids_evicted)
+            {
+                if (--_cache_relevance[id] == 0)
+                {
+                    _cache_files    .Remove(id);
+                    _cache_relevance.Remove(id);
+                }
+            }
+
+            diff_files = _cache_files.Count - count_files_old;
+            Log("[Jv2/$]", $"EVICT  >> F: {diff_files,5} -> {_cache_files.Count,5}");
+        }
+    }
 
     private static bool Cache_TryGetValue
-        (string expression, [MaybeNullWhen(false)] out File_UI_SoA files)
-        =>
-        (files = _cache.GetValueOrDefault(expression)) != null;
+        (CacheKey key, [MaybeNullWhen(false)] out List<File_UI> files)
+    {
+        files = null;
+
+        var file_ids = _cache_file_ids.GetValueOrDefault(key);
+        if (file_ids == null)
+            return false;
+
+        files = new List<File_UI>(file_ids.Count);
+        files.AddRange(file_ids.Select(id => _cache_files[id]));
+        return true;
+    }
+
+    private static File_UI File_UI_GetCached_OrCreate
+        (DB_File_UI file)
+    {
+        return _cache_files.TryGetValue(file.id, out var file_ui)
+            ? file_ui
+            : new File_UI(file);
+    }
 
     // SEARCH
 
-    public static async Task<SearchResponse> Search_ByColor(string expression, int skip = 0, int take = 100)
+    public static async Task<int> CountFiles
+        (string expression)
     {
-        LogDebug($"[Jv2] Expression: {expression}");
+        Log("[Jv2/COUNT]", expression);
 
         var sw = Stopwatch.StartNew();
-        var con = await AppDB.ConnectTo_Main();
-        sw.Log("db connnect");
+        await using var con = await AppDB.ConnectTo_Main();
+        var tokens = Lex(expression);
+        var sql = Build_SQL_GetCount(tokens);
+        var count = await con.Files_UI_CountBySQL(sql);
+        sw.Log("[Jv2/COUNT] DB GET COUNT");
+        return count;
+    }
 
-        if (Cache_TryGetValue(expression, out var files) == false)
+    public static async Task<SearchResponse> Search_ByColor
+        (string expression, int skip = 0, int take = 100)
+    {
+        Log("[Jv2/FILES]", expression);
+
+        var sw = Stopwatch.StartNew();
+        await using var con = await AppDB.ConnectTo_Main();
+
+        var key = new CacheKey(expression, skip, take);
+        if (Cache_TryGetValue(key, out var files) == false)
         {
-            sw.Log("check cache");
             var tokens = Lex(expression);
-            var sql = Build_SQL(tokens);
-            sw.Log("expr -> SQL");
+            var sql = Build_SQL_GetFiles(tokens, skip, take);
             var files_db = await con.Files_UI_GetBySQL(sql);
-            sw.Log("db get files");
-            files = new File_UI_SoA();
-            foreach (var file in files_db) files.Add(file);
-            sw.Log("map files");
-            Log($"[Jv2] Files: {files.I.Count}/{files.I.Capacity} ({files.I.Capacity * 40} bytes)");
+            files = new List<File_UI>(100);
+            files.AddRange(files_db.Select(File_UI_GetCached_OrCreate));
+            sw.Log("[Jv2/FILES] DB GET FILES");
 
-            Cache(expression, files);
-            sw.Log("cache files");
+            Cache(key, files);
         }
-        else
-            sw.Log("check cache (false)");
 
-        var files_slice = new File_UI_SoA_Slice(files, skip, take);
-        sw.Log("slice files");
-        var dir_ids = files_slice.GetDirIds();
+        var dir_ids = files.Select(x => x.D).Distinct();
         var dirs_db = await con.Dirs_GetByIds(dir_ids);
         var dirs = dirs_db.ToDictionary(x => x.Id, x => x.Path + Path.DirectorySeparatorChar);
-        sw.Log("db get dirs");
+        sw.Log("[Jv2/FILES] DB GET DIRS");
 
         return new SearchResponse
         {
-            p = files_slice.GetPagination(),
+            p = new Pagination(skip, files.Count, -1),
             d = dirs,
-            f = files_slice,
+            f = files,
         };
     }
 
@@ -158,8 +233,8 @@ public static class Jarvis
 
     // SQL
 
-    private static string Build_SQL
-        (List<Token> tokens)
+    private static string Build_SQL_GetFiles
+        (List<Token> tokens, int skip = 0, int take = 100)
     {
         const string
             sql_1 =
@@ -191,7 +266,8 @@ public static class Jarvis
             sql_3 =
                 """
                 )
-                ORDER BY sort;
+                ORDER BY sort
+                LIMIT {1} OFFSET {0};
                 """;
 
         return new StringBuilder()
@@ -199,7 +275,7 @@ public static class Jarvis
             .Build_SQL_sort  (tokens)
             .Append(sql_2)
             .Build_SQL_HAVING(tokens)
-            .Append(sql_3)
+            .AppendFormat(sql_3, skip, take)
             .ToString();
     }
 
@@ -333,6 +409,29 @@ public static class Jarvis
         }
 
         return sb;
+    }
+
+    private static string Build_SQL_GetCount
+        (List<Token> tokens)
+    {
+        const string
+            sql_1 =
+                """
+                SELECT count(DISTINCT f.id)
+                FROM files f
+                JOIN tags t ON t.file_id = f.id
+                GROUP BY f.id
+                HAVING
+                (
+                
+                """,
+            sql_2 = ");";
+
+        return new StringBuilder()
+            .Append(sql_1)
+            .Append(tokens)
+            .Append(sql_2)
+            .ToString();
     }
 }
 
