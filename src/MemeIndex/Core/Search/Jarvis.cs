@@ -74,9 +74,9 @@ public static partial class Jarvis
 
         return new SearchResponse
         {
-            p = new Pagination(skip, files.Count, -1),
-            d = dirs,
-            f = files,
+            P = new Pagination(skip, files.Count),
+            D = dirs,
+            F = files,
         };
     }
 }

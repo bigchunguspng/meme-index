@@ -5,12 +5,12 @@ namespace MemeIndex.Core.Search;
 
 public class SearchResponse
 {
-    public required Pagination              p { get; set; }
-    public required Dictionary<int, string> d { get; set; }
-    public required List<File_UI>           f { get; set; }
+    public required Pagination              P { get; set; }
+    public required Dictionary<int, string> D { get; set; }
+    public required List<File_UI>           F { get; set; }
 }
 
-public record struct Pagination(int o, int r, int t); // offset, returned, total
+public record struct Pagination(int O, int R); // Cffset, Returned
 
 public class File_UI(DB_File_UI file)
 {
@@ -19,7 +19,8 @@ public class File_UI(DB_File_UI file)
     public string   N { get; } = file.name;
     public long     S { get; } = file.size;
     public DateTime M { get; } = DateTime.FromFileTimeUtc(file.mdate);
-    public Size     X { get; } = file is { image_w: not null, image_h: not null }
-        ? new Size(file.image_w.Value, file.image_h.Value)
-        : Size.Empty;
+    public Size     X { get; } = file.image_w is null
+                              || file.image_h is null
+        ?     Size.Empty
+        : new Size(file.image_w.Value, file.image_h.Value);
 }
