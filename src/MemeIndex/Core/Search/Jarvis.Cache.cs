@@ -12,17 +12,21 @@ public static partial class Jarvis
     private record struct CacheKey(string Expression, int Skip, int Take);
 
     private static readonly LimitedCache<CacheKey, List<int>> _cache_file_ids  = new(Config_CACHE_QUERIES_COUNT);
-    private static readonly Dictionary  <int,      File_UI>   _cache_files     = new(); // by file id
+    private static readonly LimitedCache<string,   int>       _cache_counts    = new(Config_CACHE_QUERIES_COUNT); // file counts by expr
+    private static readonly Dictionary  <int,      File_UI>   _cache_files     = new(); // files by file id
     private static readonly Dictionary  <int,      int>       _cache_relevance = new(); // reference count by file id
 
     public static void Cache_Clear()
     {
         Log("[Jv2/$]", $"CLEARING >> F: {_cache_files.Count,5} | Q: {_cache_file_ids.Count,5}");
         _cache_file_ids .Clear();
+        _cache_counts   .Clear();
         _cache_files    .Clear();
         _cache_relevance.Clear();
         Log("[Jv2/$]", "CLEARED!");
     }
+
+    // FILES
 
     private static void Cache
         (CacheKey key, IEnumerable<File_UI> files)
@@ -67,18 +71,16 @@ public static partial class Jarvis
         }
     }
 
-    private static bool Cache_TryGetValue
-        (CacheKey key, [MaybeNullWhen(false)] out List<File_UI> files)
+    private static List<File_UI>? Cache_TryGetValue
+        (CacheKey key)
     {
-        files = null;
-
         var file_ids = _cache_file_ids.GetValueOrDefault(key);
         if (file_ids == null)
-            return false;
+            return null;
 
-        files = new List<File_UI>(file_ids.Count);
+        var files = new List<File_UI>(file_ids.Count);
         files.AddRange(file_ids.Select(id => _cache_files[id]));
-        return true;
+        return files;
     }
 
     private static File_UI File_UI_GetCached_OrCreate
@@ -87,5 +89,19 @@ public static partial class Jarvis
         return _cache_files.TryGetValue(file.id, out var file_ui)
             ? file_ui
             : new File_UI(file);
+    }
+
+    // COUNT
+
+    private static void Cache
+        (string expression, int count)
+    {
+        _cache_counts.Add(expression, count, out _);
+    }
+
+    private static int Cache_TryGetValue
+        (string expression)
+    {
+        return _cache_counts.GetValueOrDefault(expression, -1);
     }
 }

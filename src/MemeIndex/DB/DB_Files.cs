@@ -17,6 +17,11 @@ public class DB_File_UI
     public required double sort;
 }
 
+public class DB_File_UI_WithCount : DB_File_UI
+{
+    public required int    total;
+}
+
 public class DB_File_WithPath
 {
     public required int    id;
@@ -54,6 +59,8 @@ public class DB_File_UpdateDateSize
 
 public static class DB_Files
 {
+    // CREATE
+
     public static async Task Files_CreateMany
         (this SqliteConnection c, IEnumerable<DB_File_Insert> files)
     {
@@ -65,6 +72,8 @@ public static class DB_Files
         await c.ExecuteAsync(SQL, files, transaction);
         await transaction.CommitAsync();
     }
+
+    // GET
 
     public static async Task<DB_File_WithPath?> File_GetPath
         (this SqliteConnection c, int id)
@@ -99,17 +108,19 @@ public static class DB_Files
         return await c.QueryAsync<DB_File_WithPath>(SQL);
     }
 
-    public static async Task<IEnumerable<DB_File_UI>> Files_UI_GetBySQL
+    public static async Task<IEnumerable<DB_File_UI>> Files_UI_GetBySQL_Simple
         (this SqliteConnection c, string SQL)
     {
         return await c.QueryAsync<DB_File_UI>(SQL);
     }
 
-    public static async Task<int> Files_UI_CountBySQL
+    public static async Task<IEnumerable<DB_File_UI_WithCount>> Files_UI_GetBySQL_WithCount
         (this SqliteConnection c, string SQL)
     {
-        return await c.QuerySingleAsync<int>(SQL);
+        return await c.QueryAsync<DB_File_UI_WithCount>(SQL);
     }
+
+    // UPDATE
 
     public static async Task File_UpdateDateAnalyzed
         (this SqliteConnection c, DB_File_UpdateDate file)

@@ -10,7 +10,7 @@ public class SearchResponse
     public required List<File_UI>           F { get; set; }
 }
 
-public record struct Pagination(int O, int R); // Cffset, Returned
+public record struct Pagination(int O, int R, int? T = null); // Offset, Returned, Total
 
 public class File_UI(DB_File_UI file)
 {

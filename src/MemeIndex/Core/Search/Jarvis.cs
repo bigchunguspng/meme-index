@@ -19,7 +19,7 @@ public static partial class Jarvis
                 if (input == null) return;
 
                 var tokens = Lex(input);
-                var sql = Build_SQL_GetFiles(tokens, 0, 100);
+                var sql = Build_SQL_GetFiles_Simple(tokens, 0, 100);
                 Console.WriteLine(sql);
                 Console.WriteLine();
             }
@@ -32,20 +32,6 @@ public static partial class Jarvis
 
     // SEARCH
 
-    public static async Task<int> CountFiles
-        (string expression)
-    {
-        Log("[Jv2/COUNT]", expression);
-
-        var sw = Stopwatch.StartNew();
-        await using var con = await AppDB.ConnectTo_Main();
-        var tokens = Lex(expression);
-        var sql = Build_SQL_GetCount(tokens);
-        var count = await con.Files_UI_CountBySQL(sql);
-        sw.Log("[Jv2/COUNT] DB GET COUNT");
-        return count;
-    }
-
     public static async Task<SearchResponse> Search_ByColor
         (string expression, int skip, int take)
     {
@@ -55,11 +41,43 @@ public static partial class Jarvis
         await using var con = await AppDB.ConnectTo_Main();
 
         var key = new CacheKey(expression, skip, take);
-        if (Cache_TryGetValue(key, out var files) == false)
+        var files = Cache_TryGetValue(key);
+        var count = Cache_TryGetValue(expression);
+
+        if (count < 0)
         {
             var tokens = Lex(expression);
-            var sql = Build_SQL_GetFiles(tokens, skip, take);
-            var files_db = await con.Files_UI_GetBySQL(sql);
+            var sql = Build_SQL_GetFiles_WithCount(tokens, skip, take);
+            var files_db = await con.Files_UI_GetBySQL_WithCount(sql);
+
+            if (files == null) // TYPICAL, count and files
+            {
+                files = new List<File_UI>(100);
+                files.AddRange(files_db.Select(file_db_wc =>
+                {
+                    if (count < 0) count = file_db_wc.total;
+                    return File_UI_GetCached_OrCreate(file_db_wc);
+                }));
+                sw.Log("[Jv2/FILES] DB GET FILES w/ COUNT");
+
+                Cache(key, files);
+
+                if (count < 0) count = 0;
+            }
+            else // RARE, count only
+            {
+                count = files_db.FirstOrDefault()?.total ?? 0;
+                sw.Log("[Jv2/FILES] DB GET FILES COUNT");
+            }
+
+            Cache(expression, count);
+        }
+        else if (files == null)
+        {
+            var tokens = Lex(expression);
+            var sql = Build_SQL_GetFiles_Simple(tokens, skip, take);
+            var files_db = await con.Files_UI_GetBySQL_Simple(sql);
+
             files = new List<File_UI>(100);
             files.AddRange(files_db.Select(File_UI_GetCached_OrCreate));
             sw.Log("[Jv2/FILES] DB GET FILES");
@@ -74,7 +92,7 @@ public static partial class Jarvis
 
         return new SearchResponse
         {
-            P = new Pagination(skip, files.Count),
+            P = new Pagination(skip, files.Count, count),
             D = dirs,
             F = files,
         };

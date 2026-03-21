@@ -32,6 +32,12 @@ public class LimitedCache<TKey, TValue> (int limit)
         return _map.GetValueOrDefault(id);
     }
 
+    public TValue? GetValueOrDefault
+        (TKey id, TValue fallback)
+    {
+        return _map.GetValueOrDefault(id, fallback);
+    }
+
     public bool Contains
         (TKey id, [MaybeNullWhen(false)] out TValue value)
     {

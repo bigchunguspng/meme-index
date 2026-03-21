@@ -90,72 +90,78 @@ public static partial class Jarvis
 
     // SQL
 
-    private static string Build_SQL_GetFiles
+    private const string
+        sql_WINDOW_1 =
+            """
+            SELECT *, COUNT(*) OVER() AS total
+            FROM
+            (
+
+            """,
+        sql_SELECT_1 =
+            """
+            SELECT
+            f.id, f.dir_id, f.name,
+            f.size, f.mdate,
+            f.image_w, f.image_h,
+            exp
+            (
+                SUM
+                (
+            CASE t.term
+
+            """,
+        sql_SELECT_2 =
+            """
+            ELSE 0
+            END
+                )
+            ) AS sort
+            FROM files f
+            JOIN tags t ON t.file_id = f.id
+            GROUP BY f.id
+            HAVING
+            (
+
+            """,
+        sql_SELECT_3 =
+            """
+            )
+            ORDER BY sort
+
+            """,
+        sql_SELECT_4 =
+            "LIMIT {1} OFFSET {0};",
+        sql_WINDOW_2 =
+            """
+            )
+            LIMIT {1} OFFSET {0};
+            """;
+
+    private static string Build_SQL_GetFiles_Simple
         (List<Token> tokens, int skip, int take)
     {
-        const string
-            sql_1 =
-                """
-                SELECT
-                f.id, f.dir_id, f.name,
-                f.size, f.mdate,
-                f.image_w, f.image_h,
-                exp
-                (
-                    SUM
-                    (
-                CASE t.term
-                
-                """,
-            sql_2 =
-                """
-                ELSE 0
-                END
-                    )
-                ) AS sort
-                FROM files f
-                JOIN tags t ON t.file_id = f.id
-                GROUP BY f.id
-                HAVING
-                (
-                
-                """,
-            sql_3 =
-                """
-                )
-                ORDER BY sort
-                LIMIT {1} OFFSET {0};
-                """;
-
         return new StringBuilder()
-            .Append(sql_1)
+            .Append(sql_SELECT_1)
             .Build_SQL_sort  (tokens)
-            .Append(sql_2)
+            .Append(sql_SELECT_2)
             .Build_SQL_HAVING(tokens)
-            .AppendFormat(sql_3, skip, take)
+            .Append(sql_SELECT_3)
+            .AppendFormat(sql_SELECT_4, skip, take)
             .ToString();
     }
 
-    private static string Build_SQL_GetCount
-        (List<Token> tokens)
+    private static string Build_SQL_GetFiles_WithCount
+        (List<Token> tokens, int skip, int take)
     {
-        const string
-            sql_1 =
-                """
-                SELECT count(DISTINCT f.id)
-                FROM files f
-                JOIN tags t ON t.file_id = f.id
-                GROUP BY f.id
-                HAVING
-                (
-
-                """,
-            sql_2 = ");";
-
         return new StringBuilder()
-            .Append(sql_1)
-            .Append(tokens)
-            .Append(sql_2)
+            .Append(sql_WINDOW_1)
+            .Append(sql_SELECT_1)
+            .Build_SQL_sort  (tokens)
+            .Append(sql_SELECT_2)
+            .Build_SQL_HAVING(tokens)
+            .Append(sql_SELECT_3)
+            .AppendFormat(sql_WINDOW_2, skip, take)
             .ToString();
     }
 
