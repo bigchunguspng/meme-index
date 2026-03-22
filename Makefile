@@ -15,23 +15,23 @@ WDIR_BIN := out/bin/Release/net8.0
 WDIR_PUB := out/bin/Publish/net8.0/$(RUNTIME)/publish
 
 build:
-	dotnet build $(PROJ) -c Release
-build-debug:
-	dotnet build $(PROJ) -c Debug
-build-fast:
 	dotnet build $(PROJ) -c Release --no-restore
+build-debug:
+	dotnet build $(PROJ) -c Debug   --no-restore
+restore:
+	dotnet restore $(PROJ)
 
 pub:
 	dotnet publish $(PROJ) -r $(RUNTIME) -c Publish --self-contained
 
-run-web:	build-fast
+run-web:	build
 	-$(OPEN) "http://localhost:7373"
 	cd $(WDIR_BIN) && $(BIN) --dev -l
-run:		build-fast
+run:		build
 	cd $(WDIR_BIN) && $(BIN) --dev args.txt
-run-test:	build-fast
+run-test:	build
 	cd $(WDIR_BIN) && $(BIN) --dev lab -t
-run-demo:	build-fast
+run-demo:	build
 	cd $(WDIR_BIN) && $(BIN) --dev lab -D args.txt
 
 clear:
