@@ -32,6 +32,8 @@ public partial class FileProcessor
         if (InitJob_DB_Write() is { } job)
             await job.StartAsync(CancellationToken.None);
 
+        // PROCESS
+
         job_thumbsWebp = new Job_ThumbgenSaveWebp(this);
         await job_thumbsWebp.StartAsync(CancellationToken.None);
 
@@ -39,8 +41,7 @@ public partial class FileProcessor
         {
             try
             {
-                var ctx = new ThumbgenContext(file);
-                await Thumbnail_Resize(ctx);
+                await Thumbnail_Resize(new ThumbgenContext(file));
             }
             catch (Exception e)
             {
@@ -58,16 +59,17 @@ public partial class FileProcessor
 
     private static readonly Size _fitSize = new (174, 174);
 
-    private async Task Thumbnail_Resize(ThumbgenContext ctx)
+    private async Task Thumbnail_Resize(ThumbgenContext c)
     {
-        Tracer.LogOpen(ctx.FileId, THUMB_LOAD);
-        ctx.Source = await ImagePool.Load(ctx.Path);
-        Tracer.LogJoin(ctx.FileId, THUMB_LOAD, THUMB_SIZE);
-        var size = ctx.Source.Size.FitSize(_fitSize);
-        ctx.Thumb = ctx.Source.Clone(x => x.Resize(size, LanczosResampler.Lanczos3, compand: false));
-        ImagePool.Return(ctx.Path);
-        Tracer.LogDone(ctx.FileId, THUMB_SIZE);
-        await C_TG_SaveWebp.Writer.WriteAsync(ctx);
+        var id = c.FileId;
+        Tracer.LogOpen(id, THUMB_LOAD);
+        c.Source = await ImagePool.Load(c.Path);
+        Tracer.LogJoin(id, THUMB_LOAD, THUMB_SIZE);
+        var size = c.Source.Size.FitSize(_fitSize);
+        c.Thumb = c.Source.Clone(x => x.Resize(size, LanczosResampler.Lanczos3, compand: false));
+        ImagePool.Return(c.Path);
+        Tracer.LogDone(id, THUMB_SIZE);
+        await C_TG_SaveWebp.Writer.WriteAsync(c);
     }
 
     // SAVE FILE
@@ -93,22 +95,23 @@ public partial class FileProcessor
         TransparentColorMode = WebpTransparentColorMode.Clear,
     };
 
-    private async Task Thumbnail_Save(ThumbgenContext ctx)
+    private async Task Thumbnail_Save(ThumbgenContext c)
     {
-        Tracer.LogOpen(ctx.FileId, THUMB_SAVE);
+        var id = c.FileId;
+        Tracer.LogOpen(id, THUMB_SAVE);
         var save = Dir_Thumbs
             .EnsureDirectoryExist()
-            .Combine(GetThumbFilename(ctx.FileId));
-        await ctx.Thumb.SaveAsWebpAsync(save, _encoder);
-        Tracer.LogDone(ctx.FileId, THUMB_SAVE);
-        LogDebug($"File {ctx.FileId,6} -> thumbnail generated");
+            .Combine(GetThumbFilename(id));
+        await c.Thumb.SaveAsWebpAsync(save, _encoder);
+        Tracer.LogDone(id, THUMB_SAVE);
+        LogDebug($"File {id,6} -> thumbnail generated");
 
-        var result = ctx.ToDB_File();
+        var result = c.ToDB_File();
         await C_DB_Write.Writer.WriteAsync(async connection =>
         {
-            Tracer.LogOpen(ctx.FileId, DB_W_FT);
+            Tracer.LogOpen(id, DB_W_FT);
             await connection.File_UpdateDateThumbGenerated(result);
-            Tracer.LogDone(ctx.FileId, DB_W_FT);
+            Tracer.LogDone(id, DB_W_FT);
         });
     }
 

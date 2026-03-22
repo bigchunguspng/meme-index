@@ -28,6 +28,8 @@ public partial class FileProcessor
         if (InitJob_DB_Write() is { } job)
             await job.StartAsync(CancellationToken.None);
 
+        // PROCESS
+
         foreach (var file in files)
         {
             try
@@ -40,6 +42,7 @@ public partial class FileProcessor
                 // todo add file id to broken files
             }
         }
+
         Log(CODE, "DONE");
     }
 
