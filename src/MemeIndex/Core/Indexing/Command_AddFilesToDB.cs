@@ -13,7 +13,10 @@ public static class Command_AddFilesToDB
 
     /// this will be called when user
     /// adds new tracking rules / directories
-    /// (once for each OR rewritten for many)
+    /// (once for each OR [rewrite code] for many)   ← remove when this happens
+    /// <br/>
+    /// Adds directory and supported files from it to DB.
+    /// Triggers file processing job if it's not active.
     public static async Task Execute(string directory, bool recursive)
     {
         var sw = Stopwatch.StartNew();
