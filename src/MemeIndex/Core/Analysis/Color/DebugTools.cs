@@ -1,6 +1,4 @@
 using MemeIndex.Core.Analysis.Color.v1;
-using MemeIndex.Core.Analysis.Color.v2;
-using MemeIndex.Core.Search;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
@@ -12,49 +10,6 @@ namespace MemeIndex.Core.Analysis.Color;
 public static partial class DebugTools
 {
     public static readonly JpegEncoder JpegEncoder_Q80 = new() { Quality = 80 };
-
-    public static string[] _test_names =
-    [
-        "RenderStepCalculation",
-        "RenderHueReferences_Frames",
-        "RenderFullOklch_Frames",
-        "RenderFullOklch_On3x2",
-        "RenderHues_Oklch_v2",
-        "HSL(step: 30)",
-        "Oklch(step: 30)",
-        "Oklch_HxL",
-        "CompareHLS_ToOklch",
-        "Expression -> SQL (Jarvis)",
-    ];
-
-    public static void Test(int number)
-    {
-        var sw = Stopwatch.StartNew();
-        if (number > 0 && number <= _test_names.Length)
-            sw.Log($"TEST: {_test_names[number - 1]}");
-        switch (number)
-        {
-            case  1: RenderStepCalculation();           break;
-            case  2: RenderHueReferences_Frames();      break;
-            case  3: RenderFullOklch_Frames();          break;
-            case  4: RenderFullOklch_On3x2();           break;
-            case  5: RenderHues_Oklch_v2();             break;
-            case  6: HSL  (30);                         break;
-            case  7: Oklch(30);                         break;
-            case  8: Oklch_HxL();                       break;
-            case  9: CompareHLS_ToOklch();              break;
-            case 10: Jarvis.Test_SQL();                 break;
-        }
-        sw.Log("DONE");
-    }
-
-    public static void PrintTestOptions()
-    {
-        for (var i = 0; i < _test_names.Length; i++)
-        {
-            Print($"{i + 1,3} -> {_test_names[i]}");
-        }
-    }
 
     public static void RenderAllProfiles(string path)
     {
@@ -80,6 +35,7 @@ public static partial class DebugTools
     {
         var report = new Image<Rgb24>(SIDE_Hue, SIDE, 50.ToRgb24());
 
+        // todo - use hue limits as well at some part of image
         var color = 40.ToRgb24();
         for (var hue_ix = 0; hue_ix < 12; hue_ix += 2)
         {

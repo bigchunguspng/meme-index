@@ -1,5 +1,6 @@
 using MemeIndex.Core.Analysis.Color;
 using MemeIndex.Core.Analysis.Color.v2;
+using MemeIndex.Core.Search;
 using MemeIndex.Utils;
 
 namespace MemeIndex.Core;
@@ -73,7 +74,7 @@ public static class CLI
             switch (args.Length)
             {
                 case > 0 when args.ContainsAny("-T", "--list-tests"):
-                    DebugTools.PrintTestOptions();
+                    Lab_Tests.PrintOptions();
                     return true;
                 default:
                     return false;
@@ -107,7 +108,7 @@ public static class CLI
                     return true;
                 case > 1 when args.ContainsOption("-t", "--test", out var i):
                     var number = int.TryParse(args[i], out var n) ? n : 1;
-                    DebugTools.Test(number);
+                    Lab_Tests.Run(number);
                     return true;
                 case > 1 when args.ContainsOption("-p", "--profile", out var i):
                     args.Slice(start: i)
@@ -149,4 +150,50 @@ public static class CLI
             .Where    (s => s.IsNotNull_NorWhiteSpace()
                          && s.StartsWith('#') .Janai())
             .Select   (s => s.Trim('"'));
+}
+
+public static class Lab_Tests
+{
+    private static readonly string[] _test_names =
+    [
+        "RenderStepCalculation",
+        "RenderHueReferences_Frames",
+        "RenderFullOklch_Frames",
+        "RenderFullOklch_On3x2",
+        "RenderHues_Oklch_v2",
+        "HSL(step: 30)",
+        "Oklch(step: 30)",
+        "Oklch_HxL",
+        "CompareHLS_ToOklch",
+        "Expression -> SQL (Jarvis)",
+    ];
+
+    public static void Run(int number)
+    {
+        var sw = Stopwatch.StartNew();
+        if (number > 0 && number <= _test_names.Length)
+            sw.Log($"TEST: {_test_names[number - 1]}");
+        switch (number)
+        {
+            case  1: DebugTools.RenderStepCalculation();      break;
+            case  2: DebugTools.RenderHueReferences_Frames(); break;
+            case  3: DebugTools.RenderFullOklch_Frames();     break;
+            case  4: DebugTools.RenderFullOklch_On3x2();      break;
+            case  5: DebugTools.RenderHues_Oklch_v2();        break;
+            case  6: DebugTools.HSL  (30);                    break;
+            case  7: DebugTools.Oklch(30);                    break;
+            case  8: DebugTools.Oklch_HxL();                  break;
+            case  9: DebugTools.CompareHLS_ToOklch();         break;
+            case 10: Jarvis.Test_SQL();                       break;
+        }
+        sw.Log("DONE");
+    }
+
+    public static void PrintOptions()
+    {
+        for (var i = 0; i < _test_names.Length; i++)
+        {
+            Print($"{i + 1,3} -> {_test_names[i]}");
+        }
+    }
 }
