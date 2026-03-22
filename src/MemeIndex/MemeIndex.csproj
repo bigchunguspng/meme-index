@@ -10,7 +10,8 @@
 
   <PropertyGroup>
     <Version>0.3.3</Version>
-    <!--TODO ApplicationIcon AssemblyName AssemblyTitle-->
+    <ApplicationIcon>../../app.ico</ApplicationIcon>
+    <!--TODO AssemblyName AssemblyTitle-->
   </PropertyGroup>
 
   <PropertyGroup>
