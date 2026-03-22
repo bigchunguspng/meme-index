@@ -40,7 +40,6 @@ public partial class FileProcessor
             try
             {
                 var ctx = new ThumbgenContext(file);
-                //await Thumbnail_Load(ctx);
                 await Thumbnail_Resize(ctx);
             }
             catch (Exception e)
@@ -55,25 +54,11 @@ public partial class FileProcessor
         Log(CODE, "DONE");
     }
 
+    // LOAD + RESIZE
+
     private static readonly Size _fitSize = new (174, 174);
 
-    private static readonly WebpEncoder _encoder = new()
-    {
-        FileFormat = WebpFileFormatType.Lossy,
-        Quality = 85,
-        Method = WebpEncodingMethod.Level2,
-        TransparentColorMode = WebpTransparentColorMode.Clear,
-    };
-
-    /*public async Task Thumbnail_Load(ThumbgenContext ctx)
-    {
-        Logger.LogStart(THUMB_LOAD, ctx.FileId);
-        ctx.Source = await ImagePool.Load(ctx.Path);
-        Logger.LogEnd  (THUMB_LOAD, ctx.FileId);
-        await C_Resize.Writer.WriteAsync(ctx);
-    }*/
-
-    public async Task Thumbnail_Resize(ThumbgenContext ctx)
+    private async Task Thumbnail_Resize(ThumbgenContext ctx)
     {
         Tracer.LogOpen(ctx.FileId, THUMB_LOAD);
         ctx.Source = await ImagePool.Load(ctx.Path);
@@ -85,7 +70,30 @@ public partial class FileProcessor
         await C_TG_SaveWebp.Writer.WriteAsync(ctx);
     }
 
-    public async Task Thumbnail_Save(ThumbgenContext ctx)
+    // SAVE FILE
+
+    private readonly    Channel<ThumbgenContext>
+        C_TG_SaveWebp = Channel.CreateUnbounded<ThumbgenContext>();
+
+    private Job_ThumbgenSaveWebp? job_thumbsWebp;
+
+    public class Job_ThumbgenSaveWebp(FileProcessor task)
+        : ChannelJob<ThumbgenContext>
+        (
+            "Job/Thumbgen-Save-Webp",
+            task.C_TG_SaveWebp,
+            task.Thumbnail_Save
+        );
+
+    private static readonly WebpEncoder _encoder = new()
+    {
+        FileFormat = WebpFileFormatType.Lossy,
+        Quality = 85,
+        Method = WebpEncodingMethod.Level2,
+        TransparentColorMode = WebpTransparentColorMode.Clear,
+    };
+
+    private async Task Thumbnail_Save(ThumbgenContext ctx)
     {
         Tracer.LogOpen(ctx.FileId, THUMB_SAVE);
         var save = Dir_Thumbs

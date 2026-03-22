@@ -68,4 +68,13 @@ public static class Command_AddFilesToDB
         || Job.ExecuteTask is { IsCompleted: true }
             ? Job = new Job_FileProcessing()
             : null;
+
+    private class Job_FileProcessing()
+        : ChannelJob_ExecuteOrStop
+        (
+            "Job/FileProcessing",
+            C_FileProcessing,
+            async () => await new FileProcessor().Run(),
+            "Task done!"
+        );
 }

@@ -9,23 +9,6 @@ namespace MemeIndex.Core.Indexing;
 public partial class FileProcessor
 {
     private static readonly ImagePool ImagePool = new();
-    
-    private readonly Channel<Func<SqliteConnection, Task>>
-        C_DB_Write = Channel.CreateUnbounded<Func<SqliteConnection, Task>>();
-
-    public readonly     Channel<ThumbgenContext>
-      //C_TG_Resize   = Channel.CreateUnbounded<ThumbgenContext>(),
-        C_TG_SaveWebp = Channel.CreateUnbounded<ThumbgenContext>();
-
-    private Job_DB_Write?         job_DB;
-    private Job_ThumbgenSaveWebp? job_thumbsWebp;
-
-    [MethodImpl(Synchronized)]
-    private Job_DB_Write? InitJob_DB_Write()
-        => job_DB == null
-        || job_DB.ExecuteTask is { IsCompleted: true }
-            ? job_DB = new Job_DB_Write(C_DB_Write, Tracer)
-            : null;
 
     public async Task Run()
     {
@@ -44,6 +27,65 @@ public partial class FileProcessor
             await   job_DB .ExecuteTask;
 
         SaveTraceData();
+    }
+
+    // DB WRITE
+
+    private readonly Channel<Func<SqliteConnection, Task>>
+        C_DB_Write = Channel.CreateUnbounded<Func<SqliteConnection, Task>>();
+
+    private Job_DB_Write? job_DB;
+
+    [MethodImpl(Synchronized)]
+    private Job_DB_Write? InitJob_DB_Write()
+        => job_DB == null
+        || job_DB.ExecuteTask is { IsCompleted: true }
+            ? job_DB = new Job_DB_Write(C_DB_Write, Tracer)
+            : null;
+
+    /// DB writes are done in batches via this job.
+    public class Job_DB_Write
+    (
+        Channel<Func<SqliteConnection, Task>> channel,
+        TraceCollector tracer
+    ) : BackgroundService
+    {
+        private const string code = "Job/DB-Writer";
+        private readonly List<Func<SqliteConnection, Task>> _queue = new(16);
+
+        protected override async Task ExecuteAsync(CancellationToken ct)
+        {
+            Log(code, "STARTED");
+            await foreach (var task in channel.Reader.ReadAllAsync(ct))
+            {
+                if (_queue.Count == _queue.Capacity)
+                {
+                    await ProcessQueue();
+                    _queue.Clear();
+                }
+
+                _queue.Add(task);
+            }
+
+            if (_queue.Count > 0)
+                await ProcessQueue();
+
+            Log(code, "COMPLETED");
+        }
+
+        private int id = 10_000;
+        private async Task ProcessQueue()
+        {
+            tracer.LogOpen(id, DB_WRITE);
+            await using var con = await AppDB.ConnectTo_Main();
+            foreach (var task in _queue)
+            {
+                await task(con);
+            }
+            await con.CloseAsync();
+            tracer.LogDone(id++, DB_WRITE);
+            Log(code, $"Processed {_queue.Count} items!");
+        }
     }
 
     // STATS
