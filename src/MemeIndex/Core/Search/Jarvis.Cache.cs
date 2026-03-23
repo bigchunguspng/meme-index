@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using MemeIndex.DB;
 
 namespace MemeIndex.Core.Search;
@@ -6,8 +5,8 @@ namespace MemeIndex.Core.Search;
 public static partial class Jarvis
 {
     private const int
-        Config_CACHE_QUERIES_COUNT   = 32, // 1024
-        Config_CACHE_QUERIES_MINUTES = 15; // 30 todo implement time based eviction
+        Config_CACHE_QUERIES_COUNT   = 256, // 1024
+        Config_CACHE_QUERIES_MINUTES =  15; // 30 todo implement time based eviction
 
     private record struct CacheKey(string Expression, int Skip, int Take);
 
