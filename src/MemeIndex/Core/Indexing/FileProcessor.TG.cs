@@ -41,7 +41,7 @@ public partial class FileProcessor
         {
             try
             {
-                await Thumbnail_Resize(new ThumbgenContext(file));
+                await Thumbnail_Resize(file.Id, file.Path);
             }
             catch (Exception e)
             {
@@ -59,17 +59,16 @@ public partial class FileProcessor
 
     private static readonly Size _fitSize = new (174, 174);
 
-    private async Task Thumbnail_Resize(ThumbgenContext c)
+    private async Task Thumbnail_Resize(int id, string filePath)
     {
-        var id = c.FileId;
         Tracer.LogOpen(id, THUMB_LOAD);
-        c.Source = await ImagePool.Load(c.Path);
+        var source = await ImagePool.Load(filePath);
         Tracer.LogJoin(id, THUMB_LOAD, THUMB_SIZE);
-        var size = c.Source.Size.FitSize(_fitSize);
-        c.Thumb = c.Source.Clone(x => x.Resize(size, LanczosResampler.Lanczos3, compand: false));
-        ImagePool.Return(c.Path);
+        var size  = source.Size.FitSize(_fitSize);
+        var thumb = source.Clone(x => x.Resize(size, LanczosResampler.Lanczos3, compand: false));
+        ImagePool.Return(filePath);
         Tracer.LogDone(id, THUMB_SIZE);
-        await C_TG_SaveWebp.Writer.WriteAsync(c);
+        await C_TG_SaveWebp.Writer.WriteAsync(new ThumbgenContext(id, source, thumb));
     }
 
     // SAVE FILE
@@ -119,13 +118,13 @@ public partial class FileProcessor
     public static string GetThumbFilename(int id) => $"{id:x6}.webp";
 }
 
-public struct ThumbgenContext(FilePathRecord file)
+public readonly struct ThumbgenContext
+    (int fileId, Image source, Image thumb)
 {
-    public readonly string Path   = file.Path;
-    public readonly int    FileId = file.Id;
-    public Image  Source;
-    public Image  Thumb;
+    public  readonly int    FileId     = fileId;
+    public  readonly Image  Thumb      = thumb;
+    private readonly Size   SourceSize = source.Size;
 
     public DB_File_UpdateDateSize ToDB_File
-        () => new(FileId, DateTime.UtcNow, Source.Size);
+        () => new(FileId, DateTime.UtcNow, SourceSize);
 }
