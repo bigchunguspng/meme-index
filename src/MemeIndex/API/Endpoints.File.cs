@@ -1,5 +1,5 @@
 using MemeIndex.Core.Indexing;
-using MemeIndex.Core.OpeningFiles;
+using MemeIndex.Core.Search.Actions;
 using MemeIndex.DB;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;

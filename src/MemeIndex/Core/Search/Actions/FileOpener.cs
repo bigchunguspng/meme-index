@@ -1,6 +1,6 @@
 using MemeIndex.Utils;
 
-namespace MemeIndex.Core.OpeningFiles;
+namespace MemeIndex.Core.Search.Actions;
 
 public abstract class FileOpener
 {

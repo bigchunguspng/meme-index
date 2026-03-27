@@ -1,3 +1,4 @@
+using System.Net;
 using MemeIndex.Core;
 
 namespace MemeIndex.API;
@@ -17,7 +18,7 @@ public class Mw_ExceptionHandling : IMiddleware
             var con = context.Connection;
             var len = req.ContentLength;
             var body = len is > 0 ? $" {{…}}^{len}" : null;
-            var ctx = $"{req.Method} {req.Path}{req.QueryString}{body}\n   "
+            var ctx = $"{req.Method} {req.Path}{WebUtility.UrlDecode(req.QueryString.Value)}{body}\n   "
                     + $"{con.RemoteIpAddress}:{con.RemotePort} -> {con.LocalIpAddress}:{con.LocalPort}";
             App.LogException(e, ExceptionCategory.API, ctx);
         }

@@ -3,13 +3,16 @@ using MemeIndex.DB;
 
 namespace MemeIndex.Core.Indexing;
 
+public static class Indexing
+{
+    public static readonly HashSet<string> SupportedExtensions
+        = [".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"];
+}
+
 public static class Command_AddFilesToDB
 {
     public static readonly Channel<int>
         C_FileProcessing = Channel.CreateUnbounded<int>();
-
-    private static readonly string[] _supported_extensions
-        = [".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"];
 
     /// this will be called when user
     /// adds new tracking rules / directories
@@ -27,8 +30,8 @@ public static class Command_AddFilesToDB
             ? SearchOption.AllDirectories
             : SearchOption.TopDirectoryOnly;
         var files = di.GetFiles("*.*", option)
-            .Where(x => x.DirectoryName != null 
-                     && _supported_extensions.Contains(x.Extension))
+            .Where(x => x.DirectoryName != null
+                     && Indexing.SupportedExtensions.Contains(x.Extension))
             .ToArray();
         var dir_paths = files
             .Select(x => x.DirectoryName!)
