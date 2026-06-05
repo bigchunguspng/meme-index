@@ -1,0 +1,46 @@
+namespace MemeIndex.Tools.Backrooms.Extensions;
+
+[Obsolete("Unused! Otherwise remove this attribute.")]
+public static class Extensions_FilePath
+{
+    public static FilePath MakeUnique
+        (this FilePath path)
+    {
+        while (path.Exists)
+        {
+            var name = path.AsSpan_WithoutExtension();
+            var ext  = path.AsSpan_Extension();
+            var sand = Desert.GetSand(length: 2);
+            path = new FilePath($"{name}_{sand}{ext}");
+        }
+        return path;
+    }
+
+    public static FilePath Suffix
+        (this FilePath path, string suffix, string extension, char separator = '-') =>
+        new ($"{path.AsSpan_WithoutExtension()}{separator}{suffix}{extension}");
+    
+    public static FilePath Suffix
+        (this FilePath path, string suffix1, string suffix2, string extension, char separator = '-') =>
+        new ($"{path.AsSpan_WithoutExtension()}{separator}{suffix1}{separator}{suffix2}{extension}");
+
+    public static FilePath ChangeEnding
+        (this FilePath path, string suffix_and_extension,     char separator = '-') =>
+        new ($"{path.AsSpan_WithoutExtension()}{separator}{suffix_and_extension}");
+
+    public static async Task WaitForFile(this FilePath path, int checkEvery_ms)
+    {
+        while (true)
+        {
+            try
+            {
+                await using var fs = File.Open(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                return;
+            }
+            catch (IOException)
+            {
+                await Task.Delay(checkEvery_ms);
+            }
+        }
+    }
+}
