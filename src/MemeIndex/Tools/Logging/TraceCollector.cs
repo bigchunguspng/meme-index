@@ -123,3 +123,26 @@ public class TraceSpan(int id, int thread_id, DateTime time)
     [JsonPropertyName("start"    )] public DateTime TimeStart { get; } = time;
     [JsonPropertyName("duration" )] public TimeSpan Duration  { get; set; }
 }
+
+/*
+{
+    traces: dic,
+    groups: list<trace_grouping>
+}
+
+trace_grouping:
+- DB_WRITE - exclude lane from general id space
+- dic<int, list<(string, int)>> - map lane id to lane-id | 1 -> [ dbtags-11, db-ft-5, ...], 2 -> [ db-tags-12, db-ft-10, ...]
+
+set lane relations - child, parent, sister, grouping:
+
+1. Thumbnail / Load -- Color Analysis / Load            | sister
+4. Color Analysis / Load -> 5. Color Analysis / Scan    | prev -> next
+2. Thumbnail / Resize -> 3. Thumbnail / Save            | prev -> next
+6. Color Analysis / Analyze
+7. DB Write -> 8. DB Write / Tags | group -> child
+9. DB Write / File Analysis
+A. DB Write / File Thumbgen
+
+relations defiled upfront or after
+ */
