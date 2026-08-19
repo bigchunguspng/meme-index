@@ -99,6 +99,7 @@ app.MapGet (    "/logs",      Endpoints.GetPage_Logs);
 app.MapGet (    "/logs/{id}", Endpoints.GetPage_EventViewer);
 app.MapGet ("/api/logs/{id}", Endpoints.GetJson_EventViewerData);
 app.MapGet ("/api/dirs/",     Endpoints.GetJson_Directory);
+app.MapPost("/api/dirs/",     Endpoints.Monitors_Save);
 app.MapGet ("/api/find/",     Endpoints.GetJson_Find);
 app.MapGet ("/api/files/{id}/image",   Endpoints.Get_Image);
 app.MapGet ("/api/files/{id}/thumb",   Endpoints.Get_Thumb);

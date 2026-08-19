@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using MemeIndex.API;
 using MemeIndex.Core.Indexing.Selection;
 using MemeIndex.Core.Search;
 using SixLabors.ImageSharp;
@@ -9,6 +10,7 @@ namespace MemeIndex.Utils;
 [JsonSerializable(typeof(SearchResponse))]
 [JsonSerializable(typeof(DirectoryResponse))]
 [JsonSerializable(typeof(Dictionary<string, List<TraceSpan>>))]
+[JsonSerializable(typeof(API_Monitors_Post))]
 internal partial class
     AppJson
     :  JsonSerializerContext
