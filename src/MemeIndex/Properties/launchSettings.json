@@ -19,6 +19,14 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
+    "no-web-2": {
+      "commandName": "Project",
+      "commandLineArgs": "-l --dev -w $(ProjectDir)web",
+      "workingDirectory": "$(OutDir)",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
     "test": {
       "commandName": "Project",
       "commandLineArgs": "lab -t",
@@ -32,6 +40,11 @@
     "demo": {
       "commandName": "Project",
       "commandLineArgs": "lab -D args.txt",
+      "workingDirectory": "$(OutDir)"
+    },
+    "help": {
+      "commandName": "Project",
+      "commandLineArgs": "--help",
       "workingDirectory": "$(OutDir)"
     }
   }

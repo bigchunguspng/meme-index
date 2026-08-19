@@ -31,8 +31,9 @@ public static class ColorTagService
                 .Combine($"Dots-{DateTime.UtcNow.Ticks >> 32}-{Desert.GetSand(4)}.jpg");
             await image.SaveAsJpegAsync(jpeg, DebugTools.JpegEncoder_Q80);
             sw.Log("DEBUG-DOTS   EXPORTED");
-            DebugTools.RenderSamplePoster(path);
-            sw.Log("DEBUG-POSTER EXPORTED");
+            // DebugTools.RenderSamplePoster(path);
+            // sw.Log("DEBUG-POSTER EXPORTED");
+            // don't remember what this ^ was lol 
 #endif
             var rankedWords = AnalyzeImageSamples(scanResult);
             sw.Log("ANALYSIS DONE");

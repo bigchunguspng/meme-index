@@ -89,7 +89,6 @@ public class DirectoryResponse
 {
 	public char    S { get; } = Path.DirectorySeparatorChar;
 
-	public string? B { get; set; } // Back (full path)
 	public string? U { get; set; } // Up   (full path)
 
 	public required Dictionary<string, int>       F { get; set; } // Files (count by type) (no recursion)

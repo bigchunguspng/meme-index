@@ -26,12 +26,12 @@ public static class CLI
 
              OPTIONS (common):
                     --dev                   Use DEVELOPMENT path scheme (everything next to binaries).
-                    --ok                    Use regular     path scheme.
+                    --ok                    Use regular     path scheme (OS specific).
 
              OPTIONS (info):
                 -!  --version               Show version info.
                 -?  --help                  Show this screen.
-                -/  --dirs                  Show app directories. 
+                -/  --dirs                  Show app directories (can be combined with other options).
 
              OPTIONS (web server):
                     --urls           URL;.. Listen to other URLs.

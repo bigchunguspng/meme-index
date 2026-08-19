@@ -15,6 +15,7 @@ public static class HostingHelpers
         5928, 1488,
         3003, 3313,
         2021, 2025,
+        // todo review numbers b4 release
     ];
 
     public static async Task<int> GetFreePort()
