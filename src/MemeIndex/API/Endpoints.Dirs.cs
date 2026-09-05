@@ -1,4 +1,5 @@
 using System.Text.Json;
+using MemeIndex.Core.Indexing;
 using MemeIndex.Core.Indexing.Selection;
 using MemeIndex.Utils;
 
@@ -18,27 +19,34 @@ public static partial class Endpoints
 	    return Results.Content(json, "application/json");
     }
 
-    public static IResult Monitors_Save
-	    (API_Monitors_Post body)
+    public static async Task<IResult> Monitors_Save
+	    (API_Monitors_Post_Request body)
     {
-	    // todo update db monitors, trigger indexing
-	    return Results.Ok();
+	    var response = await MonitorsDispatcher.UpdateMonitors(body);
+	    var json = JsonSerializer.Serialize(response, AppJson.Default.API_Monitors_Post_Response);
+	    return Results.Content(json, "application/json");
     }
 }
 
-public class API_Monitors_Post
+public class API_Monitors_Post_Request
 {
-	public List<API_Monitor_Post> M { get; set; } // Monitors
-
+	public List<API_MonitorsByPath_Post> M { get; set; } // Monitors
+}
+public class API_MonitorsByPath_Post
+{
+	public string                 P { get; set; } // Path
+	public List<API_Monitor_Post> M { get; set; } // Methods
 }
 public class API_Monitor_Post
 {
-	public string                       P { get; set; } // Path
-	public List<API_MonitorMethod_Post> M { get; set; } // Methods
-}
-public class API_MonitorMethod_Post
-{
-	public bool I { get; set; } // Indexed
+	public byte M { get; set; } // Method
 	public bool E { get; set; } // Enabled
 	public bool R { get; set; } // Recursive
+}
+
+public class API_Monitors_Post_Response
+{
+	public int A { get; set; } // Added
+	public int U { get; set; } // Updated
+	public int D { get; set; } // Deleted
 }

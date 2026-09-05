@@ -47,6 +47,13 @@ public static class DB_Dirs
         return await c.QueryAsync<DB_Dir_Get>(SQL);
     }
 
+    public static async Task<DB_Dir_Get> Dirs_GetByPath
+        (this SqliteConnection c, string path)
+    {
+        const string SQL = "SELECT * FROM dirs WHERE path = @path";
+        return await c.QuerySingleAsync<DB_Dir_Get>(SQL, new { path });
+    }
+
     // UPDATE
     // DELETE
 }

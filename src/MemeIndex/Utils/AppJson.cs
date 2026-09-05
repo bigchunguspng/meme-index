@@ -10,7 +10,8 @@ namespace MemeIndex.Utils;
 [JsonSerializable(typeof(SearchResponse))]
 [JsonSerializable(typeof(DirectoryResponse))]
 [JsonSerializable(typeof(Dictionary<string, List<TraceSpan>>))]
-[JsonSerializable(typeof(API_Monitors_Post))]
+[JsonSerializable(typeof(API_Monitors_Post_Request))]
+[JsonSerializable(typeof(API_Monitors_Post_Response))]
 internal partial class
     AppJson
     :  JsonSerializerContext
