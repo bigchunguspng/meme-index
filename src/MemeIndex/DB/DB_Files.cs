@@ -5,7 +5,7 @@ using SixLabors.ImageSharp;
 
 namespace MemeIndex.DB;
 
-public class DB_File_UI
+public class DB_File_Get_UI
 {
     public required int      id;
     public required int  dir_id;
@@ -17,12 +17,12 @@ public class DB_File_UI
     public required double sort;
 }
 
-public class DB_File_UI_WithCount : DB_File_UI
+public class DB_File_Get_UI_WithCount : DB_File_Get_UI
 {
     public required int    total;
 }
 
-public class DB_File_WithPath
+public class DB_File_Get_WithPath
 {
     public required int    id;
     public required string path;
@@ -75,7 +75,7 @@ public static class DB_Files
 
     // GET
 
-    public static async Task<DB_File_WithPath?> File_GetPath
+    public static async Task<DB_File_Get_WithPath?> File_GetPath
         (this SqliteConnection c, int id)
     {
         const string SQL =
@@ -83,10 +83,10 @@ public static class DB_Files
           + "FROM files f "
           + "JOIN dirs d ON d.id = f.dir_id "
           + "WHERE f.id = @id";
-        return await c.QuerySingleOrDefaultAsync<DB_File_WithPath>(SQL, new { id });
+        return await c.QuerySingleOrDefaultAsync<DB_File_Get_WithPath>(SQL, new { id });
     }
 
-    public static async Task<IEnumerable<DB_File_WithPath>> Files_GetToBeAnalyzed
+    public static async Task<IEnumerable<DB_File_Get_WithPath>> Files_GetToBeAnalyzed
         (this SqliteConnection c)
     {
         const string SQL =
@@ -94,10 +94,10 @@ public static class DB_Files
           + "FROM files f "
           + "JOIN dirs d ON d.id = f.dir_id "
           + "WHERE adate IS NULL OR mdate > adate";
-        return await c.QueryAsync<DB_File_WithPath>(SQL);
+        return await c.QueryAsync<DB_File_Get_WithPath>(SQL);
     }
 
-    public static async Task<IEnumerable<DB_File_WithPath>> Files_GetToBeThumbed
+    public static async Task<IEnumerable<DB_File_Get_WithPath>> Files_GetToBeThumbed
         (this SqliteConnection c)
     {
         const string SQL =
@@ -105,19 +105,19 @@ public static class DB_Files
           + "FROM files f "
           + "JOIN dirs d ON d.id = f.dir_id "
           + "WHERE tdate IS NULL OR mdate > tdate";
-        return await c.QueryAsync<DB_File_WithPath>(SQL);
+        return await c.QueryAsync<DB_File_Get_WithPath>(SQL);
     }
 
-    public static async Task<IEnumerable<DB_File_UI>> Files_UI_GetBySQL_Simple
+    public static async Task<IEnumerable<DB_File_Get_UI>> Files_UI_GetBySQL_Simple
         (this SqliteConnection c, string SQL)
     {
-        return await c.QueryAsync<DB_File_UI>(SQL);
+        return await c.QueryAsync<DB_File_Get_UI>(SQL);
     }
 
-    public static async Task<IEnumerable<DB_File_UI_WithCount>> Files_UI_GetBySQL_WithCount
+    public static async Task<IEnumerable<DB_File_Get_UI_WithCount>> Files_UI_GetBySQL_WithCount
         (this SqliteConnection c, string SQL)
     {
-        return await c.QueryAsync<DB_File_UI_WithCount>(SQL);
+        return await c.QueryAsync<DB_File_Get_UI_WithCount>(SQL);
     }
 
     // UPDATE
@@ -138,4 +138,6 @@ public static class DB_Files
           + "WHERE id = @id";
         await c.ExecuteAsync(SQL, file);
     }
+
+    // DELETE
 }

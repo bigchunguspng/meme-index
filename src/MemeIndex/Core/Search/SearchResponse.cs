@@ -12,7 +12,7 @@ public class SearchResponse
 
 public record struct Pagination(int O, int R, int? T = null); // Offset, Returned, Total
 
-public class File_UI(DB_File_UI file)
+public class File_UI(DB_File_Get_UI file)
 {
     public int      I { get; } = file.id;
     public int      D { get; } = file.dir_id;

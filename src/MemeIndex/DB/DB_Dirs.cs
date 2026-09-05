@@ -3,14 +3,16 @@ using Microsoft.Data.Sqlite;
 
 namespace MemeIndex.DB;
 
-public class DB_Dir(FilePath path)
+public class DB_Dir_Get
 {
-    public int    Id   { get; set; }
-    public string Path { get; set; } = path;
+    public required int    id;
+    public required string path;
 }
 
 public static class DB_Dirs
 {
+    // CREATE
+
     public static async Task Dirs_Create
         (this SqliteConnection c, string path)
     {
@@ -28,18 +30,23 @@ public static class DB_Dirs
         await transaction.CommitAsync();
     }
 
-    public static async Task<IEnumerable<DB_Dir>> Dirs_GetAll
+    // GET
+
+    public static async Task<IEnumerable<DB_Dir_Get>> Dirs_GetAll
         (this SqliteConnection c)
     {
         const string SQL = "SELECT * FROM dirs";
-        return await c.QueryAsync<DB_Dir>(SQL);
+        return await c.QueryAsync<DB_Dir_Get>(SQL);
     }
 
-    public static async Task<IEnumerable<DB_Dir>> Dirs_GetByIds
+    public static async Task<IEnumerable<DB_Dir_Get>> Dirs_GetByIds
         (this SqliteConnection c, IEnumerable<int> ids)
     {
         // todo anti-injection
         var SQL = $"SELECT * FROM dirs WHERE id IN ({string.Join(',', ids)})";
-        return await c.QueryAsync<DB_Dir>(SQL);
+        return await c.QueryAsync<DB_Dir_Get>(SQL);
     }
+
+    // UPDATE
+    // DELETE
 }

@@ -43,7 +43,7 @@ public static class Command_AddFilesToDB
         await using var con = await AppDB.ConnectTo_Main();
         await con.Dirs_CreateMany(dir_paths);
         var directories = await con.Dirs_GetAll();
-        var directory_ids = directories.ToDictionary(x => x.Path, x => x.Id);
+        var directory_ids = directories.ToDictionary(x => x.path, x => x.id);
 
         // ADD FILES
         var file_insert = files

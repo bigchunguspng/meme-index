@@ -87,7 +87,7 @@ public static partial class Jarvis
 
         var dir_ids = files.Select(x => x.D).Distinct();
         var dirs_db = await con.Dirs_GetByIds(dir_ids);
-        var dirs = dirs_db.ToDictionary(x => x.Id, x => x.Path + Path.DirectorySeparatorChar);
+        var dirs = dirs_db.ToDictionary(x => x.id, x => x.path + Path.DirectorySeparatorChar);
         sw.Log("[Jv2/FILES] DB GET DIRS");
 
         return new SearchResponse

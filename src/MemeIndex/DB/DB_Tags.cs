@@ -20,6 +20,8 @@ public class DB_Tag_Insert(TagContent tag, int file_id)
 
 public static class DB_Tags
 {
+    // CREATE
+
     public static async Task Tags_CreateMany
         (this SqliteConnection c, IEnumerable<DB_Tag_Insert> tags)
     {
@@ -33,6 +35,8 @@ public static class DB_Tags
         AppDB.Main_RegisterUpdate();
     }
 
+    // GET
+
     public static async Task<IEnumerable<DB_Tag_Get>> Tags_GetByTerms
         (this SqliteConnection c, string[] terms)
     {
@@ -43,4 +47,7 @@ public static class DB_Tags
             + $"WHERE term IN ({string.Join(',', terms.Select(x => $"'{x}'"))})";
         return await c.QueryAsync<DB_Tag_Get>(SQL);
     }
+
+    // UPDATE
+    // DELETE
 }
