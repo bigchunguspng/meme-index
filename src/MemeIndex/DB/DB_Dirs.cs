@@ -13,7 +13,7 @@ public static class DB_Dirs
 {
     // CREATE
 
-    public static async Task Dirs_Create
+    public static async Task Dir_Create
         (this SqliteConnection c, string path)
     {
         const string SQL = "INSERT INTO dirs (path) VALUES (@path)";
@@ -42,12 +42,11 @@ public static class DB_Dirs
     public static async Task<IEnumerable<DB_Dir_Get>> Dirs_GetByIds
         (this SqliteConnection c, IEnumerable<int> ids)
     {
-        // todo anti-injection
         var SQL = $"SELECT * FROM dirs WHERE id IN ({string.Join(',', ids)})";
         return await c.QueryAsync<DB_Dir_Get>(SQL);
     }
 
-    public static async Task<DB_Dir_Get> Dirs_GetByPath
+    public static async Task<DB_Dir_Get> Dir_GetByPath
         (this SqliteConnection c, string path)
     {
         const string SQL = "SELECT * FROM dirs WHERE path = @path";

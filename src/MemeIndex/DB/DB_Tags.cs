@@ -41,6 +41,7 @@ public static class DB_Tags
         (this SqliteConnection c, string[] terms)
     {
         // todo - add anti sql injection measures since we can't use params
+        // regex to check legal terms would be enough
         var SQL
             = "SELECT file_id, term, score "
             + "FROM tags "

@@ -55,7 +55,7 @@ public static class DB_Monitors
 
     // UPDATE
 
-    public static async Task Monitors_Update
+    public static async Task Monitor_Update
         (this SqliteConnection c, SqliteTransaction? transaction, DB_Monitor_Update monitor)
     {
         const string SQL =
@@ -67,7 +67,7 @@ public static class DB_Monitors
 
     // DELETE
 
-    public static async Task Monitors_Delete
+    public static async Task Monitor_Delete
         (this SqliteConnection c, SqliteTransaction? transaction, int id)
     {
         const string SQL = "DELETE FROM monitors WHERE id = @id";

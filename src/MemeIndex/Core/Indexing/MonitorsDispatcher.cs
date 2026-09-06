@@ -76,8 +76,8 @@ public static class MonitorsDispatcher
             if (dir_ids_byPath.TryGetValue_Failed(key.Path, out var dir_id))
             {
                 // dir not in db ? add dir to db, update dic
-                await con.Dirs_Create(key.Path);
-                var new_dir = await con.Dirs_GetByPath(key.Path);
+                await con.Dir_Create(key.Path);
+                var new_dir = await con.Dir_GetByPath(key.Path);
                 dir_id = dir_ids_byPath[key.Path] = new_dir.id;
             }
             monitors_new.Add(new DB_Monitor_Insert(dir_id, key.Method, nw_m.Recurse, nw_m.Enabled));
@@ -104,8 +104,8 @@ public static class MonitorsDispatcher
         // UPDATE DB MONITORS
         await using var transaction = con.BeginTransaction();
         if      (monitors_new.Count > 0)  await con.Monitors_CreateMany(transaction, monitors_new);
-        foreach (var mon in monitors_upd) await con.Monitors_Update    (transaction, mon);
-        foreach (var mon in monitors_del) await con.Monitors_Delete    (transaction, mon);
+        foreach (var mon in monitors_upd) await con.Monitor_Update     (transaction, mon);
+        foreach (var mon in monitors_del) await con.Monitor_Delete     (transaction, mon);
         await transaction.CommitAsync();
         await con.CloseAsync();
 
