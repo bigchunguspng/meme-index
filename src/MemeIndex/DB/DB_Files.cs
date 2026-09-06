@@ -22,6 +22,16 @@ public class DB_File_Get_UI_WithCount : DB_File_Get_UI
     public required int    total;
 }
 
+public class DB_File_Get_ForSync
+{
+    public required int      id;
+    public required int  dir_id;
+    public required string name;
+    public required long   size;
+    public required long   cdate;
+    public required long   mdate;
+}
+
 public class DB_File_Get_WithPath
 {
     public required int    id;
@@ -40,6 +50,16 @@ public class DB_File_Insert(FileInfo info, int directory_id)
     public readonly long   size   = info.Length;
     public readonly long   cdate  = info. CreationTimeUtc.ToFileTimeUtc();
     public readonly long   mdate  = info.LastWriteTimeUtc.ToFileTimeUtc();
+}
+
+public class DB_File_Update(int file_id, int directory_id, FileInfo file)
+{
+    public readonly int    id     = file_id;
+    public readonly int    dir_id = directory_id;
+    public readonly string name   = file.Name;
+    public readonly long   size   = file.Length;
+    public readonly long   cdate  = file.CreationTimeUtc.ToFileTimeUtc();
+    public readonly long   mdate  = file.LastWriteTimeUtc.ToFileTimeUtc();
 }
 
 public class DB_File_UpdateDate
@@ -62,15 +82,13 @@ public static class DB_Files
     // CREATE
 
     public static async Task Files_CreateMany
-        (this SqliteConnection c, IEnumerable<DB_File_Insert> files)
+        (this SqliteConnection c, SqliteTransaction? transaction, IEnumerable<DB_File_Insert> files)
     {
         const string SQL =
             "INSERT OR IGNORE "
           + "INTO files (dir_id, name, size, cdate, mdate) "
           + "VALUES (@dir_id, @name, @size, @cdate, @mdate)";
-        await using var transaction = c.BeginTransaction();
         await c.ExecuteAsync(SQL, files, transaction);
-        await transaction.CommitAsync();
     }
 
     // GET
@@ -108,6 +126,16 @@ public static class DB_Files
         return await c.QueryAsync<DB_File_Get_WithPath>(SQL);
     }
 
+    public static async Task<IEnumerable<DB_File_Get_ForSync>> Files_ForSync_GetByDirIds
+        (this SqliteConnection c, IEnumerable<int> dir_ids)
+    {
+        var SQL =
+            "SELECT id, dir_id, name, size, cdate, mdate "
+            + "FROM files f "
+            + $"WHERE dir_id IN ({string.Join(',', dir_ids)})";
+        return await c.QueryAsync<DB_File_Get_ForSync>(SQL);
+    }
+
     public static async Task<IEnumerable<DB_File_Get_UI>> Files_UI_GetBySQL_Simple
         (this SqliteConnection c, string SQL)
     {
@@ -121,6 +149,16 @@ public static class DB_Files
     }
 
     // UPDATE
+
+    public static async Task File_Update
+        (this SqliteConnection c, SqliteTransaction? transaction, DB_File_Update file)
+    {
+        const string SQL =
+            "UPDATE files "
+            + "SET dir_id = @dir_id, name = @name, size = @size, cdate = @cdate, mdate = @mdate "
+            + "WHERE id = @id";
+        await c.ExecuteAsync(SQL, file, transaction);
+    }
 
     public static async Task File_UpdateDateAnalyzed
         (this SqliteConnection c, DB_File_UpdateDate file)
@@ -140,4 +178,11 @@ public static class DB_Files
     }
 
     // DELETE
+
+    public static async Task File_Delete
+        (this SqliteConnection c, SqliteTransaction? transaction, int id)
+    {
+        const string SQL = "DELETE FROM files WHERE id = @id";
+        await c.ExecuteAsync(SQL, new { id }, transaction);
+    }
 }

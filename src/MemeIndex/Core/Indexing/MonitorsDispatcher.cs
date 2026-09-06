@@ -3,18 +3,12 @@ using MemeIndex.DB;
 
 namespace MemeIndex.Core.Indexing;
 
-public enum AnalysisMethod
-{
-    Color = 1,
-    OCR   = 2,
-}
-
 public record MonitorKey(string Path, int Method);
 public class  MonitorValue
 {
     public readonly int? Id;
-    public readonly bool Recurse;
-    public readonly bool Enabled;
+    public readonly bool Recurse; // Apply to nested directories
+    public readonly bool Enabled; // Monitor file changes, process directory during manual/startup syncs
 
     public MonitorValue(DB_Monitor_Get m)
     {
@@ -34,11 +28,11 @@ public static class MonitorsDispatcher
 {
     public static async Task<API_Monitors_Post_Response> UpdateMonitors(API_Monitors_Post_Request body)
     {
-        var con = await AppDB.ConnectTo_Main();
+        // GET DIRS & MONITORS
+        await using var con = await AppDB.ConnectTo_Main();
         var db_monitors = await con.Monitors_GetAll();
         var db_dirs_all = await con.Dirs_GetAll();
-
-        var dir_ids_byPath = db_dirs_all.ToDictionary(x => x.path, x => x.id);
+        var    dir_ids_byPath = db_dirs_all.ToDictionary(x => x.path, x => x.id);
 
         // NOTE: db monitors are distinct by path and method!
         // UI:
@@ -50,6 +44,7 @@ public static class MonitorsDispatcher
         // 2 ~/memes OCR    *flags*
         // 3 ~/pics  Color  *flags*
 
+        // DIFF MONITORS
         var dic_db_monitors = db_monitors
             .ToDictionary(
                 x => new MonitorKey(x.path, x.method),
@@ -70,6 +65,7 @@ public static class MonitorsDispatcher
         var keys_monitors_del  = set_db_monitors.Except(set_nw_monitors);
         var keys_monitors_keep = set_db_monitors.Union (set_nw_monitors);
 
+        // PREPARE DB WRITES, ADD MISSING DB DIRS
         List<DB_Monitor_Insert> monitors_new = [];
         List<DB_Monitor_Update> monitors_upd = [];
         List<int>               monitors_del = [];
@@ -87,12 +83,6 @@ public static class MonitorsDispatcher
             monitors_new.Add(new DB_Monitor_Insert(dir_id, key.Method, nw_m.Recurse, nw_m.Enabled));
         }
 
-        foreach (var key in keys_monitors_del)
-        {
-            var db_m = dic_db_monitors[key];
-            monitors_del.Add(db_m.Id!.Value);
-        }
-
         foreach (var key in keys_monitors_keep)
         {
             var db_m = dic_db_monitors[key];
@@ -102,15 +92,28 @@ public static class MonitorsDispatcher
             {
                 monitors_upd.Add(new DB_Monitor_Update(db_m.Id!.Value, nw_m.Recurse, nw_m.Enabled));
             }
+            // else (no changes) - ignore
         }
 
+        foreach (var key in keys_monitors_del)
+        {
+            var db_m = dic_db_monitors[key];
+            monitors_del.Add(db_m.Id!.Value);
+        }
+
+        // UPDATE DB MONITORS
         await using var transaction = con.BeginTransaction();
         if      (monitors_new.Count > 0)  await con.Monitors_CreateMany(transaction, monitors_new);
         foreach (var mon in monitors_upd) await con.Monitors_Update    (transaction, mon);
         foreach (var mon in monitors_del) await con.Monitors_Delete    (transaction, mon);
         await transaction.CommitAsync();
+        await con.CloseAsync();
 
-        // todo trigger indexing for monitors with indexing enabled
+        // TRIGGER INDEXING
+        _ = Indexing.Sync();
+
+        // todo validate dirs exist b4 adding to db
+        // todo validate no monitor is inside other recursive monitor
 
         return new API_Monitors_Post_Response
         {

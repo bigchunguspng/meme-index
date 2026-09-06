@@ -39,6 +39,8 @@ public class API_MonitorsByPath_Post
 }
 public class API_Monitor_Post
 {
+	// todo int id (I): 1+ for existing, 0 for new
+	// ^ new path (P) for I>0 = directory was relocated => update its path
 	public byte M { get; set; } // Method
 	public bool E { get; set; } // Enabled
 	public bool R { get; set; } // Recursive

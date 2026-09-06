@@ -142,6 +142,6 @@ async Task TestCode() // todo remove when directory can be added from ui
 
     var path = CLI.GetArgsFromFile(args.First(x => x.StartsWith('-').Janai())).First();
     var recursive = args.Contains("-r");
-    await Command_AddFilesToDB.Execute(path, recursive);
+    await Indexing.AddFilesToDB(path, recursive);
     LogCM(ConsoleColor.Green, $"await Command_AddFilesToDB.Execute(@\"{path}\", recursive: {(recursive ? "true" : "false")});");
 }
