@@ -22,26 +22,32 @@ public static class Indexing
     /// <param name="syncAllMonitors"> Use <c>false</c> to sync only active ones. </param>
     public static async Task Sync(bool syncAllMonitors = false)
     {
-        // GET MONITORS
+        var sw = Stopwatch.StartNew();
+
+        // GET DB MONITORS
         await using var con = await AppDB.ConnectTo_Main();
         var db_monitors = await con.Monitors_GetAll();
         var    monitors_toProcess = db_monitors
             .Where(x => syncAllMonitors || x.enabled)
             .ToList();
+        sw.Log("[Sync] GET MONITORS");
 
         // GET DB DIRS
         var db_dirs = await con.Dirs_GetAll();
         var    dirs = db_dirs.ToList();
         var    dirIds_ByPath = dirs.ToDictionary(x => x.path, x => x.id);
         var    dirPaths_ById = dirs.ToDictionary(x => x.id, x => x.path);
+        sw.Log("[Sync] GET DIRS");
 
         // GET FS FILES, ADD MISSING DB DIRS, MATCH TO DB (per monitor)
+        var sw_m = Stopwatch.StartNew();
         var mismatch = new DB_And_FS_Mismatch();
 
         foreach (var monitor in monitors_toProcess)
         {
             // GET FS FILES
             var fs_files = Monitor_GetFiles(monitor).ToList();
+            sw_m.Log($"[Sync | Monitor-{monitor.id:000}] GET FS FILES: {fs_files.Count}");
 
             // UPDATE DB DIRS
             {
@@ -54,6 +60,7 @@ public static class Indexing
                 var db_dirs_updated = await con.Dirs_GetAll();
                 var    dirs_updated = db_dirs_updated.ToList();
 
+                var new_dirs_count = dirs_updated.Count - dirs.Count;
                 var new_dir_ids = dirs_updated
                     .Select(x => x.id)
                     .ToHashSet()
@@ -65,6 +72,7 @@ public static class Indexing
                     dirIds_ByPath[dir.path] = dir.id;
                     dirPaths_ById[dir.id] = dir.path;
                 }
+                sw_m.Log($"[Sync | Monitor-{monitor.id:000}] ADD NEW DIRS: {new_dirs_count}");
             }
 
             // GET DB FILES, MATCH FILES
@@ -73,9 +81,12 @@ public static class Indexing
                 .Select(x => x.id)
                 .ToList();
             var db_files = await con.Files_ForSync_GetByDirIds(db_monitor_dir_ids);
+            sw_m.Log($"[Sync | Monitor-{monitor.id:000}] GET DB FILES");
 
             mismatch.MatchFiles_DB_and_FS(db_files, fs_files, dirPaths_ById);
+            sw_m.Log($"[Sync | Monitor-{monitor.id:000}] MATCH FILES");
         }
+        sw.Log("[Sync] PROCESS MONITORS");
 
         // MATCH FILES (globally), PREPARE DB WRITES
         List<DB_File_Insert> w_new = [];
@@ -140,6 +151,7 @@ public static class Indexing
         {
             w_del.Add(missing_db_file.id);
         }
+        sw.Log("[Sync] MATCH FILES");
 
         // UPDATE DB FILES
         await using var transaction = con.BeginTransaction();
@@ -148,10 +160,13 @@ public static class Indexing
         foreach (var file in w_del) await con.File_Delete     (transaction, file);
         await transaction.CommitAsync();
         await con.CloseAsync();
+        AppDB.Main_RegisterUpdate();
+        sw.Log("[Sync] UPDATE FILES");
 
         // TRIGGER PROCESSING
         await C_FileProcessing.Writer.WriteAsync(1);
         await EnsureStarted_Job_FileProcessing();
+        sw.Log("[Sync] TRIGGER PROCESSING");
     }
 
     private static IEnumerable<FileInfo> Monitor_GetFiles
@@ -169,22 +184,6 @@ public static class Indexing
     }
 
     // MATCHING FILES
-
-    private static DB_File_Key GetKey
-        (this DB_File_Get_ForSync file, Dictionary<int, string> dirPaths_ById)
-        => new(dirPaths_ById[file.id], file.name);
-
-    private static DB_File_Key GetKey
-        (this FileInfo file)
-        => new(file.DirectoryName!,    file.Name);
-
-    private record struct DB_File_Key(string Directory, string Name);
-    private        struct DB_And_FS_Mismatch()
-    {
-        public readonly List                       <FileInfo> fs_unknown = []; // fs+, db-
-        public readonly List <DB_File_Get_ForSync>            db_missing = []; // db+, fs-
-        public readonly List<(DB_File_Get_ForSync, FileInfo)> db_changed = []; // db+, fs was modified
-    };
 
     private static void MatchFiles_DB_and_FS
     (
@@ -213,6 +212,22 @@ public static class Indexing
                 mismatch.db_changed.Add((db, fs));
             }
         }
+    }
+
+    private static DB_File_Key GetKey
+        (this DB_File_Get_ForSync file, Dictionary<int, string> dirPaths_ById)
+        => new(dirPaths_ById[file.id], file.name);
+
+    private static DB_File_Key GetKey
+        (this FileInfo file)
+        => new(file.DirectoryName!,    file.Name);
+
+    private record struct DB_File_Key(string Directory, string Name);
+    private        struct DB_And_FS_Mismatch()
+    {
+        public readonly List                       <FileInfo> fs_unknown = []; // fs+, db-
+        public readonly List <DB_File_Get_ForSync>            db_missing = []; // db+, fs-
+        public readonly List<(DB_File_Get_ForSync, FileInfo)> db_changed = []; // db+, fs was modified
     }
 
     // ADD SINGLE DIRECTORY (old test code)
@@ -256,6 +271,7 @@ public static class Indexing
         // TRIGGER PROCESSING
         await C_FileProcessing.Writer.WriteAsync(1);
         await EnsureStarted_Job_FileProcessing();
+        sw.Log("[AddFilesToDB] TRIGGER PROCESSING");
     }
 
     // JOB

@@ -28,11 +28,14 @@ public static class MonitorsDispatcher
 {
     public static async Task<API_Monitors_Post_Response> UpdateMonitors(API_Monitors_Post_Request body)
     {
+        var sw = Stopwatch.StartNew();
+
         // GET DIRS & MONITORS
         await using var con = await AppDB.ConnectTo_Main();
         var db_monitors = await con.Monitors_GetAll();
         var db_dirs_all = await con.Dirs_GetAll();
         var    dir_ids_byPath = db_dirs_all.ToDictionary(x => x.path, x => x.id);
+        sw.Log("[Update Monitors] DB READ");
 
         // NOTE: db monitors are distinct by path and method!
         // UI:
@@ -101,6 +104,8 @@ public static class MonitorsDispatcher
             monitors_del.Add(db_m.Id!.Value);
         }
 
+        sw.Log("[Update Monitors] COMPARE");
+
         // UPDATE DB MONITORS
         await using var transaction = con.BeginTransaction();
         if      (monitors_new.Count > 0)  await con.Monitors_CreateMany(transaction, monitors_new);
@@ -108,9 +113,11 @@ public static class MonitorsDispatcher
         foreach (var mon in monitors_del) await con.Monitor_Delete     (transaction, mon);
         await transaction.CommitAsync();
         await con.CloseAsync();
+        sw.Log("[Update Monitors] DB WRITE");
 
         // TRIGGER INDEXING
         _ = Indexing.Sync();
+        sw.Log("[Update Monitors] TRIGGER SYNC");
 
         // todo validate dirs exist b4 adding to db
         // todo validate no monitor is inside other recursive monitor
