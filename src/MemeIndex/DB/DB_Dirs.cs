@@ -32,18 +32,18 @@ public static class DB_Dirs
 
     // GET
 
-    public static async Task<IEnumerable<DB_Dir_Get>> Dirs_GetAll
+    public static async Task<List<DB_Dir_Get>> Dirs_GetAll
         (this SqliteConnection c)
     {
         const string SQL = "SELECT * FROM dirs";
-        return await c.QueryAsync<DB_Dir_Get>(SQL);
+        return await c.QueryAsync<DB_Dir_Get>(SQL) as List<DB_Dir_Get> ?? [];
     }
 
-    public static async Task<IEnumerable<DB_Dir_Get>> Dirs_GetByIds
+    public static async Task<List<DB_Dir_Get>> Dirs_GetByIds
         (this SqliteConnection c, IEnumerable<int> ids)
     {
         var SQL = $"SELECT * FROM dirs WHERE id IN ({string.Join(',', ids)})";
-        return await c.QueryAsync<DB_Dir_Get>(SQL);
+        return await c.QueryAsync<DB_Dir_Get>(SQL) as List<DB_Dir_Get> ?? [];
     }
 
     public static async Task<DB_Dir_Get> Dir_GetByPath

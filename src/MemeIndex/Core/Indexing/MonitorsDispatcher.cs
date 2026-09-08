@@ -37,7 +37,7 @@ public static class MonitorsDispatcher
         var db_monitors = await con.Monitors_GetAll();
         var db_dirs_all = await con.Dirs_GetAll();
         var    dir_ids_byPath = db_dirs_all.ToDictionary(x => x.path, x => x.id);
-        sw.Log("[Update Monitors] DB READ");
+        sw.Log($"[Update Monitors] DB READ: {db_monitors.Count} monitors, {db_dirs_all.Count} dirs");
 
         // NOTE: db monitors are distinct by path and method!
         // UI:
@@ -106,7 +106,7 @@ public static class MonitorsDispatcher
             monitors_del.Add(db_m.Id!.Value);
         }
 
-        sw.Log($"[Update Monitors] COMPARE: {dic_nw_monitors.Count} new vs {dic_db_monitors.Count} DB");
+        sw.Log($"[Update Monitors] COMPARE");
 
         // UPDATE DB MONITORS
         await using var transaction = con.BeginTransaction();
@@ -121,9 +121,14 @@ public static class MonitorsDispatcher
         sw.Log($"[Update Monitors] DB WRITE: {c_new}/{c_upd}/{c_del} (new/upd/del)");
 
         // TRIGGER INDEXING
-        await C_Sync.Writer.WriteAsync(1);
-        await EnsureStarted_Job_Sync();
-        sw.Log("[Update Monitors] TRIGGER SYNC");
+        if (c_new + c_upd + c_del > 0)
+        {
+            await C_Sync.Writer.WriteAsync(1);
+            await EnsureStarted_Job_Sync();
+            sw.Log("[Update Monitors] TRIGGER SYNC");
+        }
+        else
+            Log("[Update Monitors]", "NOT TRIGGERING SYNC");
 
         // todo validate dirs exist b4 adding to db
         // todo validate no monitor is inside other recursive monitor

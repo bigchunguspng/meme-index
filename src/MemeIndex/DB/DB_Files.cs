@@ -104,7 +104,7 @@ public static class DB_Files
         return await c.QuerySingleOrDefaultAsync<DB_File_Get_WithPath>(SQL, new { id });
     }
 
-    public static async Task<IEnumerable<DB_File_Get_WithPath>> Files_GetToBeAnalyzed
+    public static async Task<List<DB_File_Get_WithPath>> Files_GetToBeAnalyzed
         (this SqliteConnection c)
     {
         const string SQL =
@@ -112,10 +112,10 @@ public static class DB_Files
           + "FROM files f "
           + "JOIN dirs d ON d.id = f.dir_id "
           + "WHERE adate IS NULL OR mdate > adate";
-        return await c.QueryAsync<DB_File_Get_WithPath>(SQL);
+        return await c.QueryAsync<DB_File_Get_WithPath>(SQL) as List<DB_File_Get_WithPath> ?? [];
     }
 
-    public static async Task<IEnumerable<DB_File_Get_WithPath>> Files_GetToBeThumbed
+    public static async Task<List<DB_File_Get_WithPath>> Files_GetToBeThumbed
         (this SqliteConnection c)
     {
         const string SQL =
@@ -123,29 +123,29 @@ public static class DB_Files
           + "FROM files f "
           + "JOIN dirs d ON d.id = f.dir_id "
           + "WHERE tdate IS NULL OR mdate > tdate";
-        return await c.QueryAsync<DB_File_Get_WithPath>(SQL);
+        return await c.QueryAsync<DB_File_Get_WithPath>(SQL) as List<DB_File_Get_WithPath> ?? [];
     }
 
-    public static async Task<IEnumerable<DB_File_Get_ForSync>> Files_ForSync_GetByDirIds
+    public static async Task<List<DB_File_Get_ForSync>> Files_ForSync_GetByDirIds
         (this SqliteConnection c, IEnumerable<int> dir_ids)
     {
         var SQL =
             "SELECT id, dir_id, name, size, cdate, mdate "
             + "FROM files f "
             + $"WHERE dir_id IN ({string.Join(',', dir_ids)})";
-        return await c.QueryAsync<DB_File_Get_ForSync>(SQL);
+        return await c.QueryAsync<DB_File_Get_ForSync>(SQL) as List<DB_File_Get_ForSync> ?? [];
     }
 
-    public static async Task<IEnumerable<DB_File_Get_UI>> Files_UI_GetBySQL_Simple
+    public static async Task<List<DB_File_Get_UI>> Files_UI_GetBySQL_Simple
         (this SqliteConnection c, string SQL)
     {
-        return await c.QueryAsync<DB_File_Get_UI>(SQL);
+        return await c.QueryAsync<DB_File_Get_UI>(SQL) as List<DB_File_Get_UI> ?? [];
     }
 
-    public static async Task<IEnumerable<DB_File_Get_UI_WithCount>> Files_UI_GetBySQL_WithCount
+    public static async Task<List<DB_File_Get_UI_WithCount>> Files_UI_GetBySQL_WithCount
         (this SqliteConnection c, string SQL)
     {
-        return await c.QueryAsync<DB_File_Get_UI_WithCount>(SQL);
+        return await c.QueryAsync<DB_File_Get_UI_WithCount>(SQL) as List<DB_File_Get_UI_WithCount> ?? [];
     }
 
     // UPDATE

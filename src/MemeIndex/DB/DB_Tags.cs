@@ -36,7 +36,7 @@ public static class DB_Tags
 
     // GET
 
-    public static async Task<IEnumerable<DB_Tag_Get>> Tags_GetByTerms
+    public static async Task<List<DB_Tag_Get>> Tags_GetByTerms
         (this SqliteConnection c, string[] terms)
     {
         // todo - add anti sql injection measures since we can't use params
@@ -45,7 +45,7 @@ public static class DB_Tags
             = "SELECT file_id, term, score "
             + "FROM tags "
             + $"WHERE term IN ({string.Join(',', terms.Select(x => $"'{x}'"))})";
-        return await c.QueryAsync<DB_Tag_Get>(SQL);
+        return await c.QueryAsync<DB_Tag_Get>(SQL) as List<DB_Tag_Get> ?? [];
     }
 
     // UPDATE

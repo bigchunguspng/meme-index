@@ -44,14 +44,14 @@ public static class DB_Monitors
 
     // GET
 
-    public static async Task<IEnumerable<DB_Monitor_Get>> Monitors_GetAll
+    public static async Task<List<DB_Monitor_Get>> Monitors_GetAll
         (this SqliteConnection c)
     {
         const string SQL =
             "SELECT monitors.*, dirs.path "
           + "FROM monitors "
           + "JOIN dirs ON dirs.id = dir_id";
-        return await c.QueryAsync<DB_Monitor_Get>(SQL);
+        return await c.QueryAsync<DB_Monitor_Get>(SQL) as List<DB_Monitor_Get> ?? [];
     }
 
     // UPDATE

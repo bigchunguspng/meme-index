@@ -29,14 +29,19 @@ public static class Indexing
         var    monitors_toProcess = db_monitors
             .Where(x => syncAllMonitors || x.enabled)
             .ToList();
-        sw.Log($"[Sync] DB GET MONITORS: {monitors_toProcess.Count} to process");
+        sw.Log($"[Sync] DB GET MONITORS: {monitors_toProcess.Count}/{db_monitors.Count} (to_process/total)");
+
+        if (monitors_toProcess.Count == 0)
+        {
+            Log("[Sync]", "NOTHING TO PROCESS");
+            return;
+        }
 
         // GET DB DIRS
         var db_dirs = await con.Dirs_GetAll();
-        var    dirs = db_dirs.ToList();
-        var    dirIds_ByPath = dirs.ToDictionary(x => x.path, x => x.id);
-        var    dirPaths_ById = dirs.ToDictionary(x => x.id, x => x.path);
-        sw.Log($"[Sync] DB GET DIRS: {dirs.Count}");
+        var    dirIds_ByPath = db_dirs.ToDictionary(x => x.path, x => x.id);
+        var    dirPaths_ById = db_dirs.ToDictionary(x => x.id, x => x.path);
+        sw.Log($"[Sync] DB GET DIRS: {db_dirs.Count}");
 
         // GET FS FILES, ADD MISSING DB DIRS, MATCH TO DB (per monitor)
         var sw_m = Stopwatch.StartNew();
@@ -57,17 +62,16 @@ public static class Indexing
 
                 await con.Dirs_CreateMany(set_new_dir_paths);
                 var db_dirs_updated = await con.Dirs_GetAll();
-                var    dirs_updated = db_dirs_updated.ToList();
 
-                var new_dirs_count = dirs_updated.Count - dirs.Count;
-                var new_dir_ids = dirs_updated
+                var new_dirs_count = db_dirs_updated.Count - db_dirs.Count;
+                var new_dir_ids = db_dirs_updated
                     .Select(x => x.id)
                     .ToHashSet()
                     .Except(dirPaths_ById.Keys);
-                var new_dirs = dirs_updated.Where(x => new_dir_ids.Contains(x.id));
+                var new_dirs = db_dirs_updated.Where(x => new_dir_ids.Contains(x.id));
                 foreach (var dir in new_dirs)
                 {
-                    dirs.Add(dir);
+                    db_dirs.Add(dir);
                     dirIds_ByPath[dir.path] = dir.id;
                     dirPaths_ById[dir.id] = dir.path;
                 }
@@ -76,13 +80,13 @@ public static class Indexing
 
             // GET DB FILES, MATCH FILES
             var db_monitor_dir_ids = monitor.recurse
-                ? dirs
+                ? db_dirs
                     .Where(x => x.path.StartsWith(monitor.path))
                     .Select(x => x.id)
                     .ToList()
                 : [monitor.dir_id];
             var db_files = await con.Files_ForSync_GetByDirIds(db_monitor_dir_ids);
-            sw_m.Log($"[Sync|Monitor-{monitor.id:00}] DB GET FILES");
+            sw_m.Log($"[Sync|Monitor-{monitor.id:00}] DB GET FILES: {db_files.Count}");
 
             mismatch.MatchFiles_DB_and_FS(db_files, fs_files, dirPaths_ById);
             sw_m.Log($"[Sync|Monitor-{monitor.id:00}] MATCH FILES");
@@ -167,10 +171,10 @@ public static class Indexing
         Jarvis.Cache_Clear();
         sw.Log($"[Sync] DB UPDATE FILES: {w_new.Count}/{w_upd.Count}/{w_del.Count} (new/upd/del)");
 
-        // TRIGGER PROCESSING
+        // TRIGGER FILE PROCESSING
         await C_FileProcessing.Writer.WriteAsync(1);
         await EnsureStarted_Job_FileProcessing();
-        sw.Log("[Sync] TRIGGER PROCESSING");
+        sw.Log("[Sync] TRIGGER FILE PROCESSING");
     }
 
     private static IEnumerable<FileInfo> Monitor_GetFiles
