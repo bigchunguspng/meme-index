@@ -15,8 +15,13 @@ public static class AppDB
     private static string GetDB_Path_Main
         () => Dir_UserData.EnsureDirectoryExist().Combine("meme-index.db");
 
-    public static Task<SqliteConnection> ConnectTo_Main
-        () => OpenConnection(DB_Path_Main);
+    public static async Task<SqliteConnection> ConnectTo_Main
+        (bool ensureCreated = true)
+    {
+        var    connection = await OpenConnection(DB_Path_Main);
+        if (ensureCreated)  await connection.CreateDB_Main();
+        return connection;
+    }
 
     public static async Task CreateDB_Main
         (this SqliteConnection connection)
