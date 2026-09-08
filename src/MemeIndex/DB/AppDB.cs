@@ -25,11 +25,6 @@ public static class AppDB
         await connection.ExecuteAsync(_SQL_CREATE_TABLES_MAIN);
     }
 
-    // MAIN >> CACHE CONTROL
-
-    /// Call this on any updates to tags, files metadata, directory names.
-    public static void Main_RegisterUpdate() => Jarvis.Cache_Clear();
-
     // RAW
 
     private static string?  _DB_Path_Raw;

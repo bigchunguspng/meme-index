@@ -1,4 +1,5 @@
-﻿using MemeIndex.API;
+﻿using System.Threading.Channels;
+using MemeIndex.API;
 using MemeIndex.DB;
 
 namespace MemeIndex.Core.Indexing;
@@ -28,6 +29,7 @@ public static class MonitorsDispatcher
 {
     public static async Task<API_Monitors_Post_Response> UpdateMonitors(API_Monitors_Post_Request body)
     {
+        Log("[Update Monitors]", $"COUNT: {body.M.Count}");
         var sw = Stopwatch.StartNew();
 
         // GET DIRS & MONITORS
@@ -104,7 +106,7 @@ public static class MonitorsDispatcher
             monitors_del.Add(db_m.Id!.Value);
         }
 
-        sw.Log("[Update Monitors] COMPARE");
+        sw.Log($"[Update Monitors] COMPARE: {dic_nw_monitors.Count} new vs {dic_db_monitors.Count} DB");
 
         // UPDATE DB MONITORS
         await using var transaction = con.BeginTransaction();
@@ -113,10 +115,14 @@ public static class MonitorsDispatcher
         foreach (var mon in monitors_del) await con.Monitor_Delete     (transaction, mon);
         await transaction.CommitAsync();
         await con.CloseAsync();
-        sw.Log("[Update Monitors] DB WRITE");
+        var c_new = monitors_new.Count;
+        var c_upd = monitors_upd.Count;
+        var c_del = monitors_del.Count;
+        sw.Log($"[Update Monitors] DB WRITE: {c_new}/{c_upd}/{c_del} (new/upd/del)");
 
         // TRIGGER INDEXING
-        _ = Indexing.Sync();
+        await C_Sync.Writer.WriteAsync(1);
+        await EnsureStarted_Job_Sync();
         sw.Log("[Update Monitors] TRIGGER SYNC");
 
         // todo validate dirs exist b4 adding to db
@@ -129,4 +135,37 @@ public static class MonitorsDispatcher
             D = monitors_del.Count,
         };
     }
+
+    // SYNC JOB
+
+    private static readonly Channel<int>
+        C_Sync            = Channel.CreateUnbounded<int>();
+
+    private static Job_C_Sync? Job;
+
+    private static async Task EnsureStarted_Job_Sync()
+    {
+        var new_job = TryReloadJob();
+        if (new_job != null)
+            await new_job.StartAsync(CancellationToken.None);
+    }
+
+    /// Creates (sets to <see cref="Job"/>) and returns a new job
+    /// if it doesn't exist or was completed.
+    [MethodImpl(Synchronized)]
+    private static Job_C_Sync? TryReloadJob()
+        => Job == null
+            || Job.ExecuteTask is { IsCompleted: true }
+                ? Job = new Job_C_Sync()
+                : null;
+
+    private class Job_C_Sync()
+        : ChannelJob_ExecuteOrStop
+        (
+            "Job/Sync",
+            C_Sync,
+            async () => await Indexing.Sync(),
+            "Task done!",
+            App.LogException_JOB
+        );
 }

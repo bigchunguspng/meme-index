@@ -15,8 +15,11 @@ public static partial class Jarvis
     private static readonly Dictionary  <int,      File_UI>   _cache_files     = new(); // files by file id
     private static readonly Dictionary  <int,      int>       _cache_relevance = new(); // reference count by file id
 
+    /// Call this on any updates to tags, files metadata, directory names.
     public static void Cache_Clear()
     {
+        if (_cache_files.Count == 0 && _cache_file_ids.Count == 0) return;
+
         Log("[Jv2/CACHE]", $"CLEARING >> F: {_cache_files.Count,5} | Q: {_cache_file_ids.Count,5}");
         _cache_file_ids .Clear();
         _cache_counts   .Clear();

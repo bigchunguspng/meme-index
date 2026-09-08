@@ -1,4 +1,5 @@
 using System.Threading.Channels;
+using MemeIndex.Core.Search;
 using MemeIndex.DB;
 
 namespace MemeIndex.Core.Indexing;
@@ -11,9 +12,6 @@ public static class Indexing
             ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"
         };
 
-    public static readonly Channel<int>
-        C_FileProcessing = Channel.CreateUnbounded<int>();
-
     // SYNC
 
     /// Synchronizes files and directories in DB with actual FS.
@@ -22,6 +20,7 @@ public static class Indexing
     /// <param name="syncAllMonitors"> Use <c>false</c> to sync only active ones. </param>
     public static async Task Sync(bool syncAllMonitors = false)
     {
+        Log("[Sync]", syncAllMonitors ? "ALL" : "ACTIVE ONLY");
         var sw = Stopwatch.StartNew();
 
         // GET DB MONITORS
@@ -30,14 +29,14 @@ public static class Indexing
         var    monitors_toProcess = db_monitors
             .Where(x => syncAllMonitors || x.enabled)
             .ToList();
-        sw.Log("[Sync] GET MONITORS");
+        sw.Log($"[Sync] DB GET MONITORS: {monitors_toProcess.Count} to process");
 
         // GET DB DIRS
         var db_dirs = await con.Dirs_GetAll();
         var    dirs = db_dirs.ToList();
         var    dirIds_ByPath = dirs.ToDictionary(x => x.path, x => x.id);
         var    dirPaths_ById = dirs.ToDictionary(x => x.id, x => x.path);
-        sw.Log("[Sync] GET DIRS");
+        sw.Log($"[Sync] DB GET DIRS: {dirs.Count}");
 
         // GET FS FILES, ADD MISSING DB DIRS, MATCH TO DB (per monitor)
         var sw_m = Stopwatch.StartNew();
@@ -47,7 +46,7 @@ public static class Indexing
         {
             // GET FS FILES
             var fs_files = Monitor_GetFiles(monitor).ToList();
-            sw_m.Log($"[Sync | Monitor-{monitor.id:000}] GET FS FILES: {fs_files.Count}");
+            sw_m.Log($"[Sync|Monitor-{monitor.id:00}] FS GET FILES: {fs_files.Count}");
 
             // UPDATE DB DIRS
             {
@@ -72,21 +71,26 @@ public static class Indexing
                     dirIds_ByPath[dir.path] = dir.id;
                     dirPaths_ById[dir.id] = dir.path;
                 }
-                sw_m.Log($"[Sync | Monitor-{monitor.id:000}] ADD NEW DIRS: {new_dirs_count}");
+                sw_m.Log($"[Sync|Monitor-{monitor.id:00}] DB ADD DIRS: {new_dirs_count}");
             }
 
             // GET DB FILES, MATCH FILES
-            var db_monitor_dir_ids = dirs // monitor dir and its child dirs
-                .Where(x => x.path.StartsWith(monitor.path))
-                .Select(x => x.id)
-                .ToList();
+            var db_monitor_dir_ids = monitor.recurse
+                ? dirs
+                    .Where(x => x.path.StartsWith(monitor.path))
+                    .Select(x => x.id)
+                    .ToList()
+                : [monitor.dir_id];
             var db_files = await con.Files_ForSync_GetByDirIds(db_monitor_dir_ids);
-            sw_m.Log($"[Sync | Monitor-{monitor.id:000}] GET DB FILES");
+            sw_m.Log($"[Sync|Monitor-{monitor.id:00}] DB GET FILES");
 
             mismatch.MatchFiles_DB_and_FS(db_files, fs_files, dirPaths_ById);
-            sw_m.Log($"[Sync | Monitor-{monitor.id:000}] MATCH FILES");
+            sw_m.Log($"[Sync|Monitor-{monitor.id:00}] MATCH FILES");
         }
-        sw.Log("[Sync] PROCESS MONITORS");
+        var unk = mismatch.fs_unknown.Count;
+        var mis = mismatch.db_missing.Count;
+        var chg = mismatch.db_changed.Count;
+        sw.Log($"[Sync] PROCESS MONITORS, MISMATCH: {unk}/{mis}/{chg} (unk/mis/chg)");
 
         // MATCH FILES (globally), PREPARE DB WRITES
         List<DB_File_Insert> w_new = [];
@@ -160,8 +164,8 @@ public static class Indexing
         foreach (var file in w_del) await con.File_Delete     (transaction, file);
         await transaction.CommitAsync();
         await con.CloseAsync();
-        AppDB.Main_RegisterUpdate();
-        sw.Log("[Sync] UPDATE FILES");
+        Jarvis.Cache_Clear();
+        sw.Log($"[Sync] DB UPDATE FILES: {w_new.Count}/{w_upd.Count}/{w_del.Count} (new/upd/del)");
 
         // TRIGGER PROCESSING
         await C_FileProcessing.Writer.WriteAsync(1);
@@ -274,7 +278,10 @@ public static class Indexing
         sw.Log("[AddFilesToDB] TRIGGER PROCESSING");
     }
 
-    // JOB
+    // FILE PROCESSING JOB
+
+    private static readonly Channel<int>
+        C_FileProcessing  = Channel.CreateUnbounded<int>();
 
     private static Job_FileProcessing? Job;
 
@@ -285,6 +292,8 @@ public static class Indexing
             await new_job.StartAsync(CancellationToken.None);
     }
 
+    /// Creates (sets to <see cref="Job"/>) and returns a new job
+    /// if it doesn't exist or was completed.
     [MethodImpl(Synchronized)]
     private static Job_FileProcessing? TryReloadJob()
         => Job == null

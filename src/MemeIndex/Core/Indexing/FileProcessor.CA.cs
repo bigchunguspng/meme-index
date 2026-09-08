@@ -1,4 +1,5 @@
 using MemeIndex.Core.Analysis.Color.v2;
+using MemeIndex.Core.Search;
 using MemeIndex.DB;
 
 namespace MemeIndex.Core.Indexing;
@@ -68,6 +69,7 @@ public partial class FileProcessor
         {
             Tracer.LogOpen(id, DB_W_TAGS);
             await connection.Tags_CreateMany        (db_tags);
+            Jarvis.Cache_Clear();
             Tracer.LogJoin(id, DB_W_TAGS, DB_W_FA);
             await connection.File_UpdateDateAnalyzed(db_file);
             Tracer.LogDone(id, DB_W_FA);
