@@ -220,11 +220,11 @@ public static class Indexing
 
     private static DB_File_Key GetKey
         (this DB_File_Get_ForSync file, Dictionary<int, string> dirPaths_ById)
-        => new(dirPaths_ById[file.id], file.name);
+        => new(dirPaths_ById[file.dir_id], file.name);
 
     private static DB_File_Key GetKey
         (this FileInfo file)
-        => new(file.DirectoryName!,    file.Name);
+        => new(file.DirectoryName!,        file.Name);
 
     private record struct DB_File_Key(string Directory, string Name);
     private        struct DB_And_FS_Mismatch()
