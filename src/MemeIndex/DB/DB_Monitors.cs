@@ -48,7 +48,8 @@ public static class DB_Monitors
         (this SqliteConnection c)
     {
         const string SQL =
-            "SELECT * FROM monitors "
+            "SELECT monitors.*, dirs.path "
+          + "FROM monitors "
           + "JOIN dirs ON dirs.id = dir_id";
         return await c.QueryAsync<DB_Monitor_Get>(SQL);
     }
