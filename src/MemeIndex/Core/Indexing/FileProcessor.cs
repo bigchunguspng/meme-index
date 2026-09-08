@@ -55,22 +55,30 @@ public partial class FileProcessor
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            Log(code, "STARTED");
-            await foreach (var task in channel.Reader.ReadAllAsync(ct))
+            try
             {
-                if (_queue.Count == _queue.Capacity)
+                Log(code, "STARTED");
+                await foreach (var task in channel.Reader.ReadAllAsync(ct))
                 {
-                    await ProcessQueue();
-                    _queue.Clear();
+                    if (_queue.Count == _queue.Capacity)
+                    {
+                        await ProcessQueue();
+                        _queue.Clear();
+                    }
+
+                    _queue.Add(task);
                 }
 
-                _queue.Add(task);
+                if (_queue.Count > 0)
+                    await ProcessQueue();
+
+                Log(code, "COMPLETED");
             }
-
-            if (_queue.Count > 0)
-                await ProcessQueue();
-
-            Log(code, "COMPLETED");
+            catch (Exception e)
+            {
+                App.LogException_JOB(e);
+                throw;
+            }
         }
 
         private int id = 10_000;

@@ -83,7 +83,8 @@ public partial class FileProcessor
         (
             "Job/Thumbgen-Save-Webp",
             task.C_TG_SaveWebp,
-            task.Thumbnail_Save
+            task.Thumbnail_Save,
+            exceptionHandler: App.LogException_JOB
         );
 
     private static readonly WebpEncoder _encoder = new()

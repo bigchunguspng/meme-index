@@ -12,7 +12,14 @@ public static class App
         Logger_Log.Write();
     }
 
-    public static void LogException(Exception e, ExceptionCategory c, string context = "N/A")
+    public static void LogException_JOB(Exception e)
+    {
+        LogError(e);
+        LogException(e, ExceptionCategory.JOB);
+    }
+
+    public static void LogException
+        (Exception e, ExceptionCategory c, string context = "N/A")
     {
         try
         {
