@@ -75,6 +75,8 @@ public class Mw_Logging : IMiddleware
             Console.Write("T ");
             Console.ForegroundColor = ConsoleColor.DarkGray;
             Console.Write($"{time.ReadableTime(),-10} | ");
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.Write("[API] ");
             Console.ForegroundColor = status_color;
             Console.Write($"{status,3} ");
             Console.ResetColor();

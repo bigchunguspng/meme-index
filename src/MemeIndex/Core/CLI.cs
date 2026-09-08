@@ -46,6 +46,21 @@ public static class CLI
                 -p  --profile IMAGE-PATH... Save color profiles (all kinds).
                 -P  --profile-list  FILE    Same as ^, take image paths from FILE.
                     --palette               Print color palette (JS syntax).
+
+             READING LOGS:
+                MISC:
+                   <DATETIME>  <L> <TIME> | <MESSAGE>
+                   * L    - log level: D/#/W/E.
+                   * TIME - time since last MISC log.
+                TIME:
+                   <KEY> [TIME] T  <TIME> @ <MESSAGE>
+                   * KEY  - stopwatch hashcode.
+                   * TIME - time since stopwatch start or its last log.
+                API:
+                   <DATETIME>   T  <TIME> | [API] <RESPONSE> | <REQUEST>
+                   * TIME     - time it took to process the request.
+                   * RESPONSE - status code, content length.
+                   * REQUEST  - content length, method, route.
              """;
 
     private static void ShowHelpScreen()
@@ -53,8 +68,12 @@ public static class CLI
         using var reader = new StringReader(HELP);
         while (reader.ReadLine() is { } line)
         {
-            if (line.StartsWith(' ')) Print(line);
-            else Print(line, ConsoleColor.Yellow);
+            if      (line.StartsWith(' ').Janai())
+                Print(line, ConsoleColor.Yellow);
+            else if (line.StartsWith("      *"))
+                Print(line, ConsoleColor.Green);
+            else
+                Print(line);
         }
     }
 
