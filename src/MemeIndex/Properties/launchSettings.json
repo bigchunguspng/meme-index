@@ -11,7 +11,7 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
-    "no-web": {
+    "no-web-args": {
       "commandName": "Project",
       "commandLineArgs": "args.txt",
       "workingDirectory": "$(OutDir)",
@@ -19,7 +19,7 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
-    "no-web-2": {
+    "no-web": {
       "commandName": "Project",
       "commandLineArgs": "-l --dev -w $(ProjectDir)web",
       "workingDirectory": "$(OutDir)",

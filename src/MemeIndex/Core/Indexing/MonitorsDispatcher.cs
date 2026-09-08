@@ -64,9 +64,9 @@ public static class MonitorsDispatcher
         var set_db_monitors = dic_db_monitors.Keys.ToHashSet();
         var set_nw_monitors = dic_nw_monitors.Keys.ToHashSet();
 
-        var keys_monitors_new  = set_nw_monitors.Except(set_db_monitors);
-        var keys_monitors_del  = set_db_monitors.Except(set_nw_monitors);
-        var keys_monitors_keep = set_db_monitors.Union (set_nw_monitors);
+        var keys_monitors_new  = set_nw_monitors.Except   (set_db_monitors);
+        var keys_monitors_del  = set_db_monitors.Except   (set_nw_monitors);
+        var keys_monitors_keep = set_db_monitors.Intersect(set_nw_monitors);
 
         // PREPARE DB WRITES, ADD MISSING DB DIRS
         List<DB_Monitor_Insert> monitors_new = [];

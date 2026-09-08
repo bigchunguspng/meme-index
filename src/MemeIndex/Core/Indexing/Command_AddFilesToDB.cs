@@ -195,9 +195,9 @@ public static class Indexing
     {
         var dic_db_files = db_files.ToDictionary(x => x.GetKey(dirPaths_ById), x => x);
         var dic_fs_files = fs_files.ToDictionary(x => x.GetKey(),              x => x);
-        var keys_unknown = dic_fs_files.Keys.Except(dic_db_files.Keys);
-        var keys_missing = dic_db_files.Keys.Except(dic_fs_files.Keys);
-        var keys_other   = dic_db_files.Keys.Union (dic_fs_files.Keys);
+        var keys_unknown = dic_fs_files.Keys.Except   (dic_db_files.Keys);
+        var keys_missing = dic_db_files.Keys.Except   (dic_fs_files.Keys);
+        var keys_other   = dic_db_files.Keys.Intersect(dic_fs_files.Keys);
 
         foreach (var k in keys_unknown) mismatch.fs_unknown.Add(dic_fs_files[k]);
         foreach (var k in keys_missing) mismatch.db_missing.Add(dic_db_files[k]);

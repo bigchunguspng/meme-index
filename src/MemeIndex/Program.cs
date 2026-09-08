@@ -124,7 +124,7 @@ app.Lifetime.ApplicationStopping.Register(() => app.Logger.LogInformation("Exitâ
 
 LogCM(ConsoleColor.Magenta, "SETUP DONE");
 
-_ = TestCode();
+// _ = TestCode();
 
 app.Run();
 
