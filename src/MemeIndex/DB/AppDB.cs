@@ -18,8 +18,9 @@ public static class AppDB
     public static async Task<SqliteConnection> ConnectTo_Main
         (bool ensureCreated = true)
     {
-        var    connection = await OpenConnection(DB_Path_Main);
-        if (ensureCreated)  await connection.CreateDB_Main();
+        var   connection = await OpenConnection(DB_Path_Main);
+        await connection.ExecuteAsync(_SQL_PRAGMAS_PER_CON);
+        if (ensureCreated) await connection.CreateDB_Main();
         return connection;
     }
 
@@ -59,6 +60,8 @@ public static class AppDB
     private const string
         _SQL_PRAGMAS_PER_DB =
             "PRAGMA journal_mode = WAL;",
+        _SQL_PRAGMAS_PER_CON =
+            "PRAGMA foreign_keys = ON;",
         _SQL_CREATE_TABLES_MAIN =
             """
             CREATE TABLE IF NOT EXISTS dirs

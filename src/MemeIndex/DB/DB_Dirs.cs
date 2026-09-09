@@ -13,11 +13,11 @@ public static class DB_Dirs
 {
     // CREATE
 
-    public static async Task Dir_Create
+    public static async Task<int> Dir_Create
         (this SqliteConnection c, string path)
     {
-        const string SQL = "INSERT INTO dirs (path) VALUES (@path)";
-        await c.ExecuteAsync(SQL, new { path });
+        const string SQL = "INSERT INTO dirs (path) VALUES (@path) RETURNING id";
+        return await c.QuerySingleAsync<int>(SQL, new { path });
     }
 
     public static async Task Dirs_CreateMany
@@ -46,13 +46,13 @@ public static class DB_Dirs
         return await c.QueryAsync<DB_Dir_Get>(SQL) as List<DB_Dir_Get> ?? [];
     }
 
-    public static async Task<DB_Dir_Get> Dir_GetByPath
-        (this SqliteConnection c, string path)
-    {
-        const string SQL = "SELECT * FROM dirs WHERE path = @path";
-        return await c.QuerySingleAsync<DB_Dir_Get>(SQL, new { path });
-    }
-
     // UPDATE
     // DELETE
+
+    public static async Task<int> Dir_Delete
+        (this SqliteConnection c, SqliteTransaction? transaction, int id)
+    {
+        const string SQL = "DELETE FROM dirs WHERE id = @id";
+        return await c.ExecuteAsync(SQL, new { id }, transaction);
+    }
 }

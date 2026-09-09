@@ -1,6 +1,7 @@
 ﻿using System.Threading.Channels;
 using MemeIndex.API;
 using MemeIndex.DB;
+using Microsoft.Data.Sqlite;
 
 namespace MemeIndex.Core.Indexing;
 
@@ -81,9 +82,8 @@ public static class MonitorsDispatcher
             if (dir_ids_byPath.TryGetValue_Failed(key.Path, out var dir_id))
             {
                 // dir not in db ? add dir to db, update dic
-                await con.Dir_Create(key.Path);
-                var new_dir = await con.Dir_GetByPath(key.Path);
-                dir_id = dir_ids_byPath[key.Path] = new_dir.id;
+                var new_dir_id = await con.Dir_Create(key.Path);
+                dir_id = dir_ids_byPath[key.Path] = new_dir_id;
             }
             monitors_new.Add(new DB_Monitor_Insert(dir_id, key.Method, nw_m.Recurse, nw_m.Enabled));
         }
@@ -114,14 +114,18 @@ public static class MonitorsDispatcher
         foreach (var mon in monitors_upd) await con.Monitor_Update     (transaction, mon);
         foreach (var mon in monitors_del) await con.Monitor_Delete     (transaction, mon);
         await transaction.CommitAsync();
-        await con.CloseAsync();
         var c_new = monitors_new.Count;
         var c_upd = monitors_upd.Count;
         var c_del = monitors_del.Count;
         sw.Log($"[Update Monitors] DB WRITE: {c_new}/{c_upd}/{c_del} (new/upd/del)");
 
+        // DELETE ORPHANED DIRS
+        var deleted = await DeleteOrphanedDirectories(con);
+        await con.CloseAsync();
+        sw.Log($"[Update Monitors] DB DELETE ORPHAN DIRS: {deleted}");
+
         // TRIGGER INDEXING
-        if (c_new + c_upd + c_del > 0)
+        if (c_new + c_upd > 0)
         {
             await C_Sync.Writer.WriteAsync(1);
             await EnsureStarted_Job_Sync();
@@ -139,6 +143,38 @@ public static class MonitorsDispatcher
             U = monitors_upd.Count,
             D = monitors_del.Count,
         };
+    }
+
+    private static async Task<int> DeleteOrphanedDirectories(SqliteConnection con)
+    {
+        var monitors = await con.Monitors_GetAll();
+        var dirs     = await con.Dirs_GetAll();
+        var monitored_dirs_ids = monitors
+            .SelectMany(mon => mon.recurse
+                ? dirs.Where(dir => dir.path.StartsWith(mon.path))
+                : dirs.Where(dir => dir.path == mon.path))
+            .Select(dir => dir.id)
+            .ToHashSet();
+        var orphans = dirs
+            .Select(x => x.id)
+            .Except(monitored_dirs_ids);
+
+        var del_expected = 0;
+        var del = 0;
+
+        await using var transaction = con.BeginTransaction();
+        foreach (var dir_id in orphans)
+        {
+            del_expected++;
+            del += await con.Dir_Delete(transaction, dir_id);
+        }
+
+        await transaction.CommitAsync();
+
+        if (del != del_expected)
+            LogWarn($"[Update Monitors] DELETED {del} DIRS, expected to del {del_expected}");
+
+        return del;
     }
 
     // SYNC JOB
