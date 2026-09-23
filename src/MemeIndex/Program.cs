@@ -98,6 +98,7 @@ app.UseStaticFiles(new StaticFileOptions
 app.MapGet (    "/logs",      Endpoints.GetPage_Logs);
 app.MapGet (    "/logs/{id}", Endpoints.GetPage_EventViewer);
 app.MapGet ("/api/logs/{id}", Endpoints.GetJson_EventViewerData);
+app.MapGet ("/api/logs/errs", Endpoints.GetText_Errors);
 app.MapGet ("/api/dirs",      Endpoints.GetJson_Directory);
 // app.MapGet ("/api/monitors",  Endpoints.Monitors_Get);
 app.MapPost("/api/monitors",  Endpoints.Monitors_Save);

@@ -66,4 +66,9 @@ public static partial class Endpoints
         var file = Dir_Traces.GetFiles($"{id}.json").First();
         return Results.Content(File.ReadAllText(file), "application/json");
     }
+
+    public static IResult GetText_Errors()
+    {
+        return Results.Content(File.ReadAllText(File_Err), "text/plain");
+    }
 }
