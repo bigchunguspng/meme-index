@@ -26,7 +26,7 @@ public partial class FileProcessor
         if (null != job_DB?.ExecuteTask)
             await   job_DB .ExecuteTask;
 
-        SaveTraceData();
+        await SaveTraceData();
     }
 
     // DB WRITE
@@ -81,47 +81,60 @@ public partial class FileProcessor
             }
         }
 
-        private int id = 10_000;
+        private int task_id = 1;
+
         private async Task ProcessQueue()
         {
-            tracer.LogOpen(id, DB_WRITE);
+            tracer.LogOpen(task_id, DB_WRITE);
             await using var con = await AppDB.ConnectTo_Main();
             foreach (var task in _queue)
             {
                 await task(con);
             }
             await con.CloseAsync();
-            tracer.LogDone(id++, DB_WRITE);
+            tracer.LogDone(task_id++, DB_WRITE);
             Log(code, $"Processed {_queue.Count} items!");
         }
     }
 
     // STATS
 
-    private readonly TraceCollector Tracer = new();
+    public const int // LANES
+        TG_LOAD   = 0x1,
+        TG_SIZE   = 0x2,
+        TG_SAVE   = 0x3,
+        CA_LOAD   = 0x4,
+        CA_SCAN   = 0x5,
+        CA_ANAL   = 0x6,
+        DB_WRITE  = 0x7,
+        DB_W_TAGS = 0x8,
+        DB_W_FA   = 0x9,
+        DB_W_FT   = 0xA;
 
-    public const string // LANES
-        THUMB_LOAD = "1. Thumbnail / Load",
-        THUMB_SIZE = "2. Thumbnail / Resize",
-        THUMB_SAVE = "3. Thumbnail / Save",
-        CA_LOAD    = "4. Color Analysis / Load",
-        CA_SCAN    = "5. Color Analysis / Scan",
-        CA_ANAL    = "6. Color Analysis / Analyze",
-        DB_WRITE   = "7. DB Write",
-        DB_W_TAGS  = "8. DB Write / Tags",
-        DB_W_FA    = "9. DB Write / File Analysis",
-        DB_W_FT    = "A. DB Write / File Thumbgen";
+    private readonly TraceCollector Tracer = new
+    ([
+        ("TG / Load",          "File Id"),
+        ("TG / Resize",        "File Id"),
+        ("TG / Save",          "File Id"),
+        ("CA / Load",          "File Id"),
+        ("CA / Scan",          "File Id"),
+        ("CA / Analyze",       "File Id"),
+        ("DB Write",           "Write #"), // batch writes
+        ("DB Write / Tags",    "File Id"), // < add tags
+        ("DB Write / File CA", "File Id"),
+        ("DB Write / File TG", "File Id"), // <^ update dates
+    ]);
 
-    private void SaveTraceData()
+    private async Task SaveTraceData()
     {
         if (Tracer.Empty) return;
 
-        var c1 = Tracer.Count(THUMB_LOAD);
-        var c2 = Tracer.Count(   CA_LOAD);
+        var c1 = Tracer.Count(TG_LOAD);
+        var c2 = Tracer.Count(CA_LOAD);
         var save = Dir_Traces
             .EnsureDirectoryExist()
-            .Combine($"File-processing-{Desert.Clock(24):x}_{Helpers.COMPILE_MODE}_{c1}-{c2}.json");
-        Tracer.SaveAs(save, AppJson.Default.DictionaryStringListTraceSpan);
+            .Combine($"File-processing-{Desert.Clock(24):x}_{Helpers.COMPILE_MODE}_TG-{c1}_CA-{c2}.txt");
+        await Tracer.SaveAs(save);
         Tracer.PrintStats();
         Log($"Save trace data - \"{save}\"");
     }

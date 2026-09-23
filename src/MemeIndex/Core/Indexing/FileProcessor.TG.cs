@@ -61,13 +61,13 @@ public partial class FileProcessor
 
     private async Task Thumbnail_Resize(int id, string filePath)
     {
-        Tracer.LogOpen(id, THUMB_LOAD);
+        Tracer.LogOpen(id, TG_LOAD);
         var source = await ImagePool.Load(filePath);
-        Tracer.LogJoin(id, THUMB_LOAD, THUMB_SIZE);
+        Tracer.LogJoin(id, TG_LOAD, TG_SIZE);
         var size  = source.Size.FitSize(_fitSize);
         var thumb = source.Clone(x => x.Resize(size, LanczosResampler.Lanczos3, compand: false));
         ImagePool.Return(filePath);
-        Tracer.LogDone(id, THUMB_SIZE);
+        Tracer.LogDone(id, TG_SIZE);
         await C_TG_SaveWebp.Writer.WriteAsync(new ThumbgenContext(id, source, thumb));
     }
 
@@ -98,12 +98,12 @@ public partial class FileProcessor
     private async Task Thumbnail_Save(ThumbgenContext c)
     {
         var id = c.FileId;
-        Tracer.LogOpen(id, THUMB_SAVE);
+        Tracer.LogOpen(id, TG_SAVE);
         var save = Dir_Thumbs
             .EnsureDirectoryExist()
             .Combine(GetThumbFilename(id));
         await c.Thumb.SaveAsWebpAsync(save, _encoder);
-        Tracer.LogDone(id, THUMB_SAVE);
+        Tracer.LogDone(id, TG_SAVE);
         LogDebug($"File {id,6} -> thumbnail generated");
 
         var result = c.ToDB_File();
