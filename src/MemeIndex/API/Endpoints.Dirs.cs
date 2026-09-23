@@ -30,12 +30,12 @@ public static partial class Endpoints
 
 public class API_Monitors_Post_Request
 {
-	public List<API_MonitorsByPath_Post> M { get; set; } // Monitors
+	public required List<API_MonitorsByPath_Post> M { get; set; } // Monitors
 }
 public class API_MonitorsByPath_Post
 {
-	public string                 P { get; set; } // Path
-	public List<API_Monitor_Post> M { get; set; } // Methods
+	public required string                 P { get; set; } // Path
+	public required List<API_Monitor_Post> M { get; set; } // Methods
 }
 public class API_Monitor_Post
 {
