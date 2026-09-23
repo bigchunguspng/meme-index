@@ -95,9 +95,9 @@ app.UseStaticFiles(new StaticFileOptions
 
 // API
 
-app.MapGet (    "/logs",      Endpoints.GetPage_Logs);
-app.MapGet (    "/logs/{id}", Endpoints.GetPage_EventViewer);
-app.MapGet ("/api/logs/{id}", Endpoints.GetJson_EventViewerData);
+app.MapGet (         "/traces",      Endpoints.GetPage_Logs);
+app.MapGet ("/api/logs/traces",      Endpoints.GetJson_Traces);
+app.MapGet ("/api/logs/traces/{id}", Endpoints.GetText_TraceFile);
 app.MapGet ("/api/logs/errs", Endpoints.GetText_Errors);
 app.MapGet ("/api/dirs",      Endpoints.GetJson_Directory);
 // app.MapGet ("/api/monitors",  Endpoints.Monitors_Get);

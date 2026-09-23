@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.Json;
+using MemeIndex.Utils;
 
 namespace MemeIndex.API;
 
@@ -6,7 +8,7 @@ public static partial class Endpoints
 {
     public static IResult GetPage_Logs()
     {
-        var files = Dir_Traces.GetFiles("*.json");
+        var files = Dir_Traces.GetFiles("*.txt");
         var sb = new StringBuilder();
         sb.Append("""
                   <!DOCTYPE html>
@@ -30,7 +32,7 @@ public static partial class Endpoints
         foreach (var file in files)
         {
             var name = Path.GetFileNameWithoutExtension(file);
-            sb.Append($"""<li><a href="/logs/{name}">{name}</a></li>""");
+            sb.Append($"""<li><a href="/traces.html?id={name}">{name}</a></li>""");
         }
 
         sb.Append("""
@@ -42,29 +44,17 @@ public static partial class Endpoints
         return Results.Content(sb.ToString(), "text/html");
     }
 
-    public static IResult GetPage_EventViewer(string id)
+    public static IResult GetJson_Traces()
     {
-        var sb = new StringBuilder();
-        var inserted = false;
-        using var reader = new StreamReader(Dir_WebRoot.Combine("logs-file.html"));
-        while (reader.ReadLine() is { } line)
-        {
-            if (inserted.Janai() && line.StartsWith("    // INSERT"))
-            {
-                sb.AppendLine($"    const LOG_FILE_URL = \"/api/logs/{id}\";");
-                inserted = true;
-            }
-            else
-                sb.AppendLine(line);
-        }
-
-        return Results.Content(sb.ToString(), "text/html");
+        var files = Dir_Traces.GetFiles("*.txt").Select(Path.GetFileNameWithoutExtension);
+        var json = JsonSerializer.Serialize(files, AppJson.Default.IEnumerableString!);
+        return Results.Content(json, "application/json");
     }
 
-    public static IResult GetJson_EventViewerData(string id)
+    public static IResult GetText_TraceFile(string id)
     {
-        var file = Dir_Traces.GetFiles($"{id}.json").First();
-        return Results.Content(File.ReadAllText(file), "application/json");
+        var file = Dir_Traces.GetFiles($"{id}.txt").First();
+        return Results.Content(File.ReadAllText(file), "text/plain");
     }
 
     public static IResult GetText_Errors()
