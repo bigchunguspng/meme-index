@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 using MemeIndex.Utils;
 
@@ -6,44 +5,6 @@ namespace MemeIndex.API;
 
 public static partial class Endpoints
 {
-    public static IResult GetPage_Logs()
-    {
-        var files = Dir_Traces.GetFiles("*.txt");
-        var sb = new StringBuilder();
-        sb.Append("""
-                  <!DOCTYPE html>
-                  <html>
-                  <head>
-                  <meta charset="utf-8">
-                  <title>Logs</title>
-                  <style>
-                  body { font-family: sans-serif; padding: 20px; }
-                  ul { list-style: none; padding: 0; }
-                  li { margin: 6px 0; }
-                  a { text-decoration: none; color: #0066cc; }
-                  a:hover { text-decoration: underline; }
-                  </style>
-                  </head>
-                  <body>
-                  <h2>Log Files</h2>
-                  <ul>
-                  """);
-
-        foreach (var file in files)
-        {
-            var name = Path.GetFileNameWithoutExtension(file);
-            sb.Append($"""<li><a href="/traces.html?id={name}">{name}</a></li>""");
-        }
-
-        sb.Append("""
-                  </ul>
-                  </body>
-                  </html>
-                  """);
-
-        return Results.Content(sb.ToString(), "text/html");
-    }
-
     public static IResult GetJson_Traces()
     {
         var files = Dir_Traces.GetFiles("*.txt").Select(Path.GetFileNameWithoutExtension);
@@ -54,11 +15,11 @@ public static partial class Endpoints
     public static IResult GetText_TraceFile(string id)
     {
         var file = Dir_Traces.GetFiles($"{id}.txt").First();
-        return Results.Content(File.ReadAllText(file), "text/plain");
+        return Results.File(file, "text/plain");
     }
 
     public static IResult GetText_Errors()
     {
-        return Results.Content(File.ReadAllText(File_Err), "text/plain");
+        return Results.File(File_Err, "text/plain");
     }
 }
