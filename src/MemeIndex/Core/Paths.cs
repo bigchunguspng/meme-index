@@ -44,7 +44,7 @@ public static class Paths
         File_Err            = Dir_Logs.Combine("err.txt"),
 
         //  DEBUG
-        Dir_Debug           = Dir_UserData.Combine("debug-artifacts"),
+        Dir_Debug           = Dir_UserData.Combine("lab"),
         Dir_Debug_Color     = Dir_Debug.Combine("Color"),    // Color model visualizations.
         Dir_Debug_Profiles  = Dir_Debug.Combine("Profiles"), // Image -> plot  + data.s
         Dir_Debug_Image     = Dir_Debug.Combine("Image"),    // Image -> image + data.
@@ -81,7 +81,7 @@ LINUX:
     /var/lib/memeindex/         // == FOR ALL USERS, runtime-writen
         ports.txt
     ~/.local/share/memeindex/   // == FOR ONE USER,  runtime-writen, data
-        debug-artifacts/*
+        lab/*
         thumbs/*.webp
         web/*
         meme-index.db
@@ -97,7 +97,7 @@ WINDOWS:
     C:\ProgramData\MemeIndex\   // == FOR ALL USERS, runtime-writen
         ports.txt               // mapping users to http ports,
     ~\AppData\Local\MemeIndex\  // == FOR ONE USER,  runtime-writen
-        debug-artifacts\*       // for development purpose
+        lab\*                   // for development purpose
         logs\*                  // logs
         thumbs\*.webp           // thumbnails,     statically hosted
         web\*                   // frontend files, statically hosted, alternative [^1]
@@ -109,7 +109,7 @@ DEVELOPMENT:
         e_sqlite3.dll
         web\*
         data\
-            debug-artifacts\*
+            lab\*
             logs\*
             thumbs\*.webp
             config.json
