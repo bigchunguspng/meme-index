@@ -10,12 +10,8 @@ public static class HostingHelpers
     public  static readonly IPAddress IP = IPAddress.Any;
     private static readonly int[] _ports =
     [
-        7373, 3737,
-        3131, 1313,
-        5928, 1488,
-        3003, 3313,
-        2021, 2025,
-        // todo review numbers b4 release
+        7373, 5928, // IANA safe, 4-digits
+        31313, 13131, 13301, 33301, 33401,
     ];
 
     public static async Task<int> GetFreePort()
