@@ -26,7 +26,7 @@ public static class CLI
 
              OPTIONS (common):
                     --dev                   Use DEVELOPMENT path scheme (everything next to binaries).
-                    --ok                    Use regular     path scheme (OS specific).
+                                 Otherwise, use regular     path scheme (OS specific).
 
              OPTIONS (info):
                 -!  --version               Show version info.

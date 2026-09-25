@@ -10,10 +10,7 @@ public static class Config
 
     public static void ConfigureDirectories(Span<string> args)
     {
-        if      (args.Contains("--ok"))
-            DEVELOPMENT = false;
-        else if (args.Contains("--dev") || Environment.GetEnvironmentVariable("MEMEINDEX_DEVELOPMENT") != null)
-            DEVELOPMENT = true;
+        DEVELOPMENT = args.Contains("--dev");
 
         if (args.ContainsOption("-w", "--web", out var i))
             WEB_ROOT = args[i];

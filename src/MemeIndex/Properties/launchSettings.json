@@ -1,27 +1,19 @@
 {
   "$schema": "https://www.schemastore.org/launchsettings.json",
   "profiles": {
-    "web": {
+    "web-open-url": {
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "",
-      "commandLineArgs": "-l",
+      "commandLineArgs": "--dev -l -w $(ProjectDir)web",
       "workingDirectory": "$(OutDir)",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
-    "no-web-args": {
+    "web": {
       "commandName": "Project",
-      "commandLineArgs": "args.txt",
-      "workingDirectory": "$(OutDir)",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
-    },
-    "no-web": {
-      "commandName": "Project",
-      "commandLineArgs": "-l --dev -w $(ProjectDir)web",
+      "commandLineArgs": "--dev -l -w $(ProjectDir)web",
       "workingDirectory": "$(OutDir)",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
@@ -29,17 +21,17 @@
     },
     "test": {
       "commandName": "Project",
-      "commandLineArgs": "lab -t",
+      "commandLineArgs": "lab --dev -t",
       "workingDirectory": "$(OutDir)"
     },
     "files": {
       "commandName": "Project",
-      "commandLineArgs": "lab -P args.txt",
+      "commandLineArgs": "lab --dev -P args.txt",
       "workingDirectory": "$(OutDir)"
     },
     "demo": {
       "commandName": "Project",
-      "commandLineArgs": "lab -D args.txt",
+      "commandLineArgs": "lab --dev -D args.txt",
       "workingDirectory": "$(OutDir)"
     },
     "help": {
