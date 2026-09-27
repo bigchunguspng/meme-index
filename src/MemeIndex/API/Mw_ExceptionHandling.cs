@@ -3,6 +3,7 @@ using MemeIndex.Core;
 
 namespace MemeIndex.API;
 
+/// Log HTTP request exceptions to a file (<c>logs/err.txt</c>).
 public class Mw_ExceptionHandling : IMiddleware
 {
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)

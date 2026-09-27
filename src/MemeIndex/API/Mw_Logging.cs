@@ -2,6 +2,8 @@ using System.Net;
 
 namespace MemeIndex.API;
 
+/// Log HTTP requests to console.
+/// Can make things a little bit slower.
 public class Mw_Logging : IMiddleware
 {
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)

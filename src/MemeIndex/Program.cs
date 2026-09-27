@@ -60,6 +60,7 @@ builder.Logging
     ;
 
 builder.Services
+    .AddSingleton<Mw_Development>()
     .AddSingleton<Mw_Logging>()
     .AddSingleton<Mw_ExceptionHandling>()
     .ConfigureHttpJsonOptions(options => options
@@ -75,6 +76,9 @@ builder.Services
 // REQUEST PIPELINE
 
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+    app.UseMiddleware<Mw_Development>();
 
 if (flag_log) app.UseMiddleware<Mw_Logging>();
 app.UseMiddleware<Mw_ExceptionHandling>();
