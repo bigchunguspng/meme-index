@@ -22,8 +22,20 @@ public static class DirectorySelector
 
 		var directories = new List<FileSystemAnchor>();
 		var file_counts = new Dictionary<string, int>();
-		var nodes       = new DirectoryInfo(path) // todo fix bug: path "C:" -> info is about app dir
-			.EnumerateFileSystemInfos("*", SearchOption.TopDirectoryOnly)
+
+		// todo fix bug: path "C:" -> info is about app dir
+		var infos = TryEnumerateDirectory(path, out var e);
+		if (infos == null)
+		{
+			return new DirectoryResponse
+			{
+				U = Path.GetDirectoryName(path),
+				F = null,
+				C = [new FileSystemAnchor(null, e?.Message ?? "MYSTERIOUS ERROR HAPPENED!!!")],
+			};
+		}
+
+		var nodes = infos
 			.Select(entry => new
 			{
 				Entry       = entry,
@@ -83,6 +95,21 @@ public static class DirectorySelector
 				file_counts[key]++;
 		}
 	}
+
+	private static IEnumerable<FileSystemInfo>? TryEnumerateDirectory(string path, out Exception? e)
+	{
+		try
+		{
+			e = null;
+			return new DirectoryInfo(path)
+				.EnumerateFileSystemInfos("*", SearchOption.TopDirectoryOnly);
+		}
+		catch (Exception ex)
+		{
+			e = ex;
+			return null;
+		}
+	}
 }
 
 public class DirectoryResponse
@@ -91,12 +118,12 @@ public class DirectoryResponse
 
 	public string? U { get; set; } // Up   (full path)
 
-	public required Dictionary<string, int>       F { get; set; } // Files (count by type) (no recursion)
+	public required Dictionary<string, int>?      F { get; set; } // Files (count by type) (no recursion)
 	public required IEnumerable<FileSystemAnchor> C { get; set; } // Child directories and links (full paths)
 }
 
 /// Represents a directory or a symlink.
-public record struct FileSystemAnchor(string N, string T) // Name, Target (full path)
+public record struct FileSystemAnchor(string? N, string T) // Name, Target (full path)
 {
 	public static FileSystemAnchor FromDrive
 		(string x)
