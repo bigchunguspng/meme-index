@@ -7,33 +7,30 @@ public static class DirectorySelector
 {
 	public static DirectoryResponse? View(string? path)
 	{
-		if (path == null)
-		{
-			if (Helpers.IsWindows) // list drives
-				return new DirectoryResponse
-				{
-					F = [],
-					C = Directory.GetLogicalDrives().Select(FileSystemAnchor.FromDrive),
-				};
-			else // ~
-				path = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-		}
-		else if (Directory.Exists(path).Janai()) return null;
+		path = path.MakeNull_IfWhiteSpace();
 
-		var directories = new List<FileSystemAnchor>();
-		var file_counts = new Dictionary<string, int>();
+		if (path is null && Helpers.IsWindows) // -> list drives
+			return new DirectoryResponse
+			{
+				F = [],
+				C = Directory.GetLogicalDrives().Select(FileSystemAnchor.FromDrive),
+			};
 
-		// todo fix bug: path "C:" -> info is about app dir
+		path = NormalizePath(path);
+
+		if (Directory.Exists(path).Janai()) // -> 404
+			return null;
+
 		var infos = TryEnumerateDirectory(path, out var e);
-		if (infos == null)
-		{
+		if (infos == null) // -> error (access denied usually)
 			return new DirectoryResponse
 			{
 				U = Path.GetDirectoryName(path),
 				F = null,
 				C = [new FileSystemAnchor(null, e?.Message ?? "MYSTERIOUS ERROR HAPPENED!!!")],
 			};
-		}
+
+		//   ^ EARLY RETURNS   \/ GENERAL CASE
 
 		var nodes = infos
 			.Select(entry => new
@@ -45,6 +42,9 @@ public static class DirectorySelector
 			})
 			.OrderByDescending(x => x.IsDirectory)
 			.ThenBy(x => x.Entry.Name);
+
+		var directories = new List<FileSystemAnchor>();
+		var file_counts = new Dictionary<string, int>(); // by file extension
 
 		foreach (var x in nodes)
 		{
@@ -73,7 +73,7 @@ public static class DirectorySelector
 		}
 
 		file_counts = file_counts
-			.OrderBy(g => g.Key[0]) // ...extensions, unsupported
+			.OrderBy(g => g.Key[0]) // .=extensions, u=unsupported
 			.ThenByDescending(g => g.Value) // sort extensions by count
 			.ToDictionary();
 		file_counts.Add("total", file_counts.Values.Sum());
@@ -96,6 +96,15 @@ public static class DirectorySelector
 		}
 	}
 
+	private static string NormalizePath(string? path) => path switch
+	{
+		// if null on Linux OR ~ on Windows:
+		null or "~"  => Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+		// top 10 funny bugs on Windows. Number 5:
+		"C:" or "c:" => "C:\\", // (by default it resolves to ^)
+		_            => Path.GetFullPath(path)
+	};
+
 	private static IEnumerable<FileSystemInfo>? TryEnumerateDirectory(string path, out Exception? e)
 	{
 		try
@@ -116,18 +125,32 @@ public class DirectoryResponse
 {
 	public char    S { get; } = Path.DirectorySeparatorChar;
 
-	public string? U { get; set; } // Up   (full path)
+	public string? U { get; set; } // Up (full path)
 
 	public required Dictionary<string, int>?      F { get; set; } // Files (count by type) (no recursion)
 	public required IEnumerable<FileSystemAnchor> C { get; set; } // Child directories and links (full paths)
 }
 
-/// Represents a directory or a symlink.
+/// Represents a directory or a symlink. // todo fucking test it with symlinks lmao
 public record struct FileSystemAnchor(string? N, string T) // Name, Target (full path)
 {
 	public static FileSystemAnchor FromDrive
 		(string x)
-		=> new(x.TrimEnd('\\'), x);
+	{
+		var letter = x.TrimEnd('\\');
+		try
+		{
+			var label = new DriveInfo(x).VolumeLabel;
+			var name = label.IsNull_OrWhiteSpace()
+				?    letter
+				: $"{letter} {label}";
+			return new FileSystemAnchor(name, x);
+		}
+		catch
+		{
+			return new FileSystemAnchor(letter, x);
+		}
+	}
 
 	public static FileSystemAnchor FromDirectory
 		(string x)
