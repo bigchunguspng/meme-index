@@ -7,14 +7,12 @@ public static class Extensions_Time
 
     public static string ReadableTime
         (this TimeSpan t)
-        =>    t.TotalSeconds < 10 ? $@"{t:s\.fff}'{t.Microseconds/10:00} s"
-            : t.TotalMinutes <  1 ? $@"{t:s\.fff' s'}"
-            : t.TotalMinutes <  5 ? $"{t:m':'ss' M:SS'}"
-            : t.TotalHours   <  1 ? $"{t:m' MINS'}"
-            : t.TotalHours   <  5 ? $"{t:h':'mm' H:MM'}"
-            : t.TotalDays    <  1 ? $"{t:h' HOURS'}"
-            : t.TotalDays    <  2 ? $"{t:d' DAY'}"
-            :                       $"{t:d' DAYS'}";
+        =>    t.TotalSeconds <  10 ? $@"{t:s\.fff}'{t.Microseconds/10:00} s"
+            : t.TotalMinutes <   1 ? $@"{t:s\.fff' s'}"
+            : t.TotalHours   <   1 ? $@"{t:m\:ss' m'}"
+            : t.TotalDays    <   1 ? $@"{t:h\:mm' h'}"
+            : t.TotalDays    < 100 ? $@"{t:d\.hh\:mm' d'}"
+            :                         $"{t.TotalDays:F1} d";
 
     public static TimeSpan GetElapsed_Restart(this Stopwatch sw)
     {

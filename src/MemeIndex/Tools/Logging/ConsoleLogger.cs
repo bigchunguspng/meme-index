@@ -33,7 +33,7 @@ public static class ConsoleLogger
         Console.ForegroundColor = level.GetDefaultColor();
         Console.Write($"{level.GetCharIcon()} ");
         Console.ForegroundColor = ConsoleColor.DarkGray;
-        Console.Write($"{delta.ReadableTime(),-10} | ");
+        Console.Write($"{delta.ReadableTime(),10} | ");
     }
 
     private static char GetCharIcon
@@ -131,7 +131,7 @@ public static class ConsoleLogger
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.Write("T ");
         Console.ForegroundColor = ConsoleColor.DarkGray;
-        Console.Write($"{sw.ElapsedReadable(),-10} @ ");
+        Console.Write($"{sw.ElapsedReadable(),-10} * ");
         Console.ForegroundColor = color;
         Console.WriteLine(message);
         Console.ResetColor();

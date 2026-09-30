@@ -76,13 +76,11 @@ public class Mw_Logging : IMiddleware
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.Write("T ");
             Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write($"{time.ReadableTime(),-10} | ");
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.Write("[API] ");
+            Console.Write($"{time.ReadableTime(),10} @ ");
             Console.ForegroundColor = status_color;
             Console.Write($"{status,3} ");
             Console.ResetColor();
-            Console.Write($"{len_res_txt,9} | {len_req_txt,9} ");
+            Console.Write($"{len_res_txt,9} <- {len_req_txt,9} ");
             Console.ForegroundColor = method_color;
             Console.Write($"{method,4} ");
             Console.ForegroundColor = content_color;

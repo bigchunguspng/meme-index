@@ -53,11 +53,11 @@ public static class CLI
                    * L    - log level: D/#/W/E.
                    * TIME - time since last MISC log.
                 TIME:
-                   <KEY> [TIME] T  <TIME> @ <MESSAGE>
+                   <KEY> [TIME] T  <TIME> * <MESSAGE>
                    * KEY  - stopwatch hashcode.
                    * TIME - time since stopwatch start or its last log.
                 API:
-                   <DATETIME>   T  <TIME> | [API] <RESPONSE> | <REQUEST>
+                   <DATETIME>   T  <TIME> @ <RESPONSE> <- <REQUEST>
                    * TIME     - time it took to process the request.
                    * RESPONSE - status code, content length.
                    * REQUEST  - content length, method, route.
