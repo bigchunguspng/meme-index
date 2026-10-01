@@ -19,7 +19,7 @@ public class  MonitorValue
         Enabled = m.enabled;
     }
 
-    public MonitorValue(API_Monitor_Post m)
+    public MonitorValue(API_Monitor m)
     {
         Recurse = m.R;
         Enabled = m.E;
@@ -28,7 +28,7 @@ public class  MonitorValue
 
 public static class MonitorsDispatcher
 {
-    public static async Task<API_Monitors_Post_Response> UpdateMonitors(API_Monitors_Post_Request body)
+    public static async Task<API_Monitors_Put_Response> UpdateMonitors(API_Monitors body)
     {
         Log("[Update Monitors]", $"COUNT: {body.M.Count}");
         var sw = Stopwatch.StartNew();
@@ -137,7 +137,7 @@ public static class MonitorsDispatcher
         // todo validate dirs exist b4 adding to db
         // todo validate no monitor is inside other recursive monitor
 
-        return new API_Monitors_Post_Response
+        return new API_Monitors_Put_Response
         {
             A = monitors_new.Count,
             U = monitors_upd.Count,

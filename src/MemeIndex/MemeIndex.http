@@ -1,21 +1,45 @@
 @Host = http://localhost:7373
+@P1 = C:\\\\TEST\\\\A
+@P2 = C:\\\\TEST\\\\B
 
-GET {{Host}}/todos/
+GET {{Host}}/api/monitors
 Accept: application/json
 
 ###
 
-GET {{Host}}/todos/0
-Accept: application/json
-
-###
-
-POST {{Host}}/todos/
+PUT {{Host}}/api/monitors
 Content-Type: application/json
 
 {
-  "title": "Buy used Honda Civic",
-  "isComplete": false
+  "M": [
+    {
+      "P": "{{P1}}",
+      "M": [  
+        {
+          "M": 1,
+          "E": true,
+          "R": false
+        }
+      ]
+    },
+    {
+      "P": "{{P2}}",
+      "M": [
+        {
+          "M": 1,
+          "E": true,
+          "R": true
+        }
+      ]
+    }
+  ]
 }
 
 ###
+
+PUT {{Host}}/api/monitors
+Content-Type: application/json
+
+{
+  "M": []
+}
