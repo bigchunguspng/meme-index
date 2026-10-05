@@ -92,6 +92,16 @@ public static class DB_Files
         await c.ExecuteAsync(SQL, files, transaction);
     }
 
+    public static async Task FileBroken_Create
+        (this SqliteConnection c, int id)
+    {
+        const string SQL =
+            "INSERT OR IGNORE "
+            + "INTO files_broken (file_id) "
+            + "VALUES (@id)";
+        await c.ExecuteAsync(SQL, new { id });
+    }
+
     // GET
 
     public static async Task<DB_File_Get_WithPath?> File_GetPath

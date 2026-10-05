@@ -40,7 +40,7 @@ public partial class FileProcessor
             catch (Exception e)
             {
                 LogError(e);
-                // todo add file id to broken files
+                await MarkBrokenFile(file.Id, "color analysis");
             }
         }
 
@@ -73,6 +73,15 @@ public partial class FileProcessor
             Tracer.LogJoin(id, DB_W_TAGS, DB_W_FA);
             await connection.File_UpdateDateAnalyzed(db_file);
             Tracer.LogDone(id, DB_W_FA);
+        });
+    }
+
+    private async Task MarkBrokenFile(int file_id, string action_name)
+    {
+        LogDebug($"File {file_id,6} -> BROKEN ({action_name} failed)");
+        await C_DB_Write.Writer.WriteAsync(async connection =>
+        {
+            await connection.FileBroken_Create(file_id);
         });
     }
 }

@@ -46,7 +46,7 @@ public partial class FileProcessor
             catch (Exception e)
             {
                 LogError(e);
-                // todo add file id to broken files
+                await MarkBrokenFile(file.Id, "thumbnail generation");
             }
         }
 
