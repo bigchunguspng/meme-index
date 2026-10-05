@@ -12,9 +12,9 @@ public class DB_File_Get_UI
     public required string name;
     public required long   size;
     public required long   mdate;
-    public required int?   image_w;
-    public required int?   image_h;
-    public required double sort;
+    public required short  image_w;
+    public required short  image_h;
+    public required float  sort;
 }
 
 public class DB_File_Get_UI_WithCount : DB_File_Get_UI
@@ -58,23 +58,24 @@ public class DB_File_Update(int file_id, int directory_id, FileInfo file)
     public readonly int    dir_id = directory_id;
     public readonly string name   = file.Name;
     public readonly long   size   = file.Length;
-    public readonly long   cdate  = file.CreationTimeUtc.ToFileTimeUtc();
+    public readonly long   cdate  = file. CreationTimeUtc.ToFileTimeUtc();
     public readonly long   mdate  = file.LastWriteTimeUtc.ToFileTimeUtc();
 }
 
-public class DB_File_UpdateDate
+public struct DB_File_UpdateDate
     (int file_id, DateTime date)
 {
     public readonly int    id     = file_id;
     public readonly long   date   = date.ToFileTimeUtc();
 }
 
-public class DB_File_UpdateDateSize
+public struct DB_File_UpdateDateSize
     (int file_id, DateTime date, Size size)
-    : DB_File_UpdateDate(file_id, date)
 {
-    public readonly int image_w = size.Width;
-    public readonly int image_h = size.Height;
+    public readonly int    id      = file_id;
+    public readonly short  image_w = (short)size.Width;
+    public readonly short  image_h = (short)size.Height;
+    public readonly long   date    = date.ToFileTimeUtc();
 }
 
 public static class DB_Files

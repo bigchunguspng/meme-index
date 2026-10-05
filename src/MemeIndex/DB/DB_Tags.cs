@@ -4,18 +4,18 @@ using Microsoft.Data.Sqlite;
 
 namespace MemeIndex.DB;
 
-public class DB_Tag_Get
+public struct DB_Tag_Get
 {
     public required int    file_id;
-    public required string term;
     public required int    score;
+    public required string term;
 }
 
-public class DB_Tag_Insert(TagContent tag, int file_id)
+public struct DB_Tag_Insert(TagContent tag, int file_id)
 {
     public readonly int    file_id = file_id;
-    public readonly string term    = tag.Term;
     public readonly int    score   = tag.Score;
+    public readonly string term    = tag.Term;
 }
 
 public static class DB_Tags
