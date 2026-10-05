@@ -108,7 +108,7 @@ public static class AppDB
             );
             CREATE TABLE IF NOT EXISTS files_broken
             (
-                file_id INTEGER NOT NULL,
+                file_id INTEGER NOT NULL PRIMARY KEY,
                 FOREIGN KEY (file_id)
                 REFERENCES files (id) ON DELETE CASCADE
             );

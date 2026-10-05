@@ -122,7 +122,9 @@ public static class DB_Files
             "SELECT f.id, d.path, f.name "
           + "FROM files f "
           + "JOIN dirs d ON d.id = f.dir_id "
-          + "WHERE adate IS NULL OR mdate > adate";
+          + "WHERE (adate IS NULL OR mdate > adate) "
+          + "AND NOT EXISTS "
+          + "(SELECT 1 FROM files_broken b WHERE b.file_id = f.id)";
         return await c.QueryAsync<DB_File_Get_WithPath>(SQL) as List<DB_File_Get_WithPath> ?? [];
     }
 
@@ -133,7 +135,9 @@ public static class DB_Files
             "SELECT f.id, d.path, f.name "
           + "FROM files f "
           + "JOIN dirs d ON d.id = f.dir_id "
-          + "WHERE tdate IS NULL OR mdate > tdate";
+          + "WHERE (tdate IS NULL OR mdate > tdate) "
+          + "AND NOT EXISTS "
+          + "(SELECT 1 FROM files_broken b WHERE b.file_id = f.id)";
         return await c.QueryAsync<DB_File_Get_WithPath>(SQL) as List<DB_File_Get_WithPath> ?? [];
     }
 
