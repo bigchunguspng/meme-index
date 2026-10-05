@@ -20,7 +20,7 @@ public class TraceCollector((string Title, string TaskMeaning)[] lanes)
         .Select((tuple, i) => new TraceLane(i + 1, tuple.Title, tuple.TaskMeaning))
         .ToDictionary(x => x.Id, x => x);
 
-    public bool Empty           => _lanes.Count == 0;
+    public bool Empty           => _lanes.All(x => x.Value.Tasks.Count == 0);
     public int  Count(int lane) => _lanes[lane].Tasks.Count;
 
     /// Call this right before subtask is called.
@@ -87,14 +87,14 @@ public class TraceCollector((string Title, string TaskMeaning)[] lanes)
 
     public void PrintStats()
     {
-        var stats = _lanes.Select(kv =>
+        var stats = _lanes.Where(x => x.Value.Tasks.Count > 0).Select(kv =>
         {
             var (lane_id, lane) = kv;
 
             var tasks = lane.Tasks;
             // [t]imestamp | [d]uration, [t]icks | [s]econds.
             var t_min_t = tasks.Min    (x => x.Start.Ticks);
-            var t_max_t = tasks.Max    (x => x.Start.Ticks);
+            var t_max_t = tasks.Max    (x => x.Start.Ticks + x.Duration.Ticks);
             var d_len_s = (t_max_t - t_min_t).TicksToSeconds();
             var d_sum_s = tasks.Sum    (x => x.Duration.TotalSeconds);
             var d_pak_p = 100 * d_sum_s / d_len_s;

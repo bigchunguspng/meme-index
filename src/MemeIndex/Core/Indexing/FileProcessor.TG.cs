@@ -45,6 +45,7 @@ public partial class FileProcessor
             }
             catch (Exception e)
             {
+                Tracer.LogDone(file.Id, TG_LOAD);
                 LogError(e);
                 await MarkBrokenFile(file.Id, "thumbnail generation");
             }

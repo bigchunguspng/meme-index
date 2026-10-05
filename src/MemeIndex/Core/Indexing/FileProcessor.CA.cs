@@ -39,6 +39,7 @@ public partial class FileProcessor
             }
             catch (Exception e)
             {
+                Tracer.LogDone(file.Id, CA_LOAD);
                 LogError(e);
                 await MarkBrokenFile(file.Id, "color analysis");
             }
@@ -78,7 +79,7 @@ public partial class FileProcessor
 
     private async Task MarkBrokenFile(int file_id, string action_name)
     {
-        LogDebug($"File {file_id,6} -> BROKEN ({action_name} failed)");
+        LogDebug($"File {file_id,6} -> BROKEN ({action_name})");
         await C_DB_Write.Writer.WriteAsync(async connection =>
         {
             await connection.FileBroken_Create(file_id);
