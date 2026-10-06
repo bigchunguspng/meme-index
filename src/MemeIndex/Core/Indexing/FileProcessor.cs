@@ -18,8 +18,10 @@ public partial class FileProcessor
 
     public async Task Run()
     {
+        await using var status = new StatusScope("PROCESSING");
+
         // LAUNCH TASKS (they create necessary jobs)
-        await Task.WhenAll(StartThumbnailGeneration(), StartColorAnalysis());
+        await Task.WhenAll(StartThumbnailGeneration(status), StartColorAnalysis(status));
 
         // WAIT FOR [OTHER] JOBS TO FINISH
         var jobTasks = new [] { job_thumbsWebp }

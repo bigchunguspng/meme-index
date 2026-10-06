@@ -102,6 +102,7 @@ app.UseStaticFiles(new StaticFileOptions
 app.MapGet ("/api/logs/traces",      Endpoints.GetJson_Traces);
 app.MapGet ("/api/logs/traces/{id}", Endpoints.GetText_TraceFile);
 app.MapGet ("/api/logs/errs", Endpoints.GetText_Errors);
+app.MapGet ("/api/events",    Endpoints.Get_SSE);
 app.MapGet ("/api/dirs",      Endpoints.GetJson_Directory);
 app.MapGet ("/api/monitors",  Endpoints.Monitors_Get);
 app.MapPut ("/api/monitors",  Endpoints.Monitors_Put);

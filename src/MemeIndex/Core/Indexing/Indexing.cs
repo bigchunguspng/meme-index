@@ -20,6 +20,8 @@ public static class Indexing
     /// <param name="syncAllMonitors"> Use <c>false</c> to sync only active ones. </param>
     public static async Task Sync(bool syncAllMonitors = false)
     {
+        await using var status = await StatusScope.Enter("SYNCHRONIZATION…");
+
         Log("[Sync]", syncAllMonitors ? "ALL" : "ACTIVE ONLY");
         var sw = Stopwatch.StartNew();
 
@@ -171,7 +173,14 @@ public static class Indexing
         Jarvis.Cache_Clear();
         sw.Log($"[Sync] DB UPDATE FILES: {w_new.Count}/{w_upd.Count}/{w_del.Count} (new/upd/del)");
 
+        if (w_new.Count + w_upd.Count == 0)
+        {
+            Log("[Sync]", "NOT TRIGGERING FILE PROCESSING");
+            return;
+        }
+
         // TRIGGER FILE PROCESSING
+        status.Delay = TimeSpan.FromSeconds(0.25);
         await C_FileProcessing.Writer.WriteAsync(1);
         await EnsureStarted_Job_FileProcessing();
         sw.Log("[Sync] TRIGGER FILE PROCESSING");

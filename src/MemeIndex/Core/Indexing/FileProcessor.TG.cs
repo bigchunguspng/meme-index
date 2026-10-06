@@ -9,7 +9,7 @@ namespace MemeIndex.Core.Indexing;
 
 public partial class FileProcessor
 {
-    private async Task StartThumbnailGeneration()
+    private async Task StartThumbnailGeneration(StatusScope status)
     {
         const string CODE = "Tmb/Gen";
         Log(CODE, "START");
@@ -26,6 +26,8 @@ public partial class FileProcessor
             Log(CODE, "NOTHING TO PROCESS");
             return;
         }
+
+        await App.SetStatus(status.Status);
 
         ImagePool.Book(files.Select(x => x.Path), files.Length);
 
