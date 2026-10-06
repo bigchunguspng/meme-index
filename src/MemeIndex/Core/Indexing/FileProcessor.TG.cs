@@ -45,7 +45,6 @@ public partial class FileProcessor
             }
             catch (Exception e)
             {
-                Tracer.LogDone(file.Id, TG_LOAD);
                 LogError(e);
                 await MarkBrokenFile(file.Id, "thumbnail generation");
             }
@@ -62,9 +61,8 @@ public partial class FileProcessor
 
     private async Task Thumbnail_Resize(int id, string filePath)
     {
-        Tracer.LogOpen(id, TG_LOAD);
-        var source = await ImagePool.Load(filePath);
-        Tracer.LogJoin(id, TG_LOAD, TG_SIZE);
+        var source = await ImagePool.Load(filePath, id);
+        Tracer.LogOpen(id, TG_SIZE);
         var size  = source.Size.FitSize(_fitSize);
         var thumb = source.Clone(x => x.Resize(size, LanczosResampler.Lanczos3, compand: false));
         ImagePool.Return(filePath);

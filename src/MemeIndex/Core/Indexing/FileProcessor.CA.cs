@@ -39,7 +39,6 @@ public partial class FileProcessor
             }
             catch (Exception e)
             {
-                Tracer.LogDone(file.Id, CA_LOAD);
                 LogError(e);
                 await MarkBrokenFile(file.Id, "color analysis");
             }
@@ -51,9 +50,8 @@ public partial class FileProcessor
     private async Task AnalyzeImage_Color
         (int id, string path, int minScore = 10)
     {
-        Tracer.LogOpen(id, CA_LOAD);
-        var image = await ImagePool.Load(path);
-        Tracer.LogJoin(id, CA_LOAD, CA_SCAN);
+        var image = await ImagePool.Load(path, id);
+        Tracer.LogOpen(id, CA_SCAN);
         var report = ColorAnalyzer_v2.ScanImage(image);
         ImagePool.Return(path);
         Tracer.LogJoin(id, CA_SCAN, CA_ANAL);

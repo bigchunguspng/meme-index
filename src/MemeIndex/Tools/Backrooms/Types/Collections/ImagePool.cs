@@ -5,7 +5,7 @@ using LogLevel = MemeIndex.Tools.Logging.LogLevel;
 namespace MemeIndex.Tools.Backrooms.Types.Collections;
 
 /// Don't load the same image twice!
-public class ImagePool
+public class ImagePool(TraceCollector tracer, int lane)
 {
     private readonly Dictionary<string, ImageBooking>         _cache    = new();
     private readonly Dictionary<string, Task<Image<Rgba32>>>  _loadings = new();
@@ -37,7 +37,7 @@ public class ImagePool
 
     /// Make sure path was booked!
     [MethodImpl(Synchronized)]
-    public Task<Image<Rgba32>> Load(string path)
+    public Task<Image<Rgba32>> Load(string path, int id)
     {
         var booking = _cache[path];
         if (booking.Loading)
@@ -47,12 +47,17 @@ public class ImagePool
         else
         {
             booking.Loading = true;
-            return _loadings[path] = Task.Run(async () =>
-            {
-                return booking.Image
-                    = await Image.LoadAsync<Rgba32>(path);
-            });
+            return _loadings[path] = Load_Internal(path, id, booking);
         }
+    }
+
+    private async Task<Image<Rgba32>> Load_Internal
+        (string path, int id, ImageBooking booking)
+    {
+        tracer.LogOpen(id, lane);
+        var result = booking.Image = await Image.LoadAsync<Rgba32>(path);
+        tracer.LogDone(id, lane);
+        return result;
     }
 
     /// Make sure path was booked!

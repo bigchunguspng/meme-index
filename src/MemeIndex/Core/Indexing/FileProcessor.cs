@@ -8,7 +8,13 @@ namespace MemeIndex.Core.Indexing;
 
 public partial class FileProcessor
 {
-    private static readonly ImagePool ImagePool = new();
+    private readonly ImagePool ImagePool;
+
+    public FileProcessor()
+    {
+        Tracer    = CreateTracer();
+        ImagePool = new ImagePool(Tracer, IP_LOAD);
+    }
 
     public async Task Run()
     {
@@ -100,23 +106,22 @@ public partial class FileProcessor
     // STATS
 
     public const int // LANES
-        TG_LOAD   = 0x1,
+        IP_LOAD   = 0x1,
         TG_SIZE   = 0x2,
         TG_SAVE   = 0x3,
-        CA_LOAD   = 0x4,
-        CA_SCAN   = 0x5,
-        CA_ANAL   = 0x6,
-        DB_WRITE  = 0x7,
-        DB_W_TAGS = 0x8,
-        DB_W_FA   = 0x9,
-        DB_W_FT   = 0xA;
+        CA_SCAN   = 0x4,
+        CA_ANAL   = 0x5,
+        DB_WRITE  = 0x6,
+        DB_W_TAGS = 0x7,
+        DB_W_FA   = 0x8,
+        DB_W_FT   = 0x9;
 
-    private readonly TraceCollector Tracer = new
+    private readonly TraceCollector       Tracer;
+    private static   TraceCollector CreateTracer() => new
     ([
-        ("TG / Load",          "File Id"),
+        ("Image Load",         "File Id"),
         ("TG / Resize",        "File Id"),
         ("TG / Save",          "File Id"),
-        ("CA / Load",          "File Id"),
         ("CA / Scan",          "File Id"),
         ("CA / Analyze",       "File Id"),
         ("DB Write",           "Write #"), // batch writes
@@ -129,11 +134,11 @@ public partial class FileProcessor
     {
         if (Tracer.Empty) return;
 
-        var c1 = Tracer.Count(TG_LOAD);
-        var c2 = Tracer.Count(CA_LOAD);
+        var ca = Tracer.Count(DB_W_FA);
+        var tg = Tracer.Count(DB_W_FT);
         var save = Dir_Traces
             .EnsureDirectoryExist()
-            .Combine($"File-processing-{Desert.Clock(24):x}_{Helpers.COMPILE_MODE}_TG-{c1}_CA-{c2}.txt");
+            .Combine($"File-processing-{Desert.Clock(24):x}_{Helpers.COMPILE_MODE}_TG-{tg}_CA-{ca}.txt");
         await Tracer.SaveAs(save);
         Tracer.PrintStats();
         Log($"Save trace data - \"{save}\"");
