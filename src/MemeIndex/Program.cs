@@ -23,7 +23,7 @@ App.Domain.ProcessExit        += (_, _) => App.SaveAndExit();
 App.Domain.UnhandledException += (_, e) =>
 {
     LogError($"UNHANDLED EXCEPTION! {e.ExceptionObject}");
-    App.LogException((Exception)e.ExceptionObject, ExceptionCategory.CRASH);
+    App.LogException((Exception)e.ExceptionObject, ExceptionCategory.CRASH, App.GetCrashContext());
     Environment.Exit(1);
 };
 

@@ -87,7 +87,7 @@ public partial class FileProcessor
             }
             catch (Exception e)
             {
-                App.LogException_JOB(e);
+                App.LogException_JOB(e, "DB WRITE");
                 throw;
             }
         }

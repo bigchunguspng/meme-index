@@ -26,10 +26,10 @@ public static class App
         Logger_Log.Write();
     }
 
-    public static void LogException_JOB(Exception e)
+    public static void LogException_JOB(Exception e, string ctx)
     {
         LogError(e);
-        LogException(e, ExceptionCategory.JOB);
+        LogException(e, ExceptionCategory.JOB, ctx);
     }
 
     public static void LogException
@@ -53,6 +53,14 @@ public static class App
             Console.WriteLine("EXCEPTION WHILE LOGGING EXCEPTION x_x");
         }
     }
+
+    public static string GetCrashContext() =>
+        $"""
+         …
+            File:              {Environment.ProcessPath}
+            Command line:      {Environment.CommandLine}
+            Working directory: {Environment.CurrentDirectory}
+         """;
 }
 
 public enum ExceptionCategory

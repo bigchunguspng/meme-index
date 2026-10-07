@@ -331,6 +331,6 @@ public static class Indexing
             C_FileProcessing,
             async () => await new FileProcessor().Run(),
             "Task done!",
-            App.LogException_JOB
+            e => App.LogException_JOB(e, "FILE PROCESSING")
         );
 }

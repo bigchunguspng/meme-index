@@ -211,6 +211,6 @@ public static class MonitorsDispatcher
             C_Sync,
             async () => await Indexing.Sync(),
             "Task done!",
-            App.LogException_JOB
+            e => App.LogException_JOB(e, "SYNC")
         );
 }
