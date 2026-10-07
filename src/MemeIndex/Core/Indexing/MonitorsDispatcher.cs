@@ -1,5 +1,6 @@
 ﻿using System.Threading.Channels;
 using MemeIndex.API;
+using MemeIndex.Core.Search;
 using MemeIndex.DB;
 using Microsoft.Data.Sqlite;
 
@@ -123,6 +124,7 @@ public static class MonitorsDispatcher
 
         // DELETE ORPHANED DIRS
         var deleted = await DeleteOrphanedDirectories(con);
+        if (deleted > 0) Jarvis.Cache_Clear();
         await con.CloseAsync();
         sw.Log($"[Update Monitors] DB DELETE ORPHAN DIRS: {deleted}");
 
