@@ -28,6 +28,8 @@ public class  MonitorValue
 
 public static class MonitorsDispatcher
 {
+    /// This method updates monitors in DB.
+    /// Triggers <see cref="Indexing.Sync"/> if any ones were added or changed.
     public static async Task<API_Monitors_Put_Response> UpdateMonitors(API_Monitors body)
     {
         Log("[Update Monitors]", $"COUNT: {body.M.Count}");
@@ -106,7 +108,7 @@ public static class MonitorsDispatcher
             monitors_del.Add(db_m.Id!.Value);
         }
 
-        sw.Log($"[Update Monitors] COMPARE");
+        sw.Log("[Update Monitors] COMPARE");
 
         // UPDATE DB MONITORS
         await using var transaction = con.BeginTransaction();

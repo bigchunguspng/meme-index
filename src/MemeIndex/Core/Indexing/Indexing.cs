@@ -4,6 +4,16 @@ using MemeIndex.DB;
 
 namespace MemeIndex.Core.Indexing;
 
+// Pipeline:
+// TRIGGER -> SYNC -> FILE PROCESSING
+// TRIGGER is a source of change in FS:
+// 1. monitors update  - new files are introduced (add monitor / make it recursive).
+//                     - files could be added/changed/deleted when the monitor was disabled (enable monitor).
+// 2. startup          - files could be added/changed/deleted when the app was down.
+// 3. FS watcher event - files are      added/changed/deleted when the app is  up.
+// SYNC - updates DB files to match real ones. It handles file rename, move, update, deletion & creation.
+// FILE PROCESSING - does actual work like analyzing image contents or generating thumbnails.
+
 public static class Indexing
 {
     public static readonly HashSet<string>

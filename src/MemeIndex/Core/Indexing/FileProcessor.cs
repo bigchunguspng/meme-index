@@ -16,6 +16,9 @@ public partial class FileProcessor
         ImagePool = new ImagePool(Tracer, IP_LOAD);
     }
 
+    /// Processes (OCR, Color analysis, thumbnail generation)
+    /// all the files that needs to be processed,
+    /// e.g. ones with no/outdated processing date.
     public async Task Run()
     {
         await using var status = new StatusScope("PROCESSING");
