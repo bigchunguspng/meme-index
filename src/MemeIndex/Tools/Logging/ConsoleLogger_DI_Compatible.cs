@@ -2,6 +2,17 @@ using MS_LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace MemeIndex.Tools.Logging;
 
+public class ConsoleLoggerProvider : ILoggerProvider
+{
+    public ILogger CreateLogger
+        (string categoryName) => new ConsoleLogger_DI_Compatible(categoryName);
+
+    public void Dispose()
+    {
+        GC.SuppressFinalize(this);
+    }
+}
+
 public class ConsoleLogger_DI_Compatible (string category) : ILogger
 {
     public IDisposable? BeginScope<TState>
@@ -33,12 +44,4 @@ public class ConsoleLogger_DI_Compatible (string category) : ILogger
         MS_LogLevel.Critical    => LogLevel.Error,
         _                       => LogLevel.Info,
     };
-}
-
-public class ConsoleLoggerProvider : ILoggerProvider
-{
-    public ILogger CreateLogger
-        (string categoryName) => new ConsoleLogger_DI_Compatible(categoryName);
-
-    public void Dispose() { }
 }

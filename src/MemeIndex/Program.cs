@@ -1,11 +1,10 @@
 using MemeIndex.API;
 using MemeIndex.Core;
-using MemeIndex.Core.Indexing;
-using MemeIndex.DB;
 using MemeIndex.Utils;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.FileProviders;
+using static Microsoft.Extensions.Logging.LogLevel;
 
 // Print("ARGS: " + string.Join(", ", args), color: ConsoleColor.Yellow);
 
@@ -55,6 +54,8 @@ if (flag_url.IsOff())
 }
 
 builder.Logging
+    .SetMinimumLevel(Information)
+    .AddFilter("Microsoft", Warning)
     .ClearProviders()
     .AddProvider(new ConsoleLoggerProvider())
     ;
