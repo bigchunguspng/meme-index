@@ -24,13 +24,17 @@ public static partial class Endpoints
         return Results.File(File_Err, "text/plain");
     }
 
-    public static async Task Get_SSE(HttpContext context)
+    public static async Task Get_SSE
+        (HttpContext context, IHostApplicationLifetime lifetime)
     {
         context.Response.ContentType = "text/event-stream";
         context.Response.Headers.CacheControl = "no-cache";
         try
         {
-            var ct = context.RequestAborted;
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource
+                (context.RequestAborted, lifetime.ApplicationStopping);
+            var ct  = cts.Token;
+
             await SendEvent_Status(App.Status);
             await foreach (var message in App.C_Events.Reader.ReadAllAsync(ct))
             {

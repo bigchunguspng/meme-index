@@ -9,6 +9,8 @@ public static class App
     public static readonly FileLogger_Batch  Logger_Log = new(File_Log);
     public static readonly FileLogger_Simple Logger_Err = new(File_Err);
 
+    // STATUS
+
     public static string DefaultStatus => "IDLE";
     public static string?       Status { get; private set; }
 
@@ -21,10 +23,19 @@ public static class App
         return C_Events.Writer.WriteAsync(message);
     }
 
+    // EXIT
+
+    private static bool terminating;
+
     public static void SaveAndExit()
     {
+        if (Interlocked.Exchange(ref terminating, true))
+            return;
+
         Logger_Log.Write();
     }
+
+    // LOG
 
     public static void LogException_JOB(Exception e, string ctx)
     {
