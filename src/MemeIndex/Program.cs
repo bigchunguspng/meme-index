@@ -99,19 +99,19 @@ app.UseStaticFiles(new StaticFileOptions
 
 // API
 
-app.MapGet ("/api/logs/traces",      Endpoints.GetJson_Traces);
-app.MapGet ("/api/logs/traces/{id}", Endpoints.GetText_TraceFile);
-app.MapGet ("/api/logs/errs", Endpoints.GetText_Errors);
-app.MapGet ("/api/events",    Endpoints.Get_SSE);
-app.MapGet ("/api/dirs",      Endpoints.GetJson_Directory);
-app.MapGet ("/api/monitors",  Endpoints.Monitors_Get);
-app.MapPut ("/api/monitors",  Endpoints.Monitors_Put);
-app.MapGet ("/api/find",      Endpoints.GetJson_Find);
-app.MapGet ("/api/files/{id}/image",   Endpoints.Get_Image);
-app.MapGet ("/api/files/{id}/thumb",   Endpoints.Get_Thumb);
-app.MapPost("/api/files/{id}/open",    Endpoints.Image_Open);
-app.MapPost("/api/files/{id}/explore", Endpoints.Image_OpenInExplorer);
-//app.MapPost("/api/files/{id}/run",     Endpoints.NAME); // user defined actions
+app.MapGet ("/api/logs/traces",             Endpoints.GetJson_Traces);
+app.MapGet ("/api/logs/traces/{id}",        Endpoints.GetText_TraceFile);
+app.MapGet ("/api/logs/errs",               Endpoints.GetText_Errors);
+app.MapGet ("/api/events",                  Endpoints.Get_SSE);
+app.MapGet ("/api/dirs",                    Endpoints.GetJson_Directory);
+app.MapGet ("/api/monitors",                Endpoints.Monitors_Get);
+app.MapPut ("/api/monitors",                Endpoints.Monitors_Put);
+app.MapGet ("/api/find",                    Endpoints.GetJson_Find);
+app.MapGet ("/api/files/{id:int}/image",    Endpoints.Get_Image);
+app.MapGet ("/api/files/{id:int}/thumb",    Endpoints.Get_Thumb);
+app.MapPost("/api/files/{id:int}/open",     Endpoints.Image_Open);
+app.MapPost("/api/files/{id:int}/explore",  Endpoints.Image_OpenInExplorer);
+// app.MapPost("/api/files/{id:int}/run",      Endpoints.Image_Custom); // user defined actions
 
 app.Lifetime.ApplicationStarted.Register(() =>
 {
