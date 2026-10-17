@@ -129,25 +129,4 @@ app.Lifetime.ApplicationStopping.Register(() => app.Logger.LogInformation("Exitâ
 
 LogCM(ConsoleColor.Magenta, "SETUP DONE");
 
-// _ = TestCode();
-
 app.Run();
-
-async Task TestCode() // todo remove when directory can be added from ui
-{
-    await Task.Delay(3000);
-    Log("_");
-    await using (var connection = await AppDB.ConnectTo_Main())
-    {
-        Log("var connection = await DB.OpenConnection();");
-        await connection.CreateDB_Main();
-        Log("await connection.CreateTables();");
-        await connection.CloseAsync();
-        Log("await connection.CloseAsync();");
-    }
-
-    var path = CLI.GetArgsFromFile(args.First(x => x.StartsWith('-').Janai())).First();
-    var recursive = args.Contains("-r");
-    await Indexing.AddFilesToDB(path, recursive);
-    LogCM(ConsoleColor.Green, $"await Command_AddFilesToDB.Execute(@\"{path}\", recursive: {(recursive ? "true" : "false")});");
-}
