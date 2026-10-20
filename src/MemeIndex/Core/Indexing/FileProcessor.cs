@@ -40,6 +40,26 @@ public partial class FileProcessor
         await SaveTraceData();
     }
 
+    // FILE PROCESSING JOB
+
+    private static readonly Jack<int, Job_FileProcessing> Jack_FileProcessing = new();
+
+    public class Job_FileProcessing()
+        : ChannelJob_ExecuteOrStop
+        (
+            "Job/FileProcessing",
+            Jack_FileProcessing.Chan,
+            async () => await new FileProcessor().Run(),
+            "Task done!",
+            e => App.LogException_JOB(e, "FILE PROCESSING")
+        );
+
+    public static async Task Trigger()
+    {
+        await Jack_FileProcessing.Chan.Writer.WriteAsync(1);
+        await Jack_FileProcessing.EnsureJobStarted();
+    }
+
     // DB WRITE
 
     private readonly Channel<Func<SqliteConnection, Task>>

@@ -99,3 +99,27 @@ public abstract class ChannelJob_ExecuteOrStop
         }
     }
 }
+
+/// Job and channel ok?
+public class Jack<T, TJob> where TJob : BackgroundService, new()
+{
+    public readonly Channel<T> Chan = Channel.CreateUnbounded<T>();
+
+    private TJob? _job;
+
+    public async Task EnsureJobStarted()
+    {
+        var new_job = TryReloadJob();
+        if (new_job != null)
+            await new_job.StartAsync(CancellationToken.None);
+    }
+
+    /// Creates, sets to <see cref="_job"/>, and returns a new job
+    /// if it doesn't exist or was completed.
+    [MethodImpl(Synchronized)]
+    private TJob? TryReloadJob()
+        => _job == null
+            || _job.ExecuteTask is { IsCompleted: true }
+                ? _job = new TJob()
+                : null;
+}

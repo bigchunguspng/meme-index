@@ -131,8 +131,7 @@ public static class MonitorsDispatcher
         // TRIGGER INDEXING
         if (c_new + c_upd > 0)
         {
-            await C_Sync.Writer.WriteAsync(1);
-            await EnsureStarted_Job_Sync();
+            await Indexing.TriggerSync();
             sw.Log("[Update Monitors] TRIGGER SYNC");
         }
         else
@@ -180,37 +179,4 @@ public static class MonitorsDispatcher
 
         return del;
     }
-
-    // SYNC JOB
-
-    private static readonly Channel<int>
-        C_Sync            = Channel.CreateUnbounded<int>();
-
-    private static Job_C_Sync? Job;
-
-    private static async Task EnsureStarted_Job_Sync()
-    {
-        var new_job = TryReloadJob();
-        if (new_job != null)
-            await new_job.StartAsync(CancellationToken.None);
-    }
-
-    /// Creates (sets to <see cref="Job"/>) and returns a new job
-    /// if it doesn't exist or was completed.
-    [MethodImpl(Synchronized)]
-    private static Job_C_Sync? TryReloadJob()
-        => Job == null
-            || Job.ExecuteTask is { IsCompleted: true }
-                ? Job = new Job_C_Sync()
-                : null;
-
-    private class Job_C_Sync()
-        : ChannelJob_ExecuteOrStop
-        (
-            "Job/Sync",
-            C_Sync,
-            async () => await Indexing.Sync(),
-            "Task done!",
-            e => App.LogException_JOB(e, "SYNC")
-        );
 }

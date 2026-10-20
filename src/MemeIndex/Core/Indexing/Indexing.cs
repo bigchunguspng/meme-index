@@ -191,8 +191,7 @@ public static class Indexing
 
         // TRIGGER FILE PROCESSING
         status.Delay = TimeSpan.FromSeconds(0.25);
-        await C_FileProcessing.Writer.WriteAsync(1);
-        await EnsureStarted_Job_FileProcessing();
+        await FileProcessor.Trigger();
         sw.Log("[Sync] TRIGGER FILE PROCESSING");
     }
 
@@ -296,41 +295,27 @@ public static class Indexing
         sw.Log("[AddFilesToDB] ADD DIRS & FILES");
 
         // TRIGGER PROCESSING
-        await C_FileProcessing.Writer.WriteAsync(1);
-        await EnsureStarted_Job_FileProcessing();
+        await FileProcessor.Trigger();
         sw.Log("[AddFilesToDB] TRIGGER PROCESSING");
     }
 
-    // FILE PROCESSING JOB
+    // SYNC JOB
 
-    private static readonly Channel<int>
-        C_FileProcessing  = Channel.CreateUnbounded<int>();
+    private static readonly Jack<int, Job_Sync> Jack_Sync = new();
 
-    private static Job_FileProcessing? Job;
-
-    private static async Task EnsureStarted_Job_FileProcessing()
-    {
-        var new_job = TryReloadJob();
-        if (new_job != null)
-            await new_job.StartAsync(CancellationToken.None);
-    }
-
-    /// Creates (sets to <see cref="Job"/>) and returns a new job
-    /// if it doesn't exist or was completed.
-    [MethodImpl(Synchronized)]
-    private static Job_FileProcessing? TryReloadJob()
-        => Job == null
-        || Job.ExecuteTask is { IsCompleted: true }
-            ? Job = new Job_FileProcessing()
-            : null;
-
-    private class Job_FileProcessing()
+    private class Job_Sync()
         : ChannelJob_ExecuteOrStop
         (
-            "Job/FileProcessing",
-            C_FileProcessing,
-            async () => await new FileProcessor().Run(),
+            "Job/Sync",
+            Jack_Sync.Chan,
+            async () => await Sync(),
             "Task done!",
-            e => App.LogException_JOB(e, "FILE PROCESSING")
+            e => App.LogException_JOB(e, "SYNC")
         );
+
+    public static async Task TriggerSync()
+    {
+        await Jack_Sync.Chan.Writer.WriteAsync(1);
+        await Jack_Sync.EnsureJobStarted();
+    }
 }
