@@ -1,5 +1,4 @@
 using System.Threading.Channels;
-using MemeIndex.Core.Analysis.Color.v2;
 using MemeIndex.DB;
 using MemeIndex.Utils;
 using Microsoft.Data.Sqlite;
@@ -56,7 +55,7 @@ public partial class FileProcessor
 
     public static async Task Trigger()
     {
-        await Jack_FileProcessing.Chan.Writer.WriteAsync(1);
+        _   = Jack_FileProcessing.Chan.Writer.TryWrite(1);
         await Jack_FileProcessing.EnsureJobStarted();
     }
 

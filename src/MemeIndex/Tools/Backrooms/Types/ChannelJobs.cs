@@ -103,7 +103,7 @@ public abstract class ChannelJob_ExecuteOrStop
 /// Job and channel ok?
 public class Jack<T, TJob> where TJob : BackgroundService, new()
 {
-    public readonly Channel<T> Chan = Channel.CreateUnbounded<T>();
+    public readonly Channel<T> Chan = Channel.CreateBounded<T>(1);
 
     private TJob? _job;
 

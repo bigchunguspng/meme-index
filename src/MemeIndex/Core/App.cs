@@ -1,4 +1,5 @@
 using System.Threading.Channels;
+using MemeIndex.Core.Indexing;
 
 namespace MemeIndex.Core;
 
@@ -23,6 +24,13 @@ public static class App
         return C_Events.Writer.WriteAsync(message);
     }
 
+    // START
+
+    public static async Task Start()
+    {
+        await Miku.Start();
+    }
+
     // EXIT
 
     private static bool terminating;
@@ -32,6 +40,7 @@ public static class App
         if (Interlocked.Exchange(ref terminating, true))
             return;
 
+        Miku.Stop();
         Logger_Log.Write();
     }
 

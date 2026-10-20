@@ -1,5 +1,4 @@
-﻿using System.Threading.Channels;
-using MemeIndex.API;
+﻿using MemeIndex.API;
 using MemeIndex.Core.Search;
 using MemeIndex.DB;
 using Microsoft.Data.Sqlite;
@@ -127,6 +126,13 @@ public static class MonitorsDispatcher
         if (deleted > 0) Jarvis.Cache_Clear();
         await con.CloseAsync();
         sw.Log($"[Update Monitors] DB DELETE ORPHAN DIRS: {deleted}");
+
+        // RELOAD MONITORING
+        if (c_new + c_upd + c_del > 0)
+        {
+            await Miku.Reload();
+            sw.Log("[Update Monitors] RELOAD MONITORING");
+        }
 
         // TRIGGER INDEXING
         if (c_new + c_upd > 0)

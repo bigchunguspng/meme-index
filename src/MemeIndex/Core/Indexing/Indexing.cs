@@ -1,4 +1,3 @@
-using System.Threading.Channels;
 using MemeIndex.Core.Search;
 using MemeIndex.DB;
 
@@ -19,7 +18,7 @@ public static class Indexing
     public static readonly HashSet<string>
         SupportedExtensions = new(StringComparer.OrdinalIgnoreCase)
         {
-            ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"
+            ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp", "*",
         };
 
     // SYNC
@@ -315,7 +314,7 @@ public static class Indexing
 
     public static async Task TriggerSync()
     {
-        await Jack_Sync.Chan.Writer.WriteAsync(1);
+        _ =   Jack_Sync.Chan.Writer.TryWrite(1);
         await Jack_Sync.EnsureJobStarted();
     }
 }
