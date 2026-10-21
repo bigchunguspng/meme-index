@@ -20,12 +20,12 @@ public static partial class Jarvis
     {
         if (_cache_files.Count == 0 && _cache_file_ids.Count == 0) return;
 
-        Log("[Jv2/CACHE]", $"CLEARING >> F: {_cache_files.Count,5} | Q: {_cache_file_ids.Count,5}");
+        Log(NAME_C, $"CLEARING >> F: {_cache_files.Count,5} | Q: {_cache_file_ids.Count,5}");
         _cache_file_ids .Clear();
         _cache_counts   .Clear();
         _cache_files    .Clear();
         _cache_relevance.Clear();
-        Log("[Jv2/CACHE]", "CLEARED!");
+        Log(NAME_C, "CLEARED!");
     }
 
     // FILES
@@ -54,7 +54,7 @@ public static partial class Jarvis
 
         var diff_pages = _cache_file_ids.Count - count_pages_old;
         var diff_files = _cache_files   .Count - count_files_old;
-        Log("[Jv2/CACHE]", $"UPDATE >> F: {diff_files,5:+0} -> {_cache_files.Count,5} | Q: {diff_pages,5:+0} -> {_cache_file_ids.Count,5}");
+        Log(NAME_C, $"UPDATE >> F: {diff_files,5:+0} -> {_cache_files.Count,5} | Q: {diff_pages,5:+0} -> {_cache_file_ids.Count,5}");
 
         if (file_ids_evicted != null)
         {
@@ -69,7 +69,7 @@ public static partial class Jarvis
             }
 
             diff_files = _cache_files.Count - count_files_old;
-            Log("[Jv2/CACHE]", $"EVICT  >> F: {diff_files,5} -> {_cache_files.Count,5}");
+            Log(NAME_C, $"EVICT  >> F: {diff_files,5} -> {_cache_files.Count,5}");
         }
     }
 

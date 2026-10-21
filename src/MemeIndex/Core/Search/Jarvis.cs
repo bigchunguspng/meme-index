@@ -4,6 +4,10 @@ namespace MemeIndex.Core.Search;
 
 public static partial class Jarvis
 {
+    private const string
+        NAME_Q = "[Jarvis|Q]", // SEARCH    Q looks like search icon lol
+        NAME_C = "[Jarvis|$]"; // CACHE     CA$H!!!!
+
     public static void Test_SQL()
     {
         while (true)
@@ -35,7 +39,7 @@ public static partial class Jarvis
     public static async Task<SearchResponse> Search_ByColor
         (string expression, int skip, int take)
     {
-        Log("[Jv2/FILES]", expression);
+        Log(NAME_Q, expression);
 
         var sw = Stopwatch.StartNew();
         await using var con = await AppDB.ConnectTo_Main();
@@ -58,7 +62,7 @@ public static partial class Jarvis
                     if (count < 0) count = file_db_wc.total;
                     return File_UI_GetCached_OrCreate(file_db_wc);
                 }));
-                sw.Log("[Jv2/FILES] DB GET FILES w/ COUNT");
+                sw.Log($"{NAME_Q} DB GET FILES w/ COUNT");
 
                 Cache(key, files);
 
@@ -67,7 +71,7 @@ public static partial class Jarvis
             else // RARE, count only
             {
                 count = files_db.FirstOrDefault()?.total ?? 0;
-                sw.Log("[Jv2/FILES] DB GET FILES COUNT");
+                sw.Log($"{NAME_Q} DB GET FILES COUNT");
             }
 
             Cache(expression, count);
@@ -80,7 +84,7 @@ public static partial class Jarvis
 
             files = new List<File_UI>(100);
             files.AddRange(files_db.Select(File_UI_GetCached_OrCreate));
-            sw.Log("[Jv2/FILES] DB GET FILES");
+            sw.Log($"{NAME_Q} DB GET FILES");
 
             Cache(key, files);
         }
@@ -88,7 +92,7 @@ public static partial class Jarvis
         var dir_ids = files.Select(x => x.D).Distinct();
         var dirs_db = await con.Dirs_GetByIds(dir_ids);
         var dirs = dirs_db.ToDictionary(x => x.id, x => x.path + Path.DirectorySeparatorChar);
-        sw.Log("[Jv2/FILES] DB GET DIRS");
+        sw.Log($"{NAME_Q} DB GET DIRS");
 
         return new SearchResponse
         {

@@ -7,6 +7,8 @@ public static class Miku
     // ねえあたし知ってるよ　きみがひとり"XX"してるの知ってるよ
     // ビクンビクン震えてさ　声もダダ漏れなんだわ
 
+    // todo make configable: delay time, global on/off
+
     private const string NAME = "[Miku]";
 
     private static readonly SemaphoreSlim _s = new(1, 1);
@@ -25,7 +27,7 @@ public static class Miku
         _ = _monitoring = true;
 
         await using var con = await AppDB.ConnectTo_Main();
-        var monitors = await con.Monitors_GetAll();
+        var monitors = await con.Monitors_GetAll(); // todo select only enabled
         var to_watch = monitors
             .Where(x => x.enabled)
             .GroupBy(x => x.path)
@@ -69,7 +71,7 @@ public static class Miku
         watcher.Created += (_, e) => HandleEvent(e);
         watcher.Changed += (_, e) => HandleEvent(e);
         watcher.Deleted += (_, e) => HandleEvent(e);
-        watcher.Renamed += (_, e) => HandleEvent(e); // todo - just rename file in db
+        watcher.Renamed += (_, e) => HandleEvent(e); // todo - rename file in db + send ui event (batched, 0.5s delay)
         watcher.Error   += (_, e) => HandleError(e.GetException());
 
         _watchers[path] = watcher;
@@ -94,6 +96,8 @@ public static class Miku
             App.LogException_JOB(e, "Miku");
         }
     }
+
+    // todo abstract debouncer
 
     private static void Bump()
     {
