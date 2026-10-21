@@ -122,8 +122,11 @@ public static class Miku
                 waitSince  = _waitSince;
                 var timeSince_waitSince = DateTime.UtcNow - _waitSince;
                 var delay  = _waitDelay - timeSince_waitSince;
-                LogDebug(NAME, $"Sync in {delay.ReadableTime()}");
-                await Task.Delay (delay);
+                if (delay > TimeSpan.Zero)
+                {
+                    LogDebug(NAME, $"Sync in {delay.ReadableTime()}");
+                    await Task.Delay(delay);
+                }
             }
             _waitSince = default;
             LogDebug(NAME, "TRIGGERING SYNC");
