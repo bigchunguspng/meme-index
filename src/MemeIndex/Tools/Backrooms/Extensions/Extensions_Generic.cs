@@ -37,7 +37,7 @@ public static class Extensions_Generic
         return obj?.ToString()?.ToLower();
     }
 
-    public static T GetRandomMemeber<T>() where T : struct, Enum
+    public static T GetRandomMember<T>() where T : struct, Enum
     {
         var values = Enum.GetValues<T>();
         return (T)values.GetValue(Random.Shared.Next(values.Length))!;
@@ -147,6 +147,32 @@ public static class Extensions_Generic
             {
                 LogError(e);
             }
+        }
+    }
+
+    public static async Task Lock(this SemaphoreSlim s, Action action)
+    {
+        await s.WaitAsync();
+        try
+        {
+            action();
+        }
+        finally
+        {
+            s.Release();
+        }
+    }
+
+    public static async Task Lock(this SemaphoreSlim s, Func<Task> task)
+    {
+        await s.WaitAsync();
+        try
+        {
+            await task();
+        }
+        finally
+        {
+            s.Release();
         }
     }
 }

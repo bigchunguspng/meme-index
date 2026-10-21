@@ -7,25 +7,25 @@ public static class Miku
     // ねえあたし知ってるよ　きみがひとり"XX"してるの知ってるよ
     // ビクンビクン震えてさ　声もダダ漏れなんだわ
 
+    private const string NAME = "[Miku]";
+
+    private static readonly SemaphoreSlim _s = new(1, 1);
     private static readonly Dictionary<string, FileSystemWatcher> _watchers = [];
     private static bool _monitoring;
 
     public static async Task Reload()
     {
-        Stop();
+        await Stop();
         await Start();
     }
 
-    [MethodImpl(Synchronized)]
-    public static async Task Start()
+    public static async Task Start() => await _s.Lock(async () =>
     {
-        var monitoring = Interlocked.Exchange(ref _monitoring, true);
-        if (monitoring) return;
+        if (_monitoring) return;
+        _ = _monitoring = true;
 
-        _monitoring = true;
         await using var con = await AppDB.ConnectTo_Main();
         var monitors = await con.Monitors_GetAll();
-
         var to_watch = monitors
             .Where(x => x.enabled)
             .GroupBy(x => x.path)
@@ -34,23 +34,22 @@ public static class Miku
         foreach (var (path, recurse) in to_watch)
         {
             StartWatching(path, recurse);
-            Log($"Miku >> STARTED MONITORING {path}");
+            Log(NAME, $"STARTED MONITORING {path}");
         }
-    }
+    });
 
-    [MethodImpl(Synchronized)]
-    public static void Stop()
+    public static async Task Stop() => await _s.Lock(() =>
     {
-        var monitoring = Interlocked.Exchange(ref _monitoring, false);
-        if (monitoring.Janai()) return;
+        if (_monitoring.Janai()) return;
+        _ = _monitoring = false;
 
         foreach (var (path, watcher) in _watchers)
         {
             watcher.Dispose();
-            Log($"Miku >> STOPPED MONITORING {path}");
+            Log(NAME, $"STOPPED MONITORING {path}");
         }
         _watchers.Clear();
-    }
+    });
 
     private static void StartWatching(FilePath path, bool recurse)
     {
@@ -86,18 +85,19 @@ public static class Miku
     {
         if (e is InternalBufferOverflowException)
         {
-            LogWarn($"Miku >> BUFFER OVERFLOW:\n{e}");
+            LogWarn(NAME, $"BUFFER OVERFLOW:\n{e}");
             Bump();
         }
         else
         {
-            LogWarn($"Miku >> ERROR:\n{e}");
+            LogError(NAME, $"ERROR:\n{e}");
             App.LogException_JOB(e, "Miku");
         }
     }
 
     private static void Bump()
     {
+        LogDebug(NAME, "BUMP!");
         _ = DebounceAndTriggerSync();
     }
 
@@ -110,6 +110,7 @@ public static class Miku
         else // not waiting
         {
             var waitSince  = _waitSince = DateTime.UtcNow;
+            LogDebug(NAME, $"Sync in {_waitDelay.ReadableTime()}");
             await Task.Delay(_waitDelay);
             while 
                (waitSince != _waitSince) // was updated -> wait more
@@ -117,9 +118,11 @@ public static class Miku
                 waitSince  = _waitSince;
                 var timeSince_waitSince = DateTime.UtcNow - _waitSince;
                 var delay  = _waitDelay - timeSince_waitSince;
-                await Task.Delay(delay);
+                LogDebug(NAME, $"Sync in {delay.ReadableTime()}");
+                await Task.Delay (delay);
             }
             _waitSince = default;
+            LogDebug(NAME, "TRIGGERING SYNC");
             await Indexing.TriggerSync();
         }
     }

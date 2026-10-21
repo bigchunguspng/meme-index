@@ -56,7 +56,7 @@ public static class ConsoleLogger
         _              => ConsoleColor.Gray,
     };
 
-    //
+    // LOG > PUBLIC
 
     [MethodImpl(AggressiveInlining)]
     public static void LogError
@@ -82,6 +82,35 @@ public static class ConsoleLogger
     public static void LogCM // CM = color, message
         (ConsoleColor color, string message, LogLevel level = LogLevel.Info)
         => Log(message, level, color);
+
+    // LOG > PUBLIC (with category)
+
+    [MethodImpl(AggressiveInlining)]
+    public static void LogError
+        (string category, Exception ex,   ConsoleColor color = ConsoleColor.DarkRed)
+        => Log(category, $"{ex}", LogLevel.Error, color);
+
+    [MethodImpl(AggressiveInlining)]
+    public static void LogError
+        (string category, string message, ConsoleColor color = ConsoleColor.DarkRed)
+        => Log(category, message, LogLevel.Error, color);
+
+    [MethodImpl(AggressiveInlining)]
+    public static void LogWarn
+        (string category, string message, ConsoleColor color = ConsoleColor.DarkYellow)
+        => Log(category, message, LogLevel.Warn, color);
+
+    [MethodImpl(AggressiveInlining)]
+    public static void LogDebug
+        (string category, string message, ConsoleColor color = ConsoleColor.Blue)
+        => Log(category, message, LogLevel.Debug, color);
+
+    [MethodImpl(AggressiveInlining)]
+    public static void LogCM // CM = color, message
+        (string category, ConsoleColor color, string message, LogLevel level = LogLevel.Info)
+        => Log(category, message, level, color);
+
+    // LOG GENERAL
 
     [MethodImpl(Synchronized)]
     public static void Log
@@ -112,6 +141,8 @@ public static class ConsoleLogger
         Console.WriteLine(message);
         Console.ResetColor();
     }
+
+    // LOG STOPWATCH
 
     [MethodImpl(AggressiveInlining)]
     public static void LogCM // CM = color, message

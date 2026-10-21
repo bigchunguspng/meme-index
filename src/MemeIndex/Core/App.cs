@@ -40,8 +40,7 @@ public static class App
         if (Interlocked.Exchange(ref terminating, true))
             return;
 
-        Miku.Stop();
-        Logger_Log.Write();
+        Task.WhenAll(Miku.Stop(), Logger_Log.Write()).Wait();
     }
 
     // LOG
