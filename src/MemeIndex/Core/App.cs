@@ -18,10 +18,10 @@ public static class App
     public static readonly Channel<string?>
         C_Events         = Channel.CreateUnbounded<string?>();
 
-    public static ValueTask SetStatus(string? message = null)
+    public static void SetStatus(string? message = null)
     {
         Status = message;
-        return C_Events.Writer.WriteAsync(message);
+        C_Events.Writer.TryWrite(message);
     }
 
     // START
@@ -92,10 +92,10 @@ public class StatusScope(string? status) : IAsyncDisposable
     public string? Status => status;
     public TimeSpan Delay;
 
-    public static async Task<StatusScope> Enter
+    public static StatusScope Enter
         (string? status)
     {
-        await App.SetStatus(status);
+        App.SetStatus(status);
         return new StatusScope(status);
     }
 
@@ -106,7 +106,7 @@ public class StatusScope(string? status) : IAsyncDisposable
             if (Delay != TimeSpan.Zero)
                 await Task.Delay(Delay);
 
-            await App.SetStatus();
+            App.SetStatus();
         }
     }
 }

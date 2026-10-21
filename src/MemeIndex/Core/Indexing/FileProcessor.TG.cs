@@ -27,7 +27,7 @@ public partial class FileProcessor
             return;
         }
 
-        await App.SetStatus(status.Status);
+        App.SetStatus(status.Status);
 
         ImagePool.Book(files.Select(x => x.Path), files.Length);
 

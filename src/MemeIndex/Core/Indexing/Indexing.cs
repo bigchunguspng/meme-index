@@ -29,7 +29,7 @@ public static class Indexing
     /// <param name="syncAllMonitors"> Use <c>false</c> to sync only active ones. </param>
     public static async Task Sync(bool syncAllMonitors = false)
     {
-        await using var status = await StatusScope.Enter("SYNCHRONIZATION…");
+        await using var status = StatusScope.Enter("SYNCHRONIZATION…");
 
         Log("[Sync]", syncAllMonitors ? "ALL" : "ACTIVE ONLY");
         var sw = Stopwatch.StartNew();
