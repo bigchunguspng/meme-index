@@ -3,3 +3,4 @@ web
 # ^ remove when repos are merged
 .idea/
 *.user
+*.lic
