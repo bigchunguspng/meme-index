@@ -99,15 +99,16 @@ public partial class FileProcessor
     private async Task Thumbnail_Save(ThumbgenContext c)
     {
         var id = c.FileId;
+        var tdate = DateTime.UtcNow;
         Tracer.LogOpen(id, TG_SAVE);
         var save = Dir_Thumbs
             .EnsureDirectoryExist()
-            .Combine(GetThumbFilename(id));
+            .Combine(GetThumbFilename(id, tdate));
         await c.Thumb.SaveAsWebpAsync(save, _encoder);
         Tracer.LogDone(id, TG_SAVE);
         LogDebug($"File {id,6} -> thumbnail generated");
 
-        var result = c.ToDB_File();
+        var result = c.ToDB_File(tdate);
         await C_DB_Write.Writer.WriteAsync(async connection =>
         {
             Tracer.LogOpen(id, DB_W_FT);
@@ -117,7 +118,8 @@ public partial class FileProcessor
     }
 
     [MethodImpl(AggressiveInlining)]
-    public static string GetThumbFilename(int id) => $"{id:x6}.webp";
+    public static string GetThumbFilename
+        (int id, DateTime tdate) => $"{id}-{new DateTimeOffset(tdate).ToUnixTimeSeconds()}.webp";
 }
 
 public readonly struct ThumbgenContext
@@ -128,5 +130,5 @@ public readonly struct ThumbgenContext
     private readonly Size   SourceSize = source.Size;
 
     public DB_File_UpdateDateSize ToDB_File
-        () => new(FileId, DateTime.UtcNow, SourceSize);
+        (DateTime tdate) => new(FileId, tdate, SourceSize);
 }

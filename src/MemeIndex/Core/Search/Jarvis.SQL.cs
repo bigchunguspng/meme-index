@@ -102,7 +102,7 @@ public static partial class Jarvis
             """
             SELECT
             f.id, f.dir_id, f.name,
-            f.size, f.mdate,
+            f.size, f.mdate, f.tdate,
             f.image_w, f.image_h,
             exp
             (

@@ -1,4 +1,3 @@
-using MemeIndex.Core.Indexing;
 using MemeIndex.Core.Search.Actions;
 using MemeIndex.DB;
 using SixLabors.ImageSharp;
@@ -19,10 +18,13 @@ public static partial class Endpoints
 
     public static async Task<IResult> Get_Thumb(int id)
     {
-        var path = Dir_Thumbs.Combine(FileProcessor.GetThumbFilename(id));
-        if (File.Exists(path).Janai())
+        var files = Dir_Thumbs.GetFiles($"{id}-*.webp");
+        if (files.Length == 0)
             return Results.NotFound();
 
+        var path = files.Length == 1
+            ? files[0]
+            : files.OrderBy(x => x).Last();
         return await GetImage_AsPng(path);
     }
 

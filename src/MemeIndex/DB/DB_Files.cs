@@ -12,6 +12,7 @@ public class DB_File_Get_UI
     public required string name;
     public required long   size;
     public required long   mdate;
+    public required long   tdate;
     public required short  image_w;
     public required short  image_h;
     public required float  sort;
