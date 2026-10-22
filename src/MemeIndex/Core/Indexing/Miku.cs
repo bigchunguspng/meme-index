@@ -7,8 +7,6 @@ public static class Miku
     // ねえあたし知ってるよ　きみがひとり"XX"してるの知ってるよ
     // ビクンビクン震えてさ　声もダダ漏れなんだわ
 
-    // todo make configable: delay time, global on/off
-
     private const string NAME = "[Miku]";
 
     private static readonly SemaphoreSlim _s = new(1, 1);
@@ -23,6 +21,8 @@ public static class Miku
 
     public static async Task Start() => await _s.Lock(async () =>
     {
+        if (Config.Monitoring_Enabled.Janai()) return;
+
         if (_monitoring) return;
         _ = _monitoring = true;
 
@@ -114,14 +114,14 @@ public static class Miku
         else // not waiting
         {
             var waitSince  = _waitSince = DateTime.UtcNow;
-            LogDebug(NAME, $"Sync in {_waitDelay.ReadableTime()}");
-            await Task.Delay(_waitDelay);
-            while 
+            LogDebug(NAME, $"Sync in {WaitDelay.ReadableTime()}");
+            await Task.Delay (WaitDelay);
+            while
                (waitSince != _waitSince) // was updated -> wait more
             {
                 waitSince  = _waitSince;
                 var timeSince_waitSince = DateTime.UtcNow - _waitSince;
-                var delay  = _waitDelay - timeSince_waitSince;
+                var delay  =  WaitDelay - timeSince_waitSince;
                 if (delay > TimeSpan.Zero)
                 {
                     LogDebug(NAME, $"Sync in {delay.ReadableTime()}");
@@ -134,7 +134,7 @@ public static class Miku
         }
     }
 
-    private static TimeSpan _waitDelay = TimeSpan.FromSeconds(5);
+    private static TimeSpan WaitDelay => Config.Monitoring_Delay;
     private static DateTime _waitSince;
 }
 

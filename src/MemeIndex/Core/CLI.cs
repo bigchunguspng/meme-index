@@ -11,7 +11,8 @@ public static class CLI
         NAME = Helpers.IsLinux
             ? "memeindex"
             : "MemeIndex",
-        VERSION = $"{NAME} 0.3.3 ({Helpers.COMPILE_MODE})",
+        VERSION = "0.3.3",
+        VERSION_FULL = $"{NAME} {VERSION} ({Helpers.COMPILE_MODE})",
         HELP =
             $"""
              NAME:
@@ -25,7 +26,7 @@ public static class CLI
                 This piece of software is in the development, please come back later.
 
              OPTIONS (common):
-                    --dev                   Use DEVELOPMENT path scheme (everything next to binaries).
+                -d  --dev                   Use DEVELOPMENT path scheme (everything next to binaries).
                                  Otherwise, use regular     path scheme (OS specific).
 
              OPTIONS (info):
@@ -46,6 +47,10 @@ public static class CLI
                 -p  --profile IMAGE-PATH... Save color profiles (all kinds).
                 -P  --profile-list  FILE    Same as ^, take image paths from FILE.
                     --palette               Print color palette (JS syntax).
+
+             ENVIRONMENT VARIABLES:
+                MEME_INDEX_DEV      IS-SET  Same as --dev option.
+                MEME_INDEX_WEB      PATH    Same as --web option.
 
              READING LOGS:
                 MISC:
@@ -105,7 +110,7 @@ public static class CLI
                     ShowHelpScreen();
                     return true;
                 case > 0 when args.ContainsAny("-!", "--version"):
-                    Print(VERSION);
+                    Print(VERSION_FULL);
                     return true;
                 case > 0 when args.ContainsAny("-/", "--dirs"):
                     InspectDirectories();
@@ -150,6 +155,12 @@ public static class CLI
             }
         else
             return false;
+    }
+
+    public static bool ContainsOption
+        (this Span<string> args, string alias, string option)
+    {
+        return args.IndexOfAny(alias, option) >= 0;
     }
 
     public static bool ContainsOption

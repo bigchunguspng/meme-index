@@ -35,7 +35,7 @@ public static class Paths
 
         //   CONFIG
         File_Ports          = Dir_AppData.Combine("ports.txt"),
-        File_Config         = Dir_UserConfig.Combine("config.json"),
+        File_Config         = Dir_UserConfig.Combine("config.txt"),
 
         //  LOGS
         Dir_Logs            = Dir_UserCache.Combine("logs"),

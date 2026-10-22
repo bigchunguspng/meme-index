@@ -317,4 +317,10 @@ public static class Indexing
         _ =   Jack_Sync.Chan.Writer.TryWrite(1);
         await Jack_Sync.EnsureJobStarted();
     }
+
+    public static async Task TriggerSyncAfter(TimeSpan delay)
+    {
+        await Task.Delay(delay);
+        await TriggerSync();
+    }
 }
