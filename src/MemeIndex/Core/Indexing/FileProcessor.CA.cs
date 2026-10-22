@@ -8,7 +8,7 @@ public partial class FileProcessor
 {
     private async Task StartColorAnalysis(StatusScope status)
     {
-        const string CODE = "Clr/Anl";
+        const string CODE = "FP-CA";
         Log(CODE, "START");
 
         // GET FILES

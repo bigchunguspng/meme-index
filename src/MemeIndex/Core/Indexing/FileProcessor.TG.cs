@@ -11,7 +11,7 @@ public partial class FileProcessor
 {
     private async Task StartThumbnailGeneration(StatusScope status)
     {
-        const string CODE = "Tmb/Gen";
+        const string CODE = "FP-TG";
         Log(CODE, "START");
 
         // GET FILES

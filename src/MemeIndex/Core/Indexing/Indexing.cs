@@ -308,7 +308,7 @@ public static class Indexing
             "Job/Sync",
             Jack_Sync.Chan,
             async () => await Sync(),
-            "Task done!",
+            "TASK DONE!",
             e => App.LogException_JOB(e, "SYNC")
         );
 

@@ -49,7 +49,7 @@ public partial class FileProcessor
             "Job/FileProcessing",
             Jack_FileProcessing.Chan,
             async () => await new FileProcessor().Run(),
-            "Task done!",
+            "TASK DONE!",
             e => App.LogException_JOB(e, "FILE PROCESSING")
         );
 
