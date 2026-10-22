@@ -18,8 +18,8 @@ public class File_UI(DB_File_Get_UI file)
     public int      D { get; } = file.dir_id;
     public string   N { get; } = file.name;
     public long     S { get; } = file.size;
-    public DateTime M { get; } = DateTime.FromFileTimeUtc(file.mdate);
-    public DateTime T { get; } = DateTime.FromFileTimeUtc(file.tdate);
+    public long     T { get; } = new DateTimeOffset(DateTime.FromFileTimeUtc(file.tdate)).ToUnixTimeSeconds();
+    public long     M { get; } = new DateTimeOffset(DateTime.FromFileTimeUtc(file.mdate)).ToUnixTimeSeconds();
     public Size     X { get; } = file.image_w == 0
                               || file.image_h == 0
         ?     Size.Empty
