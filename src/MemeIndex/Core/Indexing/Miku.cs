@@ -113,6 +113,7 @@ public static class Miku
         }
         else // not waiting
         {
+            App.SetStatus("ABOUT TO SYNC");
             var waitSince  = _waitSince = DateTime.UtcNow;
             LogDebug(NAME, $"Sync in {WaitDelay.ReadableTime()}");
             await Task.Delay (WaitDelay);
