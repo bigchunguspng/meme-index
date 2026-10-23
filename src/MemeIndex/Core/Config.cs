@@ -1,3 +1,4 @@
+using MemeIndex.Core.Indexing;
 using static System.StringSplitOptions;
 
 namespace MemeIndex.Core;
@@ -16,17 +17,31 @@ public static class Config
     }
 
     // CLI ARGS | ENV VARS
-    public static bool         DEVELOPMENT        { get; private set; } // Store all data next to app executable.
-    public static string?      WEB_ROOT           { get; private set; } // Alternative web root.
+    public static bool         DEVELOPMENT         { get; private set; } // Store all data next to app executable.
+    public static string?      WEB_ROOT            { get; private set; } // Alternative web root.
 
     // == MONITORING
-    public static bool         Monitoring_Enabled { get; private set; } = true;
-    public static TimeSpan     Monitoring_Delay   { get; private set; } = TimeSpan.FromSeconds(5);
+    public static bool         Monitoring_Enabled  { get; private set; } = true;
+    public static TimeSpan     Monitoring_Delay    { get; private set; } = TimeSpan.FromSeconds(5);
     // == SYNC_START
-    public static bool         StartupSync_Enabled{ get; private set; } = true;
-    public static TimeSpan     StartupSync_Delay  { get; private set; } = TimeSpan.FromSeconds(0);
+    public static bool         StartupSync_Enabled { get; private set; } = true;
+    public static TimeSpan     StartupSync_Delay   { get; private set; } = TimeSpan.FromSeconds(0);
 
-    // READ / WRITE
+    private static API_Config?    _tree;
+    private static API_Config      Tree => _tree ??= BuildTree();
+    private static API_Config BuildTree() => new()
+    {
+        [SECTION_MONITORING] =
+        {
+            [PROP_ENABLED] = Monitoring_Enabled.Encode(),
+            [PROP_DELAY  ] = Monitoring_Delay.Encode(),
+        },
+        [SECTION_SYNC_START] =
+        {
+            [PROP_ENABLED] = StartupSync_Enabled.Encode(),
+            [PROP_DELAY  ] = StartupSync_Delay.Encode(),
+        }
+    };
 
     private const string
         SECTION_MONITORING = "MONITORING",
@@ -34,15 +49,15 @@ public static class Config
         PROP_ENABLED = "on",
         PROP_DELAY   = "delay";
 
-    private enum Section { None, Miku, Sync, }
-
     private static readonly SemaphoreSlim _s = new(1, 1);
 
-    public static async Task Read() => await _s.Lock(async () =>
+    // FILE - READ / WRITE
+
+    public static async Task File_Read() => await _s.Lock(async () =>
     {
         if (File_Config.FileExists.Janai())
         {
-            await Write_Internal();
+            await File_Write();
             return;
         }
 
@@ -57,74 +72,111 @@ public static class Config
             if (line.StartsWith('#'  ))     continue;
             if (line.StartsWith("== "))
             {
-                var section_name = line[3..];
-                section
-                    = section_name == SECTION_SYNC_START ? Section.Sync
-                    : section_name == SECTION_MONITORING ? Section.Miku : Section.None;
+                section = GetSection(line[3..]);
             }
             else if (section != Section.None)
             {
                 var count = line.Split(bits, '=', TrimEntries | RemoveEmptyEntries);
-                if (count < 2)
+                if (count == 2)
                 {
+                    var name  = line[bits[0]];
+                    var value = line[bits[1]];
+                    SetProperty(section, name, value, i, line_raw);
+                }
+                else
                     LogWarn(NAME_R, WARN_LINE_INVALID.Format(i, line_raw));
-                    continue;
-                }
-
-                var (name, value) = (line[bits[0]], line[bits[1]]);
-                if      (section is Section.Miku)
-                {
-                    if      (name == PROP_ENABLED) Monitoring_Enabled  = value.Parse_Bool();
-                    else if (name == PROP_DELAY)   Monitoring_Delay    = value.Parse_Time(i, line_raw, Monitoring_Delay);
-                }
-                else if (section is Section.Sync)
-                {
-                    if      (name == PROP_ENABLED) StartupSync_Enabled = value.Parse_Bool();
-                    else if (name == PROP_DELAY)   StartupSync_Delay   = value.Parse_Time(i, line_raw, StartupSync_Delay);
-                }
             }
             else
                 LogWarn(NAME_R, WARN_LINE_IGNORED.Format(i, line_raw));
         }
     });
 
-    public static async Task Write() => await _s.Lock(async () =>
+    private static async Task File_Write()
     {
-        await Write_Internal();
-    });
-
-    private static async Task Write_Internal()
-    {
-        string[] lines =
-        [
-            $"# MemeIndex {CLI.VERSION} User Config File",
-            // "# Edit and save this file to reload the config (may need restart).",
-            "",
-            $"== {SECTION_MONITORING}",
-            $"{PROP_ENABLED} = {Monitoring_Enabled .Encode()}",
-            $"{PROP_DELAY  } = {Monitoring_Delay   .Encode()}",
-            "",
-            $"== {SECTION_SYNC_START}",
-            $"{PROP_ENABLED} = {StartupSync_Enabled.Encode()}",
-            $"{PROP_DELAY  } = {StartupSync_Delay  .Encode()}",
-        ];
-        await File.WriteAllLinesAsync(File_Config, lines);
+        await File.WriteAllLinesAsync(File_Config, GetConfigLines());
         Log(NAME_W, "CONFIG FILE UPDATED!");
     }
 
-    // UPDATE
-
-    public static bool _restart_needed;
-
-    public static async Task<bool> Update( /* data */ ) => await _s.Lock(async () =>
+    private static IEnumerable<string> GetConfigLines()
     {
-        // todo update values and trigger changes
+        yield return $"# MemeIndex {CLI.VERSION} User Config File";
+        // yield return  "# Edit and save this file to reload the config (may need restart).";
+        
+        foreach (var (section, props) in Tree)
+        {
+            yield return "";
+            yield return $"== {section}";
+            foreach (var (name, value) in props)
+            {
+                yield return $"{name} = {value}";
+            }
+        }
+    }
+
+    // API - GET / UPDATE
+
+    private static bool _restart_needed;
+
+    public static async Task<API_Config>
+        API_Get
+        () => await _s.Lock(() => Tree);
+
+    public static async Task<bool>
+        API_Update
+        (API_Config data) => await _s.Lock(async () =>
+    {
+        var prev_miku_on = Monitoring_Enabled;
+
+        _tree = null;
+
+        var i = 0;
+        foreach (var (section_name, props) in data)
+        {
+            var section = GetSection(section_name);
+            foreach (var (name, value) in props)
+            {
+                SetProperty(section, name, value, i++);
+            }
+        }
+        await File_Write();
+
+        if      (prev_miku_on && Monitoring_Enabled.Janai())
+            await Miku.Stop();
+        else if (prev_miku_on.Janai() && Monitoring_Enabled)
+            await Miku.Start();
+
         _restart_needed = false;
 
-        await Write_Internal();
-    }).ContinueWith(_ => _restart_needed);
+        return _restart_needed;
+    });
 
-    // ENCODE
+    // ROUTE
+
+    private enum Section { None, Miku, Sync, }
+
+    private static Section GetSection(string s) => s switch
+    {
+        SECTION_SYNC_START => Section.Sync,
+        SECTION_MONITORING => Section.Miku,
+        _                  => Section.None
+    };
+
+    private static void SetProperty
+        (Section section, string name, string value, int i, string? line_raw = null)
+    {
+        if      (section is Section.Miku)
+        {
+            if      (name == PROP_ENABLED) Monitoring_Enabled  = value.Parse_Bool();
+            else if (name == PROP_DELAY)   Monitoring_Delay    = value.Parse_Time(i, Monitoring_Delay, line_raw, name);
+        }
+        else if (section is Section.Sync)
+        {
+            if      (name == PROP_ENABLED) StartupSync_Enabled = value.Parse_Bool();
+            else if (name == PROP_DELAY)   StartupSync_Delay   = value.Parse_Time(i, StartupSync_Delay, line_raw, name);
+        }
+    }
+
+    // ENCODE / PARSE
 
     private static string Encode
         (this bool b) => b ? "Y" : "N";
@@ -150,7 +202,8 @@ public static class Config
         };
     }
 
-    private static TimeSpan Parse_Time(this string s, int i, string line, TimeSpan fallback)
+    private static TimeSpan Parse_Time
+        (this string s, int i, TimeSpan fallback, string? line, string? name)
     {
         var i_unit = s.IndexOfAny("smhd".AsSpan());
         if (i_unit < 0) goto INVALID;
@@ -166,6 +219,7 @@ public static class Config
         };
 
         INVALID:
+        line ??= $"NAME: {name}; VALUE: {s}";
         LogWarn(NAME_R, WARN_TIME_INVALID.Format(i, line, fallback.Encode()));
         return fallback;
     }
@@ -177,3 +231,5 @@ public static class Config
         WARN_LINE_INVALID = "Line {0,2} wasn't parsed beacuse no name or/and value was found:\n{1}",
         WARN_TIME_INVALID = "Line {0,2} doesn't contain a valid duration value, using default one ({2}):\n{1}";
 }
+
+public class API_Config : Dictionary<string, Dictionary<string, string>>;

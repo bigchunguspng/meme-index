@@ -175,4 +175,30 @@ public static class Extensions_Generic
             s.Release();
         }
     }
+
+    public static async Task<T> Lock<T>(this SemaphoreSlim s, Func<T> func)
+    {
+        await s.WaitAsync();
+        try
+        {
+            return func();
+        }
+        finally
+        {
+            s.Release();
+        }
+    }
+
+    public static async Task<T> Lock<T>(this SemaphoreSlim s, Func<Task<T>> task)
+    {
+        await s.WaitAsync();
+        try
+        {
+            return await task();
+        }
+        finally
+        {
+            s.Release();
+        }
+    }
 }
