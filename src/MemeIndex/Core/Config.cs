@@ -81,7 +81,7 @@ public static class Config
                 {
                     var name  = line[bits[0]];
                     var value = line[bits[1]];
-                    SetProperty(section, name, value, i, line_raw);
+                    SetProperty(section, name, value, i);
                 }
                 else
                     LogWarn(NAME_R, WARN_LINE_INVALID.Format(i, line_raw));
@@ -115,8 +115,6 @@ public static class Config
 
     // API - GET / UPDATE
 
-    private static bool _restart_needed;
-
     public static async Task<API_Config>
         API_Get
         () => await _s.Lock(() => Tree);
@@ -125,9 +123,7 @@ public static class Config
         API_Update
         (API_Config data) => await _s.Lock(async () =>
     {
-        var prev_miku_on = Monitoring_Enabled;
-
-        _tree = null;
+        _tree = null; // invalidate cache
 
         var i = 0;
         foreach (var (section_name, props) in data)
@@ -138,16 +134,12 @@ public static class Config
                 SetProperty(section, name, value, i++);
             }
         }
-        await File_Write();
 
-        if      (prev_miku_on && Monitoring_Enabled.Janai())
-            await Miku.Stop();
-        else if (prev_miku_on.Janai() && Monitoring_Enabled)
-            await Miku.Start();
+        await Task.WhenAll(File_Write(), Miku.FollowConfig());
 
-        _restart_needed = false;
+        var restart_needed = false;
 
-        return _restart_needed;
+        return restart_needed;
     });
 
     // ROUTE
@@ -162,17 +154,17 @@ public static class Config
     };
 
     private static void SetProperty
-        (Section section, string name, string value, int i, string? line_raw = null)
+        (Section section, string name, string value, int i)
     {
         if      (section is Section.Miku)
         {
             if      (name == PROP_ENABLED) Monitoring_Enabled  = value.Parse_Bool();
-            else if (name == PROP_DELAY)   Monitoring_Delay    = value.Parse_Time(i, Monitoring_Delay, line_raw, name);
+            else if (name == PROP_DELAY)   Monitoring_Delay    = value.Parse_Time(i, name, Monitoring_Delay);
         }
         else if (section is Section.Sync)
         {
             if      (name == PROP_ENABLED) StartupSync_Enabled = value.Parse_Bool();
-            else if (name == PROP_DELAY)   StartupSync_Delay   = value.Parse_Time(i, StartupSync_Delay, line_raw, name);
+            else if (name == PROP_DELAY)   StartupSync_Delay   = value.Parse_Time(i, name, StartupSync_Delay);
         }
     }
 
@@ -203,33 +195,35 @@ public static class Config
     }
 
     private static TimeSpan Parse_Time
-        (this string s, int i, TimeSpan fallback, string? line, string? name)
+        (this string s, int i, string name, TimeSpan fallback)
     {
-        var i_unit = s.IndexOfAny("smhd".AsSpan());
-        if (i_unit < 0) goto INVALID;
-
-        var u = s.AsSpan(i_unit);
-        if (double.TryParse(s.AsSpan(0, i_unit), out var value)) return u switch
+        var match = _r_time.Match(s);
+        if (match.Failed())
         {
-            "s"  => TimeSpan.FromSeconds     (value),
-            "m"  => TimeSpan.FromMinutes     (value),
-            "h"  => TimeSpan.FromHours       (value),
-            "d"  => TimeSpan.FromDays        (value),
-            _    => TimeSpan.FromMilliseconds(value),
+            LogWarn(NAME_R, WARN_TIME_INVALID.Format(i, name, s, fallback.Encode()));
+            return fallback;
+        }
+        var value = match.ExtractGroup(1, double.Parse);
+        var units = match.ExtractGroup(2, x => x, "ms");
+        return units switch
+        {
+            "s" => TimeSpan.FromSeconds     (value),
+            "m" => TimeSpan.FromMinutes     (value),
+            "h" => TimeSpan.FromHours       (value),
+            "d" => TimeSpan.FromDays        (value),
+            _   => TimeSpan.FromMilliseconds(value),
         };
-
-        INVALID:
-        line ??= $"NAME: {name}; VALUE: {s}";
-        LogWarn(NAME_R, WARN_TIME_INVALID.Format(i, line, fallback.Encode()));
-        return fallback;
     }
+
+    private static readonly Regex
+        _r_time = new(@"^(\d+)(ms|s|m|h|d)?$", RegexOptions.Compiled);
 
     private const string
         NAME_R = "[Config|R]",
         NAME_W = "[Config|W]",
         WARN_LINE_IGNORED = "Line {0,2} wasn't parsed beacuse no section header was found before it:\n{1}",
         WARN_LINE_INVALID = "Line {0,2} wasn't parsed beacuse no name or/and value was found:\n{1}",
-        WARN_TIME_INVALID = "Line {0,2} doesn't contain a valid duration value, using default one ({2}):\n{1}";
+        WARN_TIME_INVALID = "Line {0,2} doesn't contain a valid duration value, using default one ({3}):\nNAME: {1}\nVALUE: {2}";
 }
 
 public class API_Config : Dictionary<string, Dictionary<string, string>>;

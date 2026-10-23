@@ -19,6 +19,12 @@ public static class Miku
         await Start();
     }
 
+    public static async Task FollowConfig()
+    {
+        if (Config.Monitoring_Enabled) await Start();
+        else                           await Stop();
+    }
+
     public static async Task Start() => await _s.Lock(async () =>
     {
         if (Config.Monitoring_Enabled.Janai()) return;
