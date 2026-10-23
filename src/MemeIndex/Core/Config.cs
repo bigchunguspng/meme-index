@@ -165,6 +165,8 @@ public static class Config
 
     // API - GET / UPDATE
 
+    private static bool _restart_needed;
+
     public static async Task<API_Config>
         API_Get
         () => await _s.Lock(() => Tree);
@@ -173,6 +175,8 @@ public static class Config
         API_Update
         (API_Config data) => await _s.Lock(async () =>
     {
+        var prev_urls = Server_URLs;
+
         _tree = null; // invalidate cache
 
         var ln = 1;
@@ -188,9 +192,13 @@ public static class Config
 
         await Task.WhenAll(File_Write(), Miku.FollowConfig());
 
-        var restart_needed = false;
+        if (_restart_needed
+         || prev_urls is null != Server_URLs is null
+         || prev_urls != null && Server_URLs != null
+         && prev_urls.Order().SequenceEqual(Server_URLs.Order()))
+            _restart_needed = true;
 
-        return restart_needed;
+        return _restart_needed;
     });
 
     private static void ApplyConfig()
