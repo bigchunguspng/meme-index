@@ -1,5 +1,6 @@
 using MemeIndex.Core.Search;
 using MemeIndex.DB;
+using LogLevel = MemeIndex.Tools.Logging.LogLevel;
 
 namespace MemeIndex.Core.Indexing;
 
@@ -182,6 +183,11 @@ public static class Indexing
         Jarvis.Cache_Clear();
         sw.Log($"[Sync] DB UPDATE FILES: {w_new.Count}/{w_upd.Count}/{w_del.Count} (new/upd/del)");
 
+        if (MinLogLevel == LogLevel.Info)
+        {
+            Log("[Sync]", $"DONE, FILES: {w_new.Count}/{w_upd.Count}/{w_del.Count} (new/upd/del)");
+        }
+
         if (w_new.Count + w_upd.Count == 0)
         {
             Log("[Sync]", "NOT TRIGGERING FILE PROCESSING");
@@ -320,6 +326,7 @@ public static class Indexing
 
     public static async Task TriggerSyncAfter(TimeSpan delay)
     {
+        Log($"Sync (on startup) in {delay.ReadableTime()}");
         await Task.Delay(delay);
         await TriggerSync();
     }

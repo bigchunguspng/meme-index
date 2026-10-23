@@ -20,7 +20,8 @@ public static class ConsoleLogger
 
     // LOG (MORE FANCY)
 
-    private static DateTime _prevDate = DateTime.UtcNow;
+    public  static LogLevel MinLogLevel = LogLevel.Debug;
+    private static DateTime _prevDate   = DateTime.UtcNow;
 
     private static void Console_WritePrefix(LogLevel level)
     {
@@ -120,6 +121,7 @@ public static class ConsoleLogger
         ConsoleColor color = ConsoleColor.Gray
     )
     {
+        if (level < MinLogLevel) return;
         Console_WritePrefix(level);
         Console.ForegroundColor = color;
         Console.WriteLine(message);
@@ -134,6 +136,7 @@ public static class ConsoleLogger
         ConsoleColor color = ConsoleColor.Gray
     )
     {
+        if (level < MinLogLevel) return;
         Console_WritePrefix(level);
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.Write($"{category} ");
@@ -157,23 +160,26 @@ public static class ConsoleLogger
     )
     {
         sw.Stop();
-        Console.ForegroundColor = ConsoleColor.DarkGray;
-        Console.Write($"0x{sw.GetHashCode():x8}    [TIME] ");
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.Write("T ");
-        Console.ForegroundColor = ConsoleColor.DarkGray;
-        Console.Write($"{sw.ElapsedReadable(),-10} * ");
-        Console.ForegroundColor = color;
-        Console.WriteLine(message);
-        Console.ResetColor();
+        if (MinLogLevel <= LogLevel.Debug)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write($"0x{sw.GetHashCode():x8}    [TIME] ");
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.Write("T ");
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write($"{sw.ElapsedReadable(),-10} * ");
+            Console.ForegroundColor = color;
+            Console.WriteLine(message);
+            Console.ResetColor();
+        }
         sw.Restart();
     }
 }
 
 public enum LogLevel
 {
-    Debug,
-    Info,
-    Warn,
-    Error,
+    Debug = 0,
+    Info  = 1,
+    Warn  = 2,
+    Error = 3,
 }

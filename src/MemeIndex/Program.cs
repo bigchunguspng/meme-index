@@ -31,6 +31,8 @@ if (CLI.TryHandleArgs_Action(args)) return;
 
 LogCM(ConsoleColor.Magenta, "RUNNING NORMAL MODE (web server)");
 
+await Config.File_Read();
+
 // WEB APP BUILDER
 
 var flag_url = args.Any(x => x.StartsWith("--urls"));
@@ -43,7 +45,7 @@ var wa_options = new WebApplicationOptions
 
 var builder = WebApplication.CreateSlimBuilder(wa_options);
 
-if (flag_url.IsOff())
+if (flag_url.IsOff() && Config.Server_URLs == null)
 {
     var port = await HostingHelpers.GetFreePort();
 
@@ -77,6 +79,11 @@ builder.Services
 // REQUEST PIPELINE
 
 var app = builder.Build();
+
+if (flag_url.IsOff() && Config.Server_URLs != null)
+{
+    foreach (var url in Config.Server_URLs) app.Urls.Add(url);
+}
 
 if (app.Environment.IsDevelopment())
     app.UseMiddleware<Mw_Development>();

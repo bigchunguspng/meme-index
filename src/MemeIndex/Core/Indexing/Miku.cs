@@ -136,7 +136,7 @@ public static class Miku
                 }
             }
             _waitSince = default;
-            LogDebug(NAME, "TRIGGERING SYNC");
+            Log(NAME, "Sync!");
             await Indexing.TriggerSync();
         }
     }

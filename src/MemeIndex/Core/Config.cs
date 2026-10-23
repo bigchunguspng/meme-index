@@ -1,7 +1,10 @@
 using MemeIndex.Core.Indexing;
 using static System.StringSplitOptions;
+using LogLevel = MemeIndex.Tools.Logging.LogLevel;
 
 namespace MemeIndex.Core;
+
+// ReSharper disable AssignmentInConditionalExpression
 
 public static class Config
 {
@@ -17,35 +20,79 @@ public static class Config
     }
 
     // CLI ARGS | ENV VARS
-    public static bool         DEVELOPMENT         { get; private set; } // Store all data next to app executable.
-    public static string?      WEB_ROOT            { get; private set; } // Alternative web root.
+    public  static bool        DEVELOPMENT         { get; private set; } // Store all data next to app executable.
+    public  static string?     WEB_ROOT            { get; private set; } // Alternative web root.
 
+    // == SERVER
+    private static int         Server_MinLogLevel  { get;         set; }
+    public  static string[]?   Server_URLs         { get; private set; }
     // == MONITORING
-    public static bool         Monitoring_Enabled  { get; private set; } = true;
-    public static TimeSpan     Monitoring_Delay    { get; private set; } = TimeSpan.FromSeconds(5);
+    public  static bool        Monitoring_Enabled  { get; private set; } = true;
+    public  static TimeSpan    Monitoring_Delay    { get; private set; } = TimeSpan.FromSeconds(5);
     // == SYNC_START
-    public static bool         StartupSync_Enabled { get; private set; } = true;
-    public static TimeSpan     StartupSync_Delay   { get; private set; } = TimeSpan.FromSeconds(0);
+    public  static bool        StartupSync_Enabled { get; private set; } = true;
+    public  static TimeSpan    StartupSync_Delay   { get; private set; } = TimeSpan.FromSeconds(0);
 
     private static API_Config?    _tree;
     private static API_Config      Tree => _tree ??= BuildTree();
     private static API_Config BuildTree() => new()
     {
-        [SECTION_MONITORING] =
+        [SECTION_SERVER    ] = new()
+        {
+            [PROP_LOG_LVL] = Server_MinLogLevel.Encode(),
+            [PROP_URLS   ] = Server_URLs.Encode(),
+        },
+        [SECTION_MONITORING] = new()
         {
             [PROP_ENABLED] = Monitoring_Enabled.Encode(),
             [PROP_DELAY  ] = Monitoring_Delay.Encode(),
         },
-        [SECTION_SYNC_START] =
+        [SECTION_SYNC_START] = new()
         {
             [PROP_ENABLED] = StartupSync_Enabled.Encode(),
             [PROP_DELAY  ] = StartupSync_Delay.Encode(),
+        },
+    };
+
+    private static bool SetProperty
+        (Section section, string name, string value, int ln)
+    {
+        var b = false;
+        if      (section is Section.Server)
+        {
+            if      (b = name == PROP_LOG_LVL) Server_MinLogLevel  = value.Parse_Int(ln, name, Server_MinLogLevel);
+            else if (b = name == PROP_URLS)    Server_URLs         = value.Parse_StringArray();
         }
+        else if (section is Section.Miku)
+        {
+            if      (b = name == PROP_ENABLED) Monitoring_Enabled  = value.Parse_Bool();
+            else if (b = name == PROP_DELAY)   Monitoring_Delay    = value.Parse_Time(ln, name, Monitoring_Delay);
+        }
+        else if (section is Section.Sync)
+        {
+            if      (b = name == PROP_ENABLED) StartupSync_Enabled = value.Parse_Bool();
+            else if (b = name == PROP_DELAY)   StartupSync_Delay   = value.Parse_Time(ln, name, StartupSync_Delay);
+        }
+
+        return b;
+    }
+
+    private enum Section { None, Server, Miku, Sync, }
+
+    private static Section GetSection(string s) => s switch
+    {
+        SECTION_SERVER     => Section.Server,
+        SECTION_SYNC_START => Section.Sync,
+        SECTION_MONITORING => Section.Miku,
+        _                  => Section.None
     };
 
     private const string
+        SECTION_SERVER     = "SERVER",
         SECTION_MONITORING = "MONITORING",
-        SECTION_SYNC_START = "SYNC_START",
+        SECTION_SYNC_START = "STARTUP SYNC",
+        PROP_LOG_LVL = "log level",
+        PROP_URLS = "URLs",
         PROP_ENABLED = "on",
         PROP_DELAY   = "delay";
 
@@ -66,6 +113,7 @@ public static class Config
         Span<Range> bits = stackalloc Range[2];
         for (var i = 0; i < lines.Length; i++)
         {
+            var ln = i + 1;
             var line_raw = lines[i];
             var line = line_raw.Trim();
             if (line.IsNull_OrWhiteSpace()) continue;
@@ -81,14 +129,16 @@ public static class Config
                 {
                     var name  = line[bits[0]];
                     var value = line[bits[1]];
-                    SetProperty(section, name, value, i);
+                    if (SetProperty(section, name, value, ln).Failed())
+                        LogWarn(NAME_R, WARN_LINE_UNKNOWN.Format(ln, line_raw));
                 }
                 else
-                    LogWarn(NAME_R, WARN_LINE_INVALID.Format(i, line_raw));
+                    LogWarn(NAME_R, WARN_LINE_INVALID.Format(ln, line_raw));
             }
             else
-                LogWarn(NAME_R, WARN_LINE_IGNORED.Format(i, line_raw));
+                LogWarn(NAME_R, WARN_LINE_ORPHAN.Format(ln, line_raw));
         }
+        ApplyConfig();
     });
 
     private static async Task File_Write()
@@ -101,7 +151,7 @@ public static class Config
     {
         yield return $"# MemeIndex {CLI.VERSION} User Config File";
         // yield return  "# Edit and save this file to reload the config (may need restart).";
-        
+
         foreach (var (section, props) in Tree)
         {
             yield return "";
@@ -125,15 +175,16 @@ public static class Config
     {
         _tree = null; // invalidate cache
 
-        var i = 0;
+        var ln = 1;
         foreach (var (section_name, props) in data)
         {
             var section = GetSection(section_name);
             foreach (var (name, value) in props)
             {
-                SetProperty(section, name, value, i++);
+                SetProperty(section, name, value, ln++);
             }
         }
+        ApplyConfig();
 
         await Task.WhenAll(File_Write(), Miku.FollowConfig());
 
@@ -142,30 +193,9 @@ public static class Config
         return restart_needed;
     });
 
-    // ROUTE
-
-    private enum Section { None, Miku, Sync, }
-
-    private static Section GetSection(string s) => s switch
+    private static void ApplyConfig()
     {
-        SECTION_SYNC_START => Section.Sync,
-        SECTION_MONITORING => Section.Miku,
-        _                  => Section.None
-    };
-
-    private static void SetProperty
-        (Section section, string name, string value, int i)
-    {
-        if      (section is Section.Miku)
-        {
-            if      (name == PROP_ENABLED) Monitoring_Enabled  = value.Parse_Bool();
-            else if (name == PROP_DELAY)   Monitoring_Delay    = value.Parse_Time(i, name, Monitoring_Delay);
-        }
-        else if (section is Section.Sync)
-        {
-            if      (name == PROP_ENABLED) StartupSync_Enabled = value.Parse_Bool();
-            else if (name == PROP_DELAY)   StartupSync_Delay   = value.Parse_Time(i, name, StartupSync_Delay);
-        }
+        MinLogLevel = (LogLevel)Server_MinLogLevel;
     }
 
     // ENCODE / PARSE
@@ -175,6 +205,24 @@ public static class Config
 
     private static bool Parse_Bool
         (this string s) => s[0] is 'Y' or 'y';
+
+    private static string Encode
+        (this int n) => n.ToString();
+
+    private static int Parse_Int
+        (this string s, int ln, string name, int fallback)
+    {
+        if (int.TryParse(s, out var n)) return n;
+
+        LogWarn(NAME_R, WARN_INT_INVALID.Format(ln, name, s, fallback.Encode()));
+        return fallback;
+    }
+
+    private static string Encode
+        (this string[]? a) => a != null ? string.Join(';', a) : "-";
+
+    private static string[]? Parse_StringArray
+        (this string s) => s == "-" ? null : s.Split(';');
 
     private static string Encode(this TimeSpan t)
     {
@@ -195,12 +243,12 @@ public static class Config
     }
 
     private static TimeSpan Parse_Time
-        (this string s, int i, string name, TimeSpan fallback)
+        (this string s, int ln, string name, TimeSpan fallback)
     {
         var match = _r_time.Match(s);
         if (match.Failed())
         {
-            LogWarn(NAME_R, WARN_TIME_INVALID.Format(i, name, s, fallback.Encode()));
+            LogWarn(NAME_R, WARN_TIME_INVALID.Format(ln, name, s, fallback.Encode()));
             return fallback;
         }
         var value = match.ExtractGroup(1, double.Parse);
@@ -221,9 +269,11 @@ public static class Config
     private const string
         NAME_R = "[Config|R]",
         NAME_W = "[Config|W]",
-        WARN_LINE_IGNORED = "Line {0,2} wasn't parsed beacuse no section header was found before it:\n{1}",
-        WARN_LINE_INVALID = "Line {0,2} wasn't parsed beacuse no name or/and value was found:\n{1}",
-        WARN_TIME_INVALID = "Line {0,2} doesn't contain a valid duration value, using default one ({3}):\nNAME: {1}\nVALUE: {2}";
+        WARN_LINE_ORPHAN  = "Line {0,2} - ignored - no section name found before it:\n{1}",
+        WARN_LINE_INVALID = "Line {0,2} - ignored - no name or/and value found:\n{1}",
+        WARN_LINE_UNKNOWN = "Line {0,2} - ignored - unknown property:\n{1}",
+        WARN_INT_INVALID  = "Line {0,2} - not a valid integer"  + ":\nNAME: {1}\nVALUE: {2}\nVALUE USED: {3}",
+        WARN_TIME_INVALID = "Line {0,2} - not a valid duration" + ":\nNAME: {1}\nVALUE: {2}\nVALUE USED: {3}";
 }
 
 public class API_Config : Dictionary<string, Dictionary<string, string>>;
