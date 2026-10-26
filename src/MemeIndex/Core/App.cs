@@ -29,7 +29,8 @@ public static class App
     public static async Task Start()
     {
         await Miku.Start();
-        if (Config.StartupSync_Enabled)
+        if (Config.       Sync_Enabled 
+         && Config.StartupSync_Enabled)
             _ = Indexing.Indexing.TriggerSyncAfter(Config.StartupSync_Delay);
     }
 

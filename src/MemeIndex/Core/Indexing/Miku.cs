@@ -13,6 +13,10 @@ public static class Miku
     private static readonly Dictionary<string, FileSystemWatcher> _watchers = [];
     private static bool _monitoring;
 
+    private static bool MikuShouldWork
+        => Config.      Sync_Enabled
+        && Config.Monitoring_Enabled;
+
     public static async Task Reload()
     {
         await Stop();
@@ -21,13 +25,13 @@ public static class Miku
 
     public static async Task FollowConfig()
     {
-        if (Config.Monitoring_Enabled) await Start();
-        else                           await Stop();
+        if (MikuShouldWork) await Start();
+        else                await Stop();
     }
 
     public static async Task Start() => await _s.Lock(async () =>
     {
-        if (Config.Monitoring_Enabled.Janai()) return;
+        if (MikuShouldWork.Janai()) return;
 
         if (_monitoring) return;
         _ = _monitoring = true;

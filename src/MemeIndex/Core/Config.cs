@@ -26,6 +26,8 @@ public static class Config
     // == SERVER
     private static int         Server_MinLogLevel  { get;         set; }
     public  static string[]?   Server_URLs         { get; private set; }
+    // == SYNC
+    public  static bool        Sync_Enabled  { get; private set; } = true;
     // == MONITORING
     public  static bool        Monitoring_Enabled  { get; private set; } = true;
     public  static TimeSpan    Monitoring_Delay    { get; private set; } = TimeSpan.FromSeconds(5);
@@ -42,15 +44,19 @@ public static class Config
             [PROP_LOG_LVL] = Server_MinLogLevel.Encode(),
             [PROP_URLS   ] = Server_URLs.Encode(),
         },
-        [SECTION_MONITORING] = new()
+        [SECTION_SYNC      ] = new()
         {
-            [PROP_ENABLED] = Monitoring_Enabled.Encode(),
-            [PROP_DELAY  ] = Monitoring_Delay.Encode(),
+            [PROP_ENABLED] = Sync_Enabled.Encode(),
         },
         [SECTION_SYNC_START] = new()
         {
             [PROP_ENABLED] = StartupSync_Enabled.Encode(),
             [PROP_DELAY  ] = StartupSync_Delay.Encode(),
+        },
+        [SECTION_MONITORING] = new()
+        {
+            [PROP_ENABLED] = Monitoring_Enabled.Encode(),
+            [PROP_DELAY  ] = Monitoring_Delay.Encode(),
         },
     };
 
@@ -63,36 +69,42 @@ public static class Config
             if      (b = name == PROP_LOG_LVL) Server_MinLogLevel  = value.Parse_Int(ln, name, Server_MinLogLevel);
             else if (b = name == PROP_URLS)    Server_URLs         = value.Parse_StringArray();
         }
-        else if (section is Section.Miku)
-        {
-            if      (b = name == PROP_ENABLED) Monitoring_Enabled  = value.Parse_Bool();
-            else if (b = name == PROP_DELAY)   Monitoring_Delay    = value.Parse_Time(ln, name, Monitoring_Delay);
-        }
         else if (section is Section.Sync)
+        {
+            if      (b = name == PROP_ENABLED) Sync_Enabled        = value.Parse_Bool();
+        }
+        else if (section is Section.StartupSync)
         {
             if      (b = name == PROP_ENABLED) StartupSync_Enabled = value.Parse_Bool();
             else if (b = name == PROP_DELAY)   StartupSync_Delay   = value.Parse_Time(ln, name, StartupSync_Delay);
+        }
+        else if (section is Section.Monitoring)
+        {
+            if      (b = name == PROP_ENABLED) Monitoring_Enabled  = value.Parse_Bool();
+            else if (b = name == PROP_DELAY)   Monitoring_Delay    = value.Parse_Time(ln, name, Monitoring_Delay);
         }
 
         return b;
     }
 
-    private enum Section { None, Server, Miku, Sync, }
+    private enum Section { None, Server, Sync, StartupSync, Monitoring }
 
     private static Section GetSection(string s) => s switch
     {
         SECTION_SERVER     => Section.Server,
-        SECTION_SYNC_START => Section.Sync,
-        SECTION_MONITORING => Section.Miku,
+        SECTION_SYNC       => Section.Sync,
+        SECTION_SYNC_START => Section.StartupSync,
+        SECTION_MONITORING => Section.Monitoring,
         _                  => Section.None
     };
 
     private const string
         SECTION_SERVER     = "SERVER",
+        SECTION_SYNC       = "SYNC",
         SECTION_MONITORING = "MONITORING",
         SECTION_SYNC_START = "STARTUP SYNC",
         PROP_LOG_LVL = "log level",
-        PROP_URLS = "URLs",
+        PROP_URLS    = "URLs",
         PROP_ENABLED = "on",
         PROP_DELAY   = "delay";
 
