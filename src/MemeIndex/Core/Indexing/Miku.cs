@@ -45,8 +45,13 @@ public static class Miku
 
         foreach (var (path, recurse) in to_watch)
         {
-            StartWatching(path, recurse);
-            Log(NAME, $"STARTED MONITORING {path}");
+            if (Directory.Exists(path))
+            {
+                StartWatching(path, recurse);
+                Log(NAME, $"STARTED MONITORING {path}");
+            }
+            else
+                LogWarn(NAME, $"DIRECTORY NOT FOUND {path}");
         }
     });
 
@@ -72,12 +77,12 @@ public static class Miku
             NotifyFilter
                 = NotifyFilters.FileName
                 | NotifyFilters.DirectoryName
-                | NotifyFilters.Size
                 | NotifyFilters.LastWrite
                 | NotifyFilters.CreationTime,
             EnableRaisingEvents = true
         };
 
+        // todo - unsubscribe handlers?
         watcher.Created += (_, e) => HandleEvent(e);
         watcher.Changed += (_, e) => HandleEvent(e);
         watcher.Deleted += (_, e) => HandleEvent(e);
@@ -89,30 +94,27 @@ public static class Miku
 
     private static void HandleEvent(FileSystemEventArgs e)
     {
-        if (Indexing.SupportedExtensions.Contains(e.Name.GetExtension_Or("*")))
-            Bump();
+        var extension = Path.GetExtension(e.Name) ?? "*";
+        var dir_or_image = Indexing.SupportedExtensions.Contains(extension);
+        if (dir_or_image)
+        {
+            LogDebug(NAME, $"BUMP! {e.ChangeType}: {e.FullPath}");
+            _ = DebounceAndTriggerSync();
+        }
     }
 
     private static void HandleError(Exception e)
     {
         if (e is InternalBufferOverflowException)
         {
-            LogWarn(NAME, $"BUFFER OVERFLOW:\n{e}");
-            Bump();
+            LogWarn(NAME, $"BUMP! BUFFER OVERFLOW:\n{e}");
+            _ = DebounceAndTriggerSync();
         }
         else
         {
             LogError(NAME, $"ERROR:\n{e}");
             App.LogException_JOB(e, "Miku");
         }
-    }
-
-    // todo abstract debouncer
-
-    private static void Bump()
-    {
-        LogDebug(NAME, "BUMP!");
-        _ = DebounceAndTriggerSync();
     }
 
     private static async Task DebounceAndTriggerSync()
@@ -145,9 +147,9 @@ public static class Miku
         }
     }
 
-    private static TimeSpan WaitDelay => Config.Monitoring_Delay;
     private static DateTime _waitSince;
+    private static TimeSpan  WaitDelay
+        => Config.Monitoring_Delay.TotalMilliseconds > 250
+         ? Config.Monitoring_Delay
+         : TimeSpan.FromMilliseconds(250);
 }
-
-// TO TEST:
-// what if I move files from disabled monitor to enabled one?
