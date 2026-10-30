@@ -6,13 +6,14 @@ namespace MemeIndex.API;
 
 public static partial class Endpoints
 {
-    public static IResult Config_Get()
+    public static async Task<IResult> Config_Get()
     {
-        var json = JsonSerializer.Serialize(Config.API_Get(), AppJson.Default.API_Config!);
+        var config = await Config.API_Get();
+        var json = JsonSerializer.Serialize(config, AppJson.Default.API_Config!);
         return Results.Content(json, "application/json");
     }
 
-    public static async Task<IResult> Config_Update
+    public static async Task<IResult> Config_Put
         (API_Config data)
     {
         var restart_needed = await Config.API_Update(data);
