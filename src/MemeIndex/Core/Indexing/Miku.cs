@@ -82,17 +82,16 @@ public static class Miku
             EnableRaisingEvents = true
         };
 
-        // todo - unsubscribe handlers?
-        watcher.Created += (_, e) => HandleEvent(e);
-        watcher.Changed += (_, e) => HandleEvent(e);
-        watcher.Deleted += (_, e) => HandleEvent(e);
-        watcher.Renamed += (_, e) => HandleEvent(e); // todo - rename file in db + send ui event (batched, 0.5s delay)
-        watcher.Error   += (_, e) => HandleError(e.GetException());
+        watcher.Created += HandleEvent;
+        watcher.Changed += HandleEvent;
+        watcher.Deleted += HandleEvent;
+        watcher.Renamed += HandleEvent; // todo - rename file in db + send ui event (batched, 0.5s delay)
+        watcher.Error   += HandleError;
 
         _watchers[path] = watcher;
     }
 
-    private static void HandleEvent(FileSystemEventArgs e)
+    private static void HandleEvent(object o, FileSystemEventArgs e)
     {
         var extension = Path.GetExtension(e.Name) ?? "*";
         var dir_or_image = Indexing.SupportedExtensions.Contains(extension);
@@ -103,28 +102,33 @@ public static class Miku
         }
     }
 
-    private static void HandleError(Exception e)
+    private static void HandleError(object o, ErrorEventArgs e)
     {
-        if (e is InternalBufferOverflowException)
+        var ex = e.GetException();
+        if (ex is InternalBufferOverflowException)
         {
-            LogWarn(NAME, $"BUMP! BUFFER OVERFLOW:\n{e}");
+            LogWarn(NAME, $"BUMP! BUFFER OVERFLOW:\n{ex}");
             _ = DebounceAndTriggerSync();
         }
         else
         {
-            LogError(NAME, $"ERROR:\n{e}");
-            App.LogException_JOB(e, "Miku");
+            LogError(NAME, $"ERROR:\n{ex}");
+            App.LogException_JOB(ex, "Miku");
         }
     }
 
+    private static volatile bool _waiting;
+
     private static async Task DebounceAndTriggerSync()
     {
-        if (_waitSince != default) // already waiting
+        if (Interlocked.Exchange(ref _waiting, true))
         {
+            // was waiting -> update time
             _waitSince = DateTime.UtcNow;
         }
-        else // not waiting
+        else
         {
+            // wasn't waiting -> wait
             App.SetStatus("ABOUT TO SYNC");
             var waitSince  = _waitSince = DateTime.UtcNow;
             LogDebug(NAME, $"Sync in {WaitDelay.ReadableTime()}");
@@ -142,8 +146,13 @@ public static class Miku
                 }
             }
             _waitSince = default;
-            Log(NAME, "Sync!");
-            await Indexing.TriggerSync();
+            _waiting = false;
+
+            if (_monitoring)
+            {
+                Log(NAME, "Sync!");
+                await Indexing.TriggerSync();
+            }
         }
     }
 
