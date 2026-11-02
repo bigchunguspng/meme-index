@@ -31,7 +31,7 @@ if (CLI.TryHandleArgs_Action(args)) return;
 
 LogCM(ConsoleColor.Magenta, "RUNNING NORMAL MODE (web server)");
 
-await Config.File_Read();
+await Config.ReadFrom_File();
 
 // WEB APP BUILDER
 

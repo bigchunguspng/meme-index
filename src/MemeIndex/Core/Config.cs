@@ -23,34 +23,41 @@ public static class Config
     public  static bool        DEVELOPMENT         { get; private set; } // Store all data next to app executable.
     public  static string?     WEB_ROOT            { get; private set; } // Alternative web root.
 
-    // == SERVER
-    private static int         Server_MinLogLevel  { get;         set; }
-    public  static string[]?   Server_URLs         { get; private set; }
-    // == SYNC
-    public  static bool        Sync_Enabled  { get; private set; } = true;
-    // == MONITORING
-    public  static bool        Monitoring_Enabled  { get; private set; } = true;
-    public  static TimeSpan    Monitoring_Delay    { get; private set; } = TimeSpan.FromSeconds(5);
-    // == SYNC_START
-    public  static bool        StartupSync_Enabled { get; private set; } = true;
-    public  static TimeSpan    StartupSync_Delay   { get; private set; } = TimeSpan.FromSeconds(0);
+    // CONFIG FILE
+    public static int         Server_MinLogLevel  { get; private set; }
+    public static string[]?   Server_URLs         { get; private set; }
+    public static bool        Sync_Enabled        { get; private set; } = true;
+    public static bool        Monitoring_Enabled  { get; private set; } = true;
+    public static TimeSpan    Monitoring_Delay    { get; private set; } = TimeSpan.FromSeconds(5);
+    public static bool        StartupSync_Enabled { get; private set; } = true;
+    public static TimeSpan    StartupSync_Delay   { get; private set; } = TimeSpan.FromSeconds(0);
+
+    private const string
+        s_SERV = "SERVER",
+        s_SYNC = "SYNC",
+        s_SSUP = "STARTUP SYNC",
+        s_MIKU = "MONITORING",
+        p_LOG_L = "log level",
+        p_URLS  = "URLs",
+        p_ON    = "on",
+        p_DELAY = "delay";
 
     private static API_Config?    _tree;
     private static API_Config      Tree => _tree ??= BuildTree();
     private static API_Config BuildTree()
     {
         var result = new API_Config();
-        var s_serv = result[SECTION_SERVER    ] = new Dictionary<string, string>();
-        var s_sync = result[SECTION_SYNC      ] = new Dictionary<string, string>();
-        var s_ss   = result[SECTION_SYNC_START] = new Dictionary<string, string>();
-        var s_miku = result[SECTION_MONITORING] = new Dictionary<string, string>();
-        s_serv[PROP_LOG_LVL] =      Server_MinLogLevel .Encode();
-        s_serv[PROP_URLS   ] =      Server_URLs        .Encode();
-        s_sync[PROP_ENABLED] =        Sync_Enabled     .Encode();
-        s_ss  [PROP_ENABLED] = StartupSync_Enabled     .Encode();
-        s_ss  [PROP_DELAY  ] = StartupSync_Delay       .Encode();
-        s_miku[PROP_ENABLED] =  Monitoring_Enabled     .Encode();
-        s_miku[PROP_DELAY  ] =  Monitoring_Delay       .Encode();
+        var s_serv = result[s_SERV] = new Dictionary<string, string>();
+        var s_sync = result[s_SYNC] = new Dictionary<string, string>();
+        var s_ssup = result[s_SSUP] = new Dictionary<string, string>();
+        var s_miku = result[s_MIKU] = new Dictionary<string, string>();
+        s_serv[p_LOG_L] =      Server_MinLogLevel .Encode();
+        s_serv[p_URLS ] =      Server_URLs        .Encode();
+        s_sync[p_ON   ] =        Sync_Enabled     .Encode();
+        s_ssup[p_ON   ] = StartupSync_Enabled     .Encode();
+        s_ssup[p_DELAY] = StartupSync_Delay       .Encode();
+        s_miku[p_ON   ] =  Monitoring_Enabled     .Encode();
+        s_miku[p_DELAY] =  Monitoring_Delay       .Encode();
         return result;
     }
 
@@ -58,48 +65,28 @@ public static class Config
         (string section, string name, string value, int ln)
     {
         var b = false;
-        if      (section is SECTION_SERVER)
+        switch (section)
         {
-            if      (b = name == PROP_LOG_LVL) Server_MinLogLevel  = value.Parse_Int(ln, name, Server_MinLogLevel);
-            else if (b = name == PROP_URLS)    Server_URLs         = value.Parse_StringArray();
+            case s_SERV when b = name == p_LOG_L: Server_MinLogLevel  = value.Parse_Int(ln, name, Server_MinLogLevel); break;
+            case s_SERV when b = name == p_URLS:  Server_URLs         = value.Parse_StringArray(); break;
+            case s_SYNC when b = name == p_ON:    Sync_Enabled        = value.Parse_Bool(); break;
+            case s_SSUP when b = name == p_ON:    StartupSync_Enabled = value.Parse_Bool(); break;
+            case s_SSUP when b = name == p_DELAY: StartupSync_Delay   = value.Parse_Time(ln, name, StartupSync_Delay); break;
+            case s_MIKU when b = name == p_ON:    Monitoring_Enabled  = value.Parse_Bool(); break;
+            case s_MIKU when b = name == p_DELAY: Monitoring_Delay    = value.Parse_Time(ln, name, Monitoring_Delay); break;
         }
-        else if (section is SECTION_SYNC)
-        {
-            if      (b = name == PROP_ENABLED) Sync_Enabled        = value.Parse_Bool();
-        }
-        else if (section is SECTION_SYNC_START)
-        {
-            if      (b = name == PROP_ENABLED) StartupSync_Enabled = value.Parse_Bool();
-            else if (b = name == PROP_DELAY)   StartupSync_Delay   = value.Parse_Time(ln, name, StartupSync_Delay);
-        }
-        else if (section is SECTION_MONITORING)
-        {
-            if      (b = name == PROP_ENABLED) Monitoring_Enabled  = value.Parse_Bool();
-            else if (b = name == PROP_DELAY)   Monitoring_Delay    = value.Parse_Time(ln, name, Monitoring_Delay);
-        }
-
-        return b;
+        return b; // whether a property was matched
     }
-
-    private const string
-        SECTION_SERVER     = "SERVER",
-        SECTION_SYNC       = "SYNC",
-        SECTION_SYNC_START = "STARTUP SYNC",
-        SECTION_MONITORING = "MONITORING",
-        PROP_LOG_LVL = "log level",
-        PROP_URLS    = "URLs",
-        PROP_ENABLED = "on",
-        PROP_DELAY   = "delay";
 
     private static readonly SemaphoreSlim _s = new(1, 1);
 
     // FILE - READ / WRITE
 
-    public static async Task File_Read() => await _s.Lock(async () =>
+    public static async Task ReadFrom_File() => await _s.Lock(async () =>
     {
         if (File_Config.FileExists.Janai())
         {
-            await File_Write();
+            await WriteTo_File();
             return;
         }
 
@@ -136,7 +123,7 @@ public static class Config
         ApplyConfig();
     });
 
-    private static async Task File_Write()
+    private static async Task WriteTo_File()
     {
         await File.WriteAllLinesAsync(File_Config, GetConfigLines());
         Log(NAME_W, "CONFIG FILE UPDATED!");
@@ -163,28 +150,26 @@ public static class Config
     private static bool _restart_needed;
 
     public static async Task<API_Config>
-        API_Get
+        SendTo_API
         () => await _s.Lock(() => Tree);
 
     public static async Task<bool>
-        API_Update
+        ReceiveFrom_API
         (API_Config data) => await _s.Lock(async () =>
     {
         var prev_urls = Server_URLs;
 
         _tree = null; // invalidate cache
 
-        var ln = 1;
         foreach (var (section, props) in data)
+        foreach (var (name,    value) in props)
         {
-            foreach (var (name, value) in props)
-            {
-                SetProperty(section, name, value, ln++);
-            }
+            if (SetProperty(section, name, value, 1).Failed())
+                LogWarn(NAME_R, WARN_LINE_UNKNOWN.Format(1, $"{section} : {name}"));
         }
         ApplyConfig();
 
-        await Task.WhenAll(File_Write(), Miku.FollowConfig());
+        await Task.WhenAll(WriteTo_File(), Miku.FollowConfig());
 
         if (_restart_needed
          || prev_urls is null != Server_URLs is null
