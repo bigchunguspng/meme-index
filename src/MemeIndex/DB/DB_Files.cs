@@ -142,13 +142,20 @@ public static class DB_Files
         return await c.QueryAsync<DB_File_Get_WithPath>(SQL) as List<DB_File_Get_WithPath> ?? [];
     }
 
+    public static async Task<List<int>> Files_GetIds
+        (this SqliteConnection c)
+    {
+        const string SQL = "SELECT id FROM files";
+        return await c.QueryAsync<int>(SQL) as List<int> ?? [];
+    }
+
     public static async Task<List<DB_File_Get_ForSync>> Files_ForSync_GetByDirIds
         (this SqliteConnection c, IEnumerable<int> dir_ids)
     {
         var SQL =
             "SELECT id, dir_id, name, size, cdate, mdate "
-            + "FROM files f "
-            + $"WHERE dir_id IN ({string.Join(',', dir_ids)})";
+          + "FROM files f "
+          + $"WHERE dir_id IN ({string.Join(',', dir_ids)})";
         return await c.QueryAsync<DB_File_Get_ForSync>(SQL) as List<DB_File_Get_ForSync> ?? [];
     }
 
@@ -171,8 +178,8 @@ public static class DB_Files
     {
         const string SQL =
             "UPDATE files "
-            + "SET dir_id = @dir_id, name = @name, size = @size, cdate = @cdate, mdate = @mdate "
-            + "WHERE id = @id";
+          + "SET dir_id = @dir_id, name = @name, size = @size, cdate = @cdate, mdate = @mdate "
+          + "WHERE id = @id";
         await c.ExecuteAsync(SQL, file, transaction);
     }
 
@@ -191,6 +198,13 @@ public static class DB_Files
           + "SET tdate = @date, image_w = @image_w, image_h = @image_h "
           + "WHERE id = @id";
         await c.ExecuteAsync(SQL, file);
+    }
+
+    public static async Task Files_ResetThumbDate
+        (this SqliteConnection c)
+    {
+        const string SQL = "UPDATE files SET tdate = NULL";
+        await c.ExecuteAsync(SQL);
     }
 
     // DELETE

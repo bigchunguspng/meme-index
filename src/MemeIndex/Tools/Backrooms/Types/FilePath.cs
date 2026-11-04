@@ -117,7 +117,13 @@ public readonly struct FilePath(string value)
         return this;
     }
 
-    // DELETE DIRECTORY
+    // DELETE
+
+    public FilePath DeleteFile()
+    {
+        if (FileExists) File.Delete(_path);
+        return this;
+    }
 
     public FilePath DeleteDirectory(bool recursive)
     {
@@ -143,6 +149,13 @@ public readonly struct FilePath(string value)
     {
         Directory.CreateDirectory(_path);
         return Directory.GetFiles(_path,          pattern, GetSearchOption(recursive));
+    }
+
+    public IEnumerable<string> EnumerateFiles
+        (string pattern = "*", bool recursive = false)
+    {
+        Directory.CreateDirectory(_path);
+        return Directory.EnumerateFiles(_path,    pattern, GetSearchOption(recursive));
     }
 
     private static SearchOption GetSearchOption
