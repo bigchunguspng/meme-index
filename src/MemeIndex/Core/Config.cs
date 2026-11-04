@@ -206,10 +206,10 @@ public static class Config
     }
 
     private static string Encode
-        (this string[]? a) => a != null ? string.Join(';', a) : "-";
+        (this string[]? a) => a != null ? string.Join(';', a) : "--";
 
     private static string[]? Parse_StringArray
-        (this string s) => s == "-" ? null : s.Split(';');
+        (this string s) => s == "--" ? null : s.Split(';');
 
     private static string Encode(this TimeSpan t)
     {

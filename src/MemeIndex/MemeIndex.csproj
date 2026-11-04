@@ -48,4 +48,9 @@
              CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Core\Analysis\Text\LLM\" />
+    <Folder Include="Core\Analysis\Text\OCR\" />
+  </ItemGroup>
+
 </Project>
