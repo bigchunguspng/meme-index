@@ -35,7 +35,7 @@ public class Mw_Logging : IMiddleware
         var len_req_txt = len_req > 0 ? len_req.FileSize_Format() : "--";
         var len_res_txt = len_res > 0 ? len_res.FileSize_Format() : "--";
 
-        var status_color = status switch
+        var cc_status = status switch
         {
             >= 500 => ConsoleColor.DarkRed,
             >= 400 => ConsoleColor.Red,
@@ -44,7 +44,7 @@ public class Mw_Logging : IMiddleware
             _      => ConsoleColor.Gray,
         };
 
-        var method_color = req.Method switch
+        var cc_method = req.Method switch
         {
              "GET"    => ConsoleColor.Blue,
              "POST"   => ConsoleColor.Green,
@@ -56,7 +56,7 @@ public class Mw_Logging : IMiddleware
         var path = req.Path.Value;
         var ix_dot = path?.LastIndexOf(".", StringComparison.Ordinal) ?? 0;
         var extension = ix_dot > 0 ? path!.Substring(ix_dot) : null;
-        var content_color =
+        var cc_content =
             path != null && path.StartsWith("/api/")
                 ? ConsoleColor.DarkMagenta
                 : ix_dot < 0
@@ -68,24 +68,14 @@ public class Mw_Logging : IMiddleware
                         ".js"    => ConsoleColor.Yellow,
                         _        => ConsoleColor.Gray,
                     };
-
-        lock (typeof(ConsoleLogger))
-        {
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write($"{now:MMM' 'dd', 'HH:mm:ss.fff} ");
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.Write("T ");
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write($"{time.ReadableTime(),10} @ ");
-            Console.ForegroundColor = status_color;
-            Console.Write($"{status,3} ");
-            Console.ResetColor();
-            Console.Write($"{len_res_txt,9} <- {len_req_txt,9} ");
-            Console.ForegroundColor = method_color;
-            Console.Write($"{method,4} ");
-            Console.ForegroundColor = content_color;
-            Console.WriteLine($"{req.Path}{WebUtility.UrlDecode(req.QueryString.Value)}");
-            Console.ResetColor();
-        }
+        var text
+            = $"\e[{CC_DARK_GRAY       }m{now:MMM' 'dd', 'HH:mm:ss.fff} "
+            + $"\e[{CC_YELLOW          }mT "
+            + $"\e[{CC_DARK_GRAY       }m{time.ReadableTime(),10} @ "
+            + $"\e[{cc_status .ToANSI()}m{status,3} "
+            + $"\e[0m" +               $"{len_res_txt,9} <- {len_req_txt,9} "
+            + $"\e[{cc_method .ToANSI()}m{method,4} "
+            + $"\e[{cc_content.ToANSI()}m{req.Path}{WebUtility.UrlDecode(req.QueryString.Value)}\e[0m";
+        Console.WriteLine(text);
     }
 }

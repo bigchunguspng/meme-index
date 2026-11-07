@@ -4,37 +4,31 @@ public static class ConsoleLogger
 {
     // PRINT
 
-    [MethodImpl(Synchronized)]
+    [MethodImpl(AggressiveInlining)]
     public static void Print
         (string message) =>
         Console.WriteLine(message);
 
-    [MethodImpl(Synchronized)]
+    [MethodImpl(AggressiveInlining)]
     public static void Print
-        (string message, ConsoleColor color)
-    {
-        Console.ForegroundColor = color;
-        Console.WriteLine(message);
-        Console.ResetColor();
-    }
+        (string message, ConsoleColor color) =>
+        Console.WriteLine($"\e[{color.ToANSI()}m{message}\e[0m");
 
     // LOG (MORE FANCY)
 
     public  static LogLevel MinLogLevel = LogLevel.Debug;
-    private static DateTime _prevDate   = DateTime.UtcNow;
+    private static long _prevDate= DateTime.UtcNow.Ticks;
 
-    private static void Console_WritePrefix(LogLevel level)
+    private static string Console_Prefix(LogLevel level)
     {
-        var         prevDate = _prevDate;
-        var         thisDate = DateTime.UtcNow;
-        var delta = thisDate - prevDate;
-        _prevDate = thisDate;
-        Console.ForegroundColor = ConsoleColor.DarkGray;
-        Console.Write($"{DateTime.Now:MMM' 'dd', 'HH:mm:ss.fff} ");
-        Console.ForegroundColor = level.GetDefaultColor();
-        Console.Write($"{level.GetCharIcon()} ");
-        Console.ForegroundColor = ConsoleColor.DarkGray;
-        Console.Write($"{delta.ReadableTime(),10} | ");
+        var thisDate = DateTime.UtcNow.Ticks;
+        var prevDate = Interlocked.Exchange(ref _prevDate, thisDate);
+        var delta    = TimeSpan.FromTicks(thisDate - prevDate);
+        var cc_level = level.GetDefaultColor().ToANSI();
+        return
+            $"\e[{CC_DARK_GRAY}m{DateTime.Now:MMM' 'dd', 'HH:mm:ss.fff} "
+          + $"\e[{cc_level    }m{level.GetCharIcon()} "
+          + $"\e[{CC_DARK_GRAY}m{delta.ReadableTime(),10} | ";
     }
 
     private static char GetCharIcon
@@ -113,7 +107,6 @@ public static class ConsoleLogger
 
     // LOG GENERAL
 
-    [MethodImpl(Synchronized)]
     public static void Log
     (
         string message,
@@ -122,13 +115,10 @@ public static class ConsoleLogger
     )
     {
         if (level < MinLogLevel) return;
-        Console_WritePrefix(level);
-        Console.ForegroundColor = color;
-        Console.WriteLine(message);
-        Console.ResetColor();
+        var p = Console_Prefix(level);
+        Console.WriteLine($"{p}\e[{color.ToANSI()}m{message}\e[0m");
     }
 
-    [MethodImpl(Synchronized)]
     public static void Log
     (
         string category, string message,
@@ -137,12 +127,8 @@ public static class ConsoleLogger
     )
     {
         if (level < MinLogLevel) return;
-        Console_WritePrefix(level);
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.Write($"{category} ");
-        Console.ForegroundColor = color;
-        Console.WriteLine(message);
-        Console.ResetColor();
+        var p = Console_Prefix(level);
+        Console.WriteLine($"{p}\e[{CC_YELLOW}m{category} \e[{color.ToANSI()}m{message}\e[0m");
     }
 
     // LOG STOPWATCH
@@ -152,7 +138,6 @@ public static class ConsoleLogger
         (this Stopwatch sw, ConsoleColor color, string message)
         => sw.Log(message, color);
 
-    [MethodImpl(Synchronized)]
     public static void Log
     (
         this Stopwatch sw, string message,
@@ -162,18 +147,60 @@ public static class ConsoleLogger
         sw.Stop();
         if (MinLogLevel <= LogLevel.Debug)
         {
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write($"0x{sw.GetHashCode():x8}    [TIME] ");
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.Write("T ");
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write($"{sw.ElapsedReadable(),-10} * ");
-            Console.ForegroundColor = color;
-            Console.WriteLine(message);
-            Console.ResetColor();
+            var text
+                = $"\e[{CC_DARK_GRAY  }m0x{sw.GetHashCode():x8}    [TIME] "
+                + $"\e[{CC_YELLOW     }mT "
+                + $"\e[{CC_DARK_GRAY  }m{sw.ElapsedReadable(),-10} * "
+                + $"\e[{color.ToANSI()}m{message}\e[0m";
+            Console.WriteLine(text);
         }
         sw.Restart();
     }
+
+    // COLOR
+
+    public const int
+        // DARK
+        CC_BLACK        = 30,
+        CC_DARK_RED     = 31,
+        CC_DARK_GREEN   = 32,
+        CC_DARK_YELLOW  = 33,
+        CC_DARK_BLUE    = 34,
+        CC_DARK_MAGENTA = 35,
+        CC_DARK_CYAN    = 36,
+        CC_GRAY         = 37,
+        // BRIGHT
+        CC_DARK_GRAY    = 90,
+        CC_RED          = 91,
+        CC_GREEN        = 92,
+        CC_YELLOW       = 93,
+        CC_BLUE         = 94,
+        CC_MAGENTA      = 95,
+        CC_CYAN         = 96,
+        CC_WHITE        = 97;
+
+    public static int ToANSI(this ConsoleColor color) => color switch
+    {
+        // DARK
+        ConsoleColor.Black       => CC_BLACK,
+        ConsoleColor.DarkRed     => CC_DARK_RED,
+        ConsoleColor.DarkGreen   => CC_DARK_GREEN,
+        ConsoleColor.DarkYellow  => CC_DARK_YELLOW,
+        ConsoleColor.DarkBlue    => CC_DARK_BLUE,
+        ConsoleColor.DarkMagenta => CC_DARK_MAGENTA,
+        ConsoleColor.DarkCyan    => CC_DARK_CYAN,
+        ConsoleColor.Gray        => CC_GRAY,
+        // BRIGHT
+        ConsoleColor.DarkGray    => CC_DARK_GRAY,
+        ConsoleColor.Red         => CC_RED,
+        ConsoleColor.Green       => CC_GREEN,
+        ConsoleColor.Yellow      => CC_YELLOW,
+        ConsoleColor.Blue        => CC_BLUE,
+        ConsoleColor.Magenta     => CC_MAGENTA,
+        ConsoleColor.Cyan        => CC_CYAN,
+        ConsoleColor.White       => CC_WHITE,
+        _ => throw new ArgumentOutOfRangeException(nameof(color), color, null),
+    };
 }
 
 public enum LogLevel
