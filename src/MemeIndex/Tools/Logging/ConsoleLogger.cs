@@ -1,4 +1,7 @@
-﻿namespace MemeIndex.Tools.Logging;
+﻿using System.Text;
+using Microsoft.Extensions.ObjectPool;
+
+namespace MemeIndex.Tools.Logging;
 
 public static class ConsoleLogger
 {
@@ -19,16 +22,16 @@ public static class ConsoleLogger
     public  static LogLevel MinLogLevel = LogLevel.Debug;
     private static long _prevDate= DateTime.UtcNow.Ticks;
 
-    private static string Console_Prefix(LogLevel level)
+    private static StringBuilder Console_Prefix(this StringBuilder sb, LogLevel level)
     {
         var thisDate = DateTime.UtcNow.Ticks;
         var prevDate = Interlocked.Exchange(ref _prevDate, thisDate);
         var delta    = TimeSpan.FromTicks(thisDate - prevDate);
-        var cc_level = level.GetDefaultColor().ToANSI();
-        return
-            $"\e[{CC_DARK_GRAY}m{DateTime.Now:MMM' 'dd', 'HH:mm:ss.fff} "
-          + $"\e[{cc_level    }m{level.GetCharIcon()} "
-          + $"\e[{CC_DARK_GRAY}m{delta.ReadableTime(),10} | ";
+        var color    = level.GetDefaultColor();
+        return sb
+            .Color(CC_DARK_GRAY).Append($"{DateTime.Now:MMM' 'dd', 'HH:mm:ss.fff} ")
+            .Color(color       ).Append(level.GetCharIcon()).Append(' ')
+            .Color(CC_DARK_GRAY).Append($"{delta.ReadableTime(),10} | ");
     }
 
     private static char GetCharIcon
@@ -115,8 +118,9 @@ public static class ConsoleLogger
     )
     {
         if (level < MinLogLevel) return;
-        var p = Console_Prefix(level);
-        Console.WriteLine($"{p}\e[{color.ToANSI()}m{message}\e[0m");
+        using var psb = new PooledStringBuilder();
+        psb.sb.Console_Prefix(level)
+            .Color(color).Append(message).Style().Print();
     }
 
     public static void Log
@@ -127,8 +131,10 @@ public static class ConsoleLogger
     )
     {
         if (level < MinLogLevel) return;
-        var p = Console_Prefix(level);
-        Console.WriteLine($"{p}\e[{CC_YELLOW}m{category} \e[{color.ToANSI()}m{message}\e[0m");
+        using var psb = new PooledStringBuilder();
+        psb.sb.Console_Prefix(level)
+            .Color(CC_YELLOW).Append(category).Append(' ')
+            .Color(color).Append(message).Style().Print();
     }
 
     // LOG STOPWATCH
@@ -147,12 +153,13 @@ public static class ConsoleLogger
         sw.Stop();
         if (MinLogLevel <= LogLevel.Debug)
         {
-            var text
-                = $"\e[{CC_DARK_GRAY  }m0x{sw.GetHashCode():x8}    [TIME] "
-                + $"\e[{CC_YELLOW     }mT "
-                + $"\e[{CC_DARK_GRAY  }m{sw.ElapsedReadable(),-10} * "
-                + $"\e[{color.ToANSI()}m{message}\e[0m";
-            Console.WriteLine(text);
+            using var psb = new PooledStringBuilder();
+            psb.sb
+                .Color(CC_DARK_GRAY).Append($"0x{sw.GetHashCode():x8}    [TIME] ")
+                .Color(CC_YELLOW   ).Append("T ")
+                .Color(CC_DARK_GRAY).Append($"{sw.ElapsedReadable(),-10} * ")
+                .Color(color).Append(message)
+                .Style().Print();
         }
         sw.Restart();
     }
@@ -201,6 +208,38 @@ public static class ConsoleLogger
         ConsoleColor.White       => CC_WHITE,
         _ => throw new ArgumentOutOfRangeException(nameof(color), color, null),
     };
+
+    // SB EXTENSIONS
+
+    public static void Print
+        (this StringBuilder sb)
+        => Console.WriteLine(sb.ToString());
+
+    public static StringBuilder Style
+        (this StringBuilder sb)
+        => sb.Append("\e[0m");
+
+    public static StringBuilder Color
+        (this StringBuilder sb, int cc)
+        => sb.Append("\e[").Append(cc)         .Append('m');
+
+    public static StringBuilder Color
+        (this StringBuilder sb, ConsoleColor cc)
+        => sb.Append("\e[").Append(cc.ToANSI()).Append('m');
+}
+
+public class PooledStringBuilder : IDisposable
+{
+    private static readonly ObjectPool<StringBuilder> Pool =
+        new DefaultObjectPoolProvider().CreateStringBuilderPool();
+
+    public readonly StringBuilder sb = Pool.Get();
+
+    public void Dispose()
+    {
+        sb.Clear();
+        Pool.Return(sb);
+    }
 }
 
 public enum LogLevel

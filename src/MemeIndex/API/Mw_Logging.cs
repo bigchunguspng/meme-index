@@ -68,14 +68,15 @@ public class Mw_Logging : IMiddleware
                         ".js"    => ConsoleColor.Yellow,
                         _        => ConsoleColor.Gray,
                     };
-        var text
-            = $"\e[{CC_DARK_GRAY       }m{now:MMM' 'dd', 'HH:mm:ss.fff} "
-            + $"\e[{CC_YELLOW          }mT "
-            + $"\e[{CC_DARK_GRAY       }m{time.ReadableTime(),10} @ "
-            + $"\e[{cc_status .ToANSI()}m{status,3} "
-            + $"\e[0m" +               $"{len_res_txt,9} <- {len_req_txt,9} "
-            + $"\e[{cc_method .ToANSI()}m{method,4} "
-            + $"\e[{cc_content.ToANSI()}m{req.Path}{WebUtility.UrlDecode(req.QueryString.Value)}\e[0m";
-        Console.WriteLine(text);
+        using var psb = new PooledStringBuilder();
+        psb.sb
+            .Color(CC_DARK_GRAY).Append($"{now:MMM' 'dd', 'HH:mm:ss.fff} ")
+            .Color(CC_YELLOW   ).Append("T ")
+            .Color(CC_DARK_GRAY).Append($"{time.ReadableTime(),10} @ ")
+            .Color(cc_status   ).Append($"{status,3}").Append(' ')
+            .Style(            ).Append($"{len_res_txt,9} <- {len_req_txt,9} ")
+            .Color(cc_method   ).Append($"{method,4} ")
+            .Color(cc_content  ).Append(req.Path).Append(WebUtility.UrlDecode(req.QueryString.Value))
+            .Style().Print();
     }
 }

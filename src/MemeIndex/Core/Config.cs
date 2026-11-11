@@ -125,6 +125,7 @@ public static class Config
 
     private static async Task WriteTo_File()
     {
+        File_Config.EnsureParentDirectoryExist();
         await File.WriteAllLinesAsync(File_Config, GetConfigLines());
         Log(NAME_W, "CONFIG FILE UPDATED!");
     }
