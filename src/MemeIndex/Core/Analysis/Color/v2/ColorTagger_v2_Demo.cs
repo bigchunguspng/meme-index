@@ -312,8 +312,8 @@ public static class ColorTagger_v2_Demo
         {
             var highlight = score >= 10;
             if (highlight)
-                report.Mutate(ctx => ctx.Fill(colorTagHl, new RectangleF(x, y, TAG_WH, TAG_WH)));
-            report.Mutate(ctx => ctx.Fill(getColor(), GetTagSquareRect(x, y, score, proportional)));
+                report.Paint(canvas => canvas.Fill(colorTagHl.Brush(), new Rectangle(x, y, TAG_WH, TAG_WH)));
+            report.Paint(canvas => canvas.Fill(getColor().Brush(), GetTagSquareRect(x, y, score, proportional)));
             if (hatch)
             {
                 var color = highlight ? colorTagHl : colorBack;
@@ -340,7 +340,7 @@ public static class ColorTagger_v2_Demo
         var (key, score) = tag;
         var y_key   = y + TAG_WH;
         var y_score = y_key + CHAR_WH;
-        report.Mutate(ctx => ctx.Fill(getColor(), GetTagSquareRect(x, y, score, proportional)));
+        report.Paint(canvas => canvas.Fill(getColor().Brush(), GetTagSquareRect(x, y, score, proportional)));
         if (hatch)
         {
             for (var iy = y; iy < y + TAG_WH; iy++)
@@ -370,17 +370,18 @@ public static class ColorTagger_v2_Demo
         }
     }
 
-    private static RectangleF GetTagSquareRect
+    private static Rectangle GetTagSquareRect
         (int x, int y, int score, bool proportional = false)
     {
-        var side = proportional
+        var side_float = proportional
             ? // REAL, area ~ score
             (float)(score * 0.0256).FastPow(0.5)
             : // INFORMATIVE, makes square bigger for easier visual assessment 
             (float)Math.Log10(score).FastPow(2);
 
-        var gap = ((float)TAG_WH).Gap(side).RoundInt();
-        return new RectangleF(x + gap, y + gap, side, side);
+        var side = side_float.RoundInt();
+        var gap = ((float)TAG_WH).Gap(side_float).RoundInt();
+        return new Rectangle(x + gap, y + gap, side, side);
     }
 
     // PALETTE / GET COLOR
@@ -413,7 +414,7 @@ public static class ColorTagger_v2_Demo
         'P' => new HSL(120,  25, 50).ToRgb24(),
         'D' =>  32.ToRgb24(),
         'L' => 196.ToRgb24(),
-        _   => SixLabors.ImageSharp.Color.Magenta,
+        _   => SixLabors.ImageSharp.Color.Magenta.ToPixel<Rgb24>(),
     };
 
     private static readonly Rgb24[]

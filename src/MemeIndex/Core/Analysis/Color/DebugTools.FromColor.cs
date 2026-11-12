@@ -160,7 +160,7 @@ public static partial class DebugTools
         {
             var path = dir.Combine($"O-{fr:000}.png");
             frame.SaveAsPng(path);
-            frame.Mutate(x => x.Fill(50.ToRgb24()));
+            frame.Paint(c => c.Fill(50.ToRgb24().Brush()));
             fr_curr = fr;
         }
     }
@@ -191,9 +191,9 @@ public static partial class DebugTools
         var color = 40.ToRgb24();
         for (var r_hi = 0; r_hi < 12; r_hi += 2)
         {
-            var rect = new RectangleF(r_hi * 30, 0, 30, 360);
-            report_1.Mutate(x => x.Fill(color, rect));
-            report_2.Mutate(x => x.Fill(color, rect));
+            var rect = new Rectangle(r_hi * 30, 0, 30, 360);
+            report_1.Paint(c => c.Fill(color.Brush(), rect));
+            report_2.Paint(c => c.Fill(color.Brush(), rect));
         }
 
         for (byte s = 0; s < 100; s++)

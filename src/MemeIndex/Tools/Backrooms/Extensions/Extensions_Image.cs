@@ -1,5 +1,7 @@
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 namespace MemeIndex.Tools.Backrooms.Extensions;
 
@@ -109,4 +111,16 @@ public static class Extensions_Image
             else if (pixel == b) image[x, y] = a;
         }
     }
+
+    // IMAGE SHARP V4 SHIT
+
+    public static void Paint<TPixel>
+        (this Image<TPixel> source, CanvasAction action)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => source.Mutate(ctx => ctx.Paint(action));
+
+    public static SolidBrush Brush<TPixel>
+        (this TPixel color)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => Brushes.Solid(Color.FromPixel(color));
 }

@@ -40,8 +40,8 @@ public static partial class DebugTools
         for (var hue_ix = 0; hue_ix < 12; hue_ix += 2)
         {
             const int w = ColorSearchProfile.HUE_RANGE_deg;
-            var rect = new RectangleF(hue_ix * w, 0, w, SIDE_Hue);
-            report.Mutate(x => x.Fill(color, rect));
+            var rect = new Rectangle(hue_ix * w, 0, w, SIDE_Hue);
+            report.Paint(c => c.Fill(color.Brush(), rect));
         }
 
         return report;
@@ -60,7 +60,7 @@ public static partial class DebugTools
             var row = i / 3;
             var col = i % 3;
             var odd = i.IsOdd();
-            if (odd) report.Mutate(ctx => ctx.Fill(baseB, new RectangleF(col * SIDE, row * SIDE, SIDE, SIDE)));
+            if (odd) report.Paint(c => c.Fill(baseB.Brush(), new Rectangle(col * SIDE, row * SIDE, SIDE, SIDE)));
 
             var c1 = odd ? baseB : baseA;
             var c2 = odd ? rectB : rectA;
@@ -111,10 +111,10 @@ public static partial class DebugTools
         Rgb24 c1A = 98.ToRgb24(), c2A = 90.ToRgb24(), c3A = 80.ToRgb24(), c4A = 70.ToRgb24();
         Rgb24 c1B = 32.ToRgb24(), c2B = 40.ToRgb24(), c3B = 50.ToRgb24(), c4B = 60.ToRgb24();
 
-        image.Mutate(x => x.Fill(c2A, new RectangleF(offsetX +  0, offsetY +  0, SIDE, 50))); // Y-DARK
-        image.Mutate(x => x.Fill(c2B, new RectangleF(offsetX +  0, offsetY + 50, SIDE, 51))); // Y-LIGHT
-        image.Mutate(x => x.Fill(c1A, new RectangleF(offsetX +  0, offsetY +  0, SIDE,  4))); // BLACK
-        image.Mutate(x => x.Fill(c1B, new RectangleF(offsetX +  0, offsetY + 97, SIDE,  4))); // WHITE
+        image.Paint(c => c.Fill(c2A.Brush(), new Rectangle(offsetX +  0, offsetY +  0, SIDE, 50))); // Y-DARK
+        image.Paint(c => c.Fill(c2B.Brush(), new Rectangle(offsetX +  0, offsetY + 50, SIDE, 51))); // Y-LIGHT
+        image.Paint(c => c.Fill(c1A.Brush(), new Rectangle(offsetX +  0, offsetY +  0, SIDE,  4))); // BLACK
+        image.Paint(c => c.Fill(c1B.Brush(), new Rectangle(offsetX +  0, offsetY + 97, SIDE,  4))); // WHITE
 
         var b1 = ColorTagService.GetGrayscaleLimits();
         var b2 = ColorTagService.GetSubPaleLimits();
@@ -142,9 +142,9 @@ public static partial class DebugTools
 
         return;
 
-        void DrawLine(int y, SixLabors.ImageSharp.Color color, int offset, int width)
+        void DrawLine(int y, Rgb24 color, int offset, int width)
         {
-            image.Mutate(x => x.Fill(color, new RectangleF(offsetX + offset, offsetY + y, width, 1)));
+            image.Paint(c => c.Fill(color.Brush(), new Rectangle(offsetX + offset, offsetY + y, width, 1)));
         }
     }
 }
