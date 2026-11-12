@@ -5,7 +5,6 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using Spectre.Console;
 using static MemeIndex.Core.Analysis.Color.v2.ColorAnalyzer_v2;
 using static MemeIndex.Core.Analysis.Color.v2.ColorTagger_v2;
 
@@ -15,18 +14,20 @@ public static class ColorTagger_v2_Demo
 {
     public static void PrintPalette()
     {
+        using var psb = new PooledStringBuilder();
+
         var palette = GetPalette();
         foreach (var set in palette)
         {
             foreach (var point in set.Points)
             {
                 var bg_rgb = point.ToRgb24();
-                var bg = ColorConverter.RgbToHex(bg_rgb.ToRGB());
-                var fg = bg_rgb.ToOklch().L > 0.6 ? "black" : "white";
-                AnsiConsole.Markup($"[{fg} on #{bg}]        [/]");
+                var cc_fg = bg_rgb.ToOklch().L > 0.6 ? CC_BLACK : CC_WHITE;
+                psb.sb.BgRGB(bg_rgb).Color(cc_fg).Append(" !@#$%^ ").Style();
             }
 
-            Console.WriteLine();
+            psb.sb.Print();
+            psb.sb.Clear();
         }
     }
 

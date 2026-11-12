@@ -1,5 +1,3 @@
-using Spectre.Console;
-
 namespace MemeIndex.Core.Analysis.Color.v1;
 
 public static class ColorTagService_Demo
@@ -16,6 +14,8 @@ public static class ColorTagService_Demo
         if (words is null) return;
 
         Console.WriteLine("\nCOLORS FOUND: " + words.Count);
+        using var psb = new PooledStringBuilder();
+
         var rows = Math.Ceiling(words.Count / 4.0);
         for (var row = 0; row < rows; row++)
         {
@@ -30,12 +30,12 @@ public static class ColorTagService_Demo
                     : word.Word[0] is 'Y'
                         ? ColorSearchProfile.ColorsGrayscale[word.Word]
                         : 0.ToRgb24();
-                var bg = ColorHelper.ColorConverter.RgbToHex(rgb24.ToRGB());
-                var fg = (rgb24.R + rgb24.G + rgb24.B) / 3 > 127 ? "black" : "white";
-                AnsiConsole.Markup($"[{fg} on #{bg}]\t#{word.Rank,7} - {word.Word,3}[/]");
+                var cc_fg = (rgb24.R + rgb24.G + rgb24.B) / 3 > 127 ? CC_BLACK : CC_WHITE;
+                psb.sb.BgRGB(rgb24).Color(cc_fg).Append($"\t#{word.Rank,7} - {word.Word,3}").Style();
             }
 
-            Console.WriteLine();
+            psb.sb.Print();
+            psb.sb.Clear();
         }
 
         Console.WriteLine();

@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using Microsoft.Extensions.ObjectPool;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace MemeIndex.Tools.Logging;
 
@@ -226,6 +227,14 @@ public static class ConsoleLogger
     public static StringBuilder Color
         (this StringBuilder sb, ConsoleColor cc)
         => sb.Append("\e[").Append(cc.ToANSI()).Append('m');
+
+    public static StringBuilder FgRGB
+        (this StringBuilder sb, Rgb24 c)
+        => sb.Append("\e[38;2;").Append($"{c.R};{c.G};{c.B}").Append('m');
+
+    public static StringBuilder BgRGB
+        (this StringBuilder sb, Rgb24 c)
+        => sb.Append("\e[48;2;").Append($"{c.R};{c.G};{c.B}").Append('m');
 }
 
 public class PooledStringBuilder : IDisposable

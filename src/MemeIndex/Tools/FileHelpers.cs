@@ -1,5 +1,5 @@
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Metadata;
 
 namespace MemeIndex.Tools;
 
@@ -28,7 +28,7 @@ public static class FileHelpers
         catch (Exception e)
         {
             LogError($"Can't get image info: {path}. {e}");
-            return new ImageInfo(new PixelTypeInfo(24), new Size(720, 720), null);
+            return new ImageInfo(new Size(720, 720), new ImageMetadata());
         }
     }
 }

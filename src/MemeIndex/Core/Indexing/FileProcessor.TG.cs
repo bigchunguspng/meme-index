@@ -1,6 +1,7 @@
 using System.Threading.Channels;
 using MemeIndex.DB;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
@@ -93,7 +94,7 @@ public partial class FileProcessor
         FileFormat = WebpFileFormatType.Lossy,
         Quality = 85,
         Method = WebpEncodingMethod.Level2,
-        TransparentColorMode = WebpTransparentColorMode.Clear,
+        TransparentColorMode = TransparentColorMode.Clear,
     };
 
     private async Task Thumbnail_Save(ThumbgenContext c)
