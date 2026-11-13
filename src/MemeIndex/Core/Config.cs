@@ -99,26 +99,21 @@ public static class Config
             var line_raw = lines[i];
             var line = line_raw.Trim();
             if (line.IsNull_OrWhiteSpace()) continue;
-            if (line.StartsWith('#'  ))     continue;
-            if (line.StartsWith("== "))
+            if (line.StartsWith('#'))       continue;
+            if (line.StartsWith('['))
             {
-                section = line[3..];
+                section = line.EndsWith(']') ? line[1..^1] : line[1..];
             }
-            else if (section != "")
+            else if (line.Contains('='))
             {
-                var count = line.Split(bits, '=', TrimEntries | RemoveEmptyEntries);
-                if (count == 2)
-                {
-                    var name  = line[bits[0]];
-                    var value = line[bits[1]];
-                    if (SetProperty(section, name, value, ln).Failed())
-                        LogWarn(NAME_R, WARN_LINE_UNKNOWN.Format(ln, line_raw));
-                }
-                else
-                    LogWarn(NAME_R, WARN_LINE_INVALID.Format(ln, line_raw));
+                line.Split(bits, '=', TrimEntries);
+                var name  = line[bits[0]];
+                var value = line[bits[1]];
+                if (SetProperty(section, name, value, ln).Failed())
+                    LogWarn(NAME_R, WARN_UNKNOWN_LINE.Format(ln, line_raw));
             }
             else
-                LogWarn(NAME_R, WARN_LINE_ORPHAN.Format(ln, line_raw));
+                LogWarn(NAME_R, WARN_INVALID_PROP.Format(ln, line_raw));
         }
         ApplyConfig();
     });
@@ -138,7 +133,7 @@ public static class Config
         foreach (var (section, props) in Tree)
         {
             yield return "";
-            yield return $"== {section}";
+            yield return $"[{section}]";
             foreach (var (name, value) in props)
             {
                 yield return $"{name} = {value}";
@@ -166,7 +161,7 @@ public static class Config
         foreach (var (name,    value) in props)
         {
             if (SetProperty(section, name, value, 1).Failed())
-                LogWarn(NAME_R, WARN_LINE_UNKNOWN.Format(1, $"{section} : {name}"));
+                LogWarn(NAME_R, WARN_UNKNOWN_LINE.Format(1, $"{section} : {name}"));
         }
         ApplyConfig();
 
@@ -177,6 +172,9 @@ public static class Config
          || prev_urls != null && Server_URLs != null
          && prev_urls.Order().SequenceEqual(Server_URLs.Order()))
             _restart_needed = true;
+
+        if (_restart_needed)
+            LogWarn(NAME_W, "RESTART NEEDED!", ConsoleColor.Red);
 
         return _restart_needed;
     });
@@ -202,15 +200,15 @@ public static class Config
     {
         if (int.TryParse(s, out var n)) return n;
 
-        LogWarn(NAME_R, WARN_INT_INVALID.Format(ln, name, s, fallback.Encode()));
+        LogWarn(NAME_R, WARN_INVALID_INT.Format(ln, name, s, fallback.Encode()));
         return fallback;
     }
 
     private static string Encode
-        (this string[]? a) => a != null ? string.Join(';', a) : "--";
+        (this string[]? a) => a != null ? string.Join(';', a) : "";
 
     private static string[]? Parse_StringArray
-        (this string s) => s == "--" ? null : s.Split(';');
+        (this string s) => s == "" ? null : s.Split(';');
 
     private static string Encode(this TimeSpan t)
     {
@@ -236,7 +234,7 @@ public static class Config
         var match = _r_time.Match(s);
         if (match.Failed())
         {
-            LogWarn(NAME_R, WARN_TIME_INVALID.Format(ln, name, s, fallback.Encode()));
+            LogWarn(NAME_R, WARN_INVALID_TIME.Format(ln, name, s, fallback.Encode()));
             return fallback;
         }
         var value = match.ExtractGroup(1, double.Parse);
@@ -257,11 +255,13 @@ public static class Config
     private const string
         NAME_R = "[Config|R]",
         NAME_W = "[Config|W]",
-        WARN_LINE_ORPHAN  = "Line {0,2} - ignored - no section name found before it:\n{1}",
-        WARN_LINE_INVALID = "Line {0,2} - ignored - no name or/and value found:\n{1}",
-        WARN_LINE_UNKNOWN = "Line {0,2} - ignored - unknown property:\n{1}",
-        WARN_INT_INVALID  = "Line {0,2} - not a valid integer"  + ":\nNAME: {1}\nVALUE: {2}\nVALUE USED: {3}",
-        WARN_TIME_INVALID = "Line {0,2} - not a valid duration" + ":\nNAME: {1}\nVALUE: {2}\nVALUE USED: {3}";
+        N = "\n\e[47C\e[0m\e[3m", // prefix length + italics
+        M = "\n\e[37C\e[92m",     // prefix length - "FALLBACK: " + CC_GREEN
+        WARN_BASE = "Line {0,2} -> IGNORED ",
+        WARN_INVALID_PROP = $"{WARN_BASE}(no '=' found)"     + $"{N}{{1}}"                             + $"\e[0m",
+        WARN_UNKNOWN_LINE = $"{WARN_BASE}(unknown property)" + $"{N}{{1}}"                             + $"\e[0m",
+        WARN_INVALID_INT  = $"{WARN_BASE}(invalid int32)"    + $"{N}{{1}} = {{2}}{M}FALLBACK: {{1}} = {{3}}\e[0m",
+        WARN_INVALID_TIME = $"{WARN_BASE}(invalid time)"     + $"{N}{{1}} = {{2}}{M}FALLBACK: {{1}} = {{3}}\e[0m";
 }
 
 public class API_Config : Dictionary<string, Dictionary<string, string>>;
