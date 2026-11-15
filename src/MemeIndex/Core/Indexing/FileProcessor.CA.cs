@@ -1,88 +1,82 @@
+using System.Threading.Tasks.Dataflow;
 using MemeIndex.Core.Analysis.Color.v2;
 using MemeIndex.Core.Search;
 using MemeIndex.DB;
+using Microsoft.Data.Sqlite;
 
 namespace MemeIndex.Core.Indexing;
 
 public partial class FileProcessor
 {
-    private async Task StartColorAnalysis(StatusScope status)
+    private async Task CA_Start(StatusScope status)
     {
         const string CODE = "FP-CA";
         Log(CODE, "START");
 
-        // GET FILES
-        await using var con = await AppDB.ConnectTo_Main();
-        var db_files = await con.Files_GetToBeAnalyzed();
-        await con.CloseAsync();
-        Log(CODE, "GET FILES");
-
-        var files = db_files.Select(x => x.Compile()).ToArray();
-        if (files.Length == 0)
+        var db_files = await _con.Files_GetToBeAnalyzed();
+        if (db_files.Count == 0)
         {
             Log(CODE, "NOTHING TO PROCESS");
             return;
         }
+        Log(CODE, "GET FILES");
 
         App.SetStatus(status.Status);
 
+        var files = db_files.Select(x => new IX_Ctx
+        {
+            Id = x.id,
+            Path = x.GetPath(),
+        }).ToArray();
+        Log(CODE, "GET FILES*");
+
+        var b_load    = new TransformBlock<IX_Ctx, IX_Ctx> (FP_Load,    exec_ops_4cores_16files);
+        var b_analyze = new TransformBlock<IX_Ctx, DB_Task>(CA_Analyze, exec_ops_4cores_16files);
+        b_load   .LinkTo( b_analyze, link_ops_propagateCompletion);
+        b_analyze.LinkTo(_b_batch);
+        Log(CODE, "DEFINE BLOCKS");
+
         ImagePool.Book(files.Select(x => x.Path), files.Length);
-
-        if (InitJob_DB_Write() is { } job)
-            await job.StartAsync(CancellationToken.None);
-
-        // PROCESS
 
         foreach (var file in files)
         {
-            try
-            {
-                await AnalyzeImage_Color(file.Id, file.Path);
-            }
-            catch (Exception e)
-            {
-                LogError(e);
-                await MarkBrokenFile(file.Id, "color analysis");
-            }
+            if ((await b_load.SendAsync(file)).Failed())
+                LogWarn(CODE, $"FAILED TO SEND FILE {file.Id}");
         }
+        Log(CODE, "SEND FILES");
 
+        b_load.Complete();
+        await b_analyze.Completion;
+        
         Log(CODE, "DONE");
     }
 
-    private async Task AnalyzeImage_Color
-        (int id, string path, int minScore = 10)
+    private DB_Task CA_Analyze(IX_Ctx ix_ctx)
     {
-        var image = await ImagePool.Load(path, id);
-        Tracer.LogOpen(id, CA_SCAN);
-        var report = ColorAnalyzer_v2.ScanImage(image);
-        ImagePool.Return(path);
-        Tracer.LogJoin(id, CA_SCAN, CA_ANAL);
-        var tags = ColorTagger_v2.AnalyzeImageScan(report, minScore);
-        Tracer.LogDone(id, CA_ANAL);
-        LogDebug($"File {id,6} -> color analysis done");
-
-        var db_file = new DB_File_UpdateDate(id, DateTime.UtcNow);
-        var db_tags = tags
+        var ctx = new CA_Ctx(ix_ctx);
+        // Log("IX_Analyze", $"{ctx.Id}");
+        Tracer.LogOpen(ctx.Id, CA_SCAN);
+        var report = ColorAnalyzer_v2.ScanImage(ctx.Image);
+        ctx.Image = null!;
+        ImagePool.Return(ctx.Path);
+        Tracer.LogJoin(ctx.Id, CA_SCAN, CA_ANAL);
+        var tags = ColorTagger_v2.AnalyzeImageScan(report, minScore: 10);
+        ctx.DB_File = new DB_File_UpdateDate(ctx.Id, DateTime.UtcNow);
+        ctx.DB_Tags = tags
             .Select(x => new TagContent(x.Key, x.Value))
-            .Select(x => new DB_Tag_Insert(x, id));
-
-        await C_DB_Write.Writer.WriteAsync(async connection =>
-        {
-            Tracer.LogOpen(id, DB_W_TAGS);
-            await connection.Tags_CreateMany        (db_tags);
-            Jarvis.Cache_Clear();
-            Tracer.LogJoin(id, DB_W_TAGS, DB_W_FA);
-            await connection.File_UpdateDateAnalyzed(db_file);
-            Tracer.LogDone(id, DB_W_FA);
-        });
+            .Select(x => new DB_Tag_Insert(x, ctx.Id));
+        Tracer.LogDone(ctx.Id, CA_ANAL);
+        return (con, tx) => IX_WriteCA(ctx, con, tx);
     }
 
-    private async Task MarkBrokenFile(int file_id, string action_name)
+    private async Task IX_WriteCA
+        (CA_Ctx ctx, SqliteConnection con, SqliteTransaction tx)
     {
-        LogDebug($"File {file_id,6} -> BROKEN ({action_name})");
-        await C_DB_Write.Writer.WriteAsync(async connection =>
-        {
-            await connection.FileBroken_Create(file_id);
-        });
+        Tracer.LogOpen(ctx.Id, DB_W_TAGS);
+        await con.Tags_CreateMany(ctx.DB_Tags, tx);
+        Tracer.LogJoin(ctx.Id, DB_W_TAGS, DB_W_FA);
+        Jarvis.Cache_Clear();
+        await con.File_UpdateDateAnalyzed(ctx.DB_File, tx);
+        Tracer.LogDone(ctx.Id, DB_W_FA);
     }
 }

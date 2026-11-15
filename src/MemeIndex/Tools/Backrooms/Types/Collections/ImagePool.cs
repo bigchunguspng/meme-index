@@ -11,7 +11,7 @@ public class ImagePool(TraceCollector tracer, int lane)
     private readonly Dictionary<string, Task<Image<Rgba32>>>  _loadings = new();
 
     [MethodImpl(Synchronized)]
-    public void Book(IEnumerable<string> paths, int ensureCapacity = 0)
+    public void Book(IEnumerable<string> paths, int ensureCapacity = 0, int bookings = 1)
     {
         if (ensureCapacity > 0)
             _cache.EnsureCapacity(ensureCapacity);
@@ -20,10 +20,10 @@ public class ImagePool(TraceCollector tracer, int lane)
         foreach (var path in paths)
         {
             if (_cache.TryGetValue(path, out var booking))
-                booking.Bookings++;
+                booking.Bookings += bookings;
             else
             {
-                _cache.Add(path, new ImageBooking());
+                _cache.Add(path, new ImageBooking(bookings));
                 a++;
             }
 
@@ -76,9 +76,9 @@ public class ImagePool(TraceCollector tracer, int lane)
     }
 }
 
-public class ImageBooking
+public class ImageBooking(int bookings = 1)
 {
     public Image<Rgba32>? Image;
-    public int Bookings = 1;
+    public int Bookings = bookings;
     public bool Loading;
 }

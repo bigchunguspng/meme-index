@@ -1,5 +1,6 @@
-using System.Threading.Channels;
+using System.Threading.Tasks.Dataflow;
 using MemeIndex.DB;
+using Microsoft.Data.Sqlite;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Webp;
@@ -10,84 +11,89 @@ namespace MemeIndex.Core.Indexing;
 
 public partial class FileProcessor
 {
-    private async Task StartThumbnailGeneration(StatusScope status)
+    private async Task TG_Start(StatusScope status)
     {
         const string CODE = "FP-TG";
         Log(CODE, "START");
 
-        // GET FILES
-        await using var con = await AppDB.ConnectTo_Main();
-        var db_files = await con.Files_GetToBeThumbed();
-        await con.CloseAsync();
-        Log(CODE, "GET FILES");
-
-        var files = db_files.Select(x => x.Compile()).ToArray();
-        if (files.Length == 0)
+        var db_files = await _con.Files_GetToBeThumbed();
+        if (db_files.Count == 0)
         {
             Log(CODE, "NOTHING TO PROCESS");
             return;
         }
+        Log(CODE, "GET FILES");
 
         App.SetStatus(status.Status);
 
+        var files = db_files.Select(x => new IX_Ctx
+        {
+            Id = x.id,
+            Path = x.GetPath(),
+        }).ToArray();
+        Log(CODE, "GET FILES*");
+
+        var b_load    = new TransformBlock<IX_Ctx, IX_Ctx> (FP_Load,   exec_ops_4cores_16files);
+        var b_resize  = new TransformBlock<IX_Ctx, TG_Ctx> (TG_Resize, exec_ops_4cores_16files);
+        var b_webp    = new TransformBlock<TG_Ctx, DB_Task>(TG_Save,   exec_ops_4cores_16files);
+        b_load   .LinkTo( b_resize,  link_ops_propagateCompletion);
+        b_resize .LinkTo( b_webp,    link_ops_propagateCompletion);
+        b_webp   .LinkTo(_b_batch);
+        Log(CODE, "DEFINE BLOCKS");
+
         ImagePool.Book(files.Select(x => x.Path), files.Length);
-
-        if (InitJob_DB_Write() is { } job)
-            await job.StartAsync(CancellationToken.None);
-
-        // PROCESS
-
-        job_thumbsWebp = new Job_ThumbgenSaveWebp(this);
-        await job_thumbsWebp.StartAsync(CancellationToken.None);
 
         foreach (var file in files)
         {
-            try
-            {
-                await Thumbnail_Resize(file.Id, file.Path);
-            }
-            catch (Exception e)
-            {
-                LogError(e);
-                await MarkBrokenFile(file.Id, "thumbnail generation");
-            }
+            if ((await b_load.SendAsync(file)).Failed())
+                LogWarn(CODE, $"FAILED TO SEND FILE {file.Id}");
         }
+        Log(CODE, "SEND FILES");
 
-        C_TG_SaveWebp.Writer.Complete();
-
+        b_load.Complete();
+        await b_webp.Completion;
+        
         Log(CODE, "DONE");
     }
 
-    // LOAD + RESIZE
-
-    private static readonly Size _fitSize = new (174, 174);
-
-    private async Task Thumbnail_Resize(int id, string filePath)
+    private TG_Ctx TG_Resize(IX_Ctx ix_ctx)
     {
-        var source = await ImagePool.Load(filePath, id);
-        Tracer.LogOpen(id, TG_SIZE);
-        var size  = source.Size.FitSize(_fitSize);
-        var thumb = source.Clone(x => x.Resize(size, LanczosResampler.Lanczos3, compand: false));
-        ImagePool.Return(filePath);
-        Tracer.LogDone(id, TG_SIZE);
-        await C_TG_SaveWebp.Writer.WriteAsync(new ThumbgenContext(id, source, thumb));
+        var ctx = new TG_Ctx(ix_ctx);
+        Tracer.LogOpen(ctx.Id, TG_SIZE);
+        var size  = ctx.Image.Size.FitSize(_fitSize);
+        var thumb = ctx.Image.Clone(x => x.Resize(size, LanczosResampler.Lanczos3, compand: false));
+        ImagePool.Return(ctx.Path);
+        ctx.Thumb = thumb;
+        ctx.OG_Size = ctx.Image.Size;
+        ctx.Image = null!;
+        Tracer.LogDone(ctx.Id, TG_SIZE);
+        return ctx;
     }
 
-    // SAVE FILE
+    private async Task<DB_Task> TG_Save(TG_Ctx ctx)
+    {
+        var tdate = DateTime.UtcNow;
+        Tracer.LogOpen(ctx.Id, TG_SAVE);
+        var save = Dir_Thumbs
+            .EnsureDirectoryExist()
+            .Combine(GetThumbFilename(ctx.Id, tdate));
+        await ctx.Thumb.SaveAsWebpAsync(save, _encoder);
+        ctx.DB_File = new DB_File_UpdateDateSize(ctx.Id, tdate, ctx.OG_Size);
+        Tracer.LogDone(ctx.Id, TG_SAVE);
+        return (con, tx) => IX_ThumbnailWriteDB(ctx, con, tx);
+    }
 
-    private readonly    Channel<ThumbgenContext>
-        C_TG_SaveWebp = Channel.CreateUnbounded<ThumbgenContext>();
+    private async Task IX_ThumbnailWriteDB
+        (TG_Ctx ctx, SqliteConnection con, SqliteTransaction tx)
+    {
+        Tracer.LogOpen(ctx.Id, DB_W_FT);
+        await con.File_UpdateDateThumbGenerated(ctx.DB_File, tx);
+        Tracer.LogDone(ctx.Id, DB_W_FT);
+    }
 
-    private Job_ThumbgenSaveWebp? job_thumbsWebp;
+    //
 
-    public class Job_ThumbgenSaveWebp(FileProcessor task)
-        : ChannelJob<ThumbgenContext>
-        (
-            "Job/Thumbgen-Save-Webp",
-            task.C_TG_SaveWebp,
-            task.Thumbnail_Save,
-            exceptionHandler: e => App.LogException_JOB(e, "SAVE THUMBNAIL")
-        );
+    private static readonly Size _fitSize = new (174, 174);
 
     private static readonly WebpEncoder _encoder = new()
     {
@@ -97,39 +103,7 @@ public partial class FileProcessor
         TransparentColorMode = TransparentColorMode.Clear,
     };
 
-    private async Task Thumbnail_Save(ThumbgenContext c)
-    {
-        var id = c.FileId;
-        var tdate = DateTime.UtcNow;
-        Tracer.LogOpen(id, TG_SAVE);
-        var save = Dir_Thumbs
-            .EnsureDirectoryExist()
-            .Combine(GetThumbFilename(id, tdate));
-        await c.Thumb.SaveAsWebpAsync(save, _encoder);
-        Tracer.LogDone(id, TG_SAVE);
-        LogDebug($"File {id,6} -> thumbnail generated");
-
-        var result = c.ToDB_File(tdate);
-        await C_DB_Write.Writer.WriteAsync(async connection =>
-        {
-            Tracer.LogOpen(id, DB_W_FT);
-            await connection.File_UpdateDateThumbGenerated(result);
-            Tracer.LogDone(id, DB_W_FT);
-        });
-    }
-
     [MethodImpl(AggressiveInlining)]
     public static string GetThumbFilename
         (int id, DateTime tdate) => $"{id}-{new DateTimeOffset(tdate).ToUnixTimeSeconds()}.webp";
-}
-
-public readonly struct ThumbgenContext
-    (int fileId, Image source, Image thumb)
-{
-    public  readonly int    FileId     = fileId;
-    public  readonly Image  Thumb      = thumb;
-    private readonly Size   SourceSize = source.Size;
-
-    public DB_File_UpdateDateSize ToDB_File
-        (DateTime tdate) => new(FileId, tdate, SourceSize);
 }

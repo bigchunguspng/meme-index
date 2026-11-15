@@ -23,15 +23,13 @@ public static class DB_Tags
     // CREATE
 
     public static async Task Tags_CreateMany
-        (this SqliteConnection c, IEnumerable<DB_Tag_Insert> tags)
+        (this SqliteConnection c, IEnumerable<DB_Tag_Insert> tags, SqliteTransaction? tx = null)
     {
         const string SQL =
             "INSERT OR IGNORE "
           + "INTO tags (file_id, term, score) "
           + "VALUES (@file_id, @term, @score)";
-        await using var transaction = c.BeginTransaction();
-        await c.ExecuteAsync(SQL, tags, transaction);
-        await transaction.CommitAsync();
+        await c.ExecuteAsync(SQL, tags, tx);
     }
 
     // GET

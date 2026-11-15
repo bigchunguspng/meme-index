@@ -94,13 +94,13 @@ public static class DB_Files
     }
 
     public static async Task FileBroken_Create
-        (this SqliteConnection c, int id)
+        (this SqliteConnection c, int id, SqliteTransaction? tx = null)
     {
         const string SQL =
             "INSERT OR IGNORE "
             + "INTO files_broken (file_id) "
             + "VALUES (@id)";
-        await c.ExecuteAsync(SQL, new { id });
+        await c.ExecuteAsync(SQL, new { id }, tx);
     }
 
     // GET
@@ -184,20 +184,27 @@ public static class DB_Files
     }
 
     public static async Task File_UpdateDateAnalyzed
-        (this SqliteConnection c, DB_File_UpdateDate file)
+        (this SqliteConnection c, DB_File_UpdateDate file, SqliteTransaction? tx = null)
     {
         const string SQL = "UPDATE files SET adate = @date WHERE id = @id";
-        await c.ExecuteAsync(SQL, file);
+        await c.ExecuteAsync(SQL, file, tx);
     }
 
     public static async Task File_UpdateDateThumbGenerated
-        (this SqliteConnection c, DB_File_UpdateDateSize file)
+        (this SqliteConnection c, DB_File_UpdateDateSize file, SqliteTransaction? tx = null)
     {
         const string SQL =
             "UPDATE files "
           + "SET tdate = @date, image_w = @image_w, image_h = @image_h "
           + "WHERE id = @id";
-        await c.ExecuteAsync(SQL, file);
+        await c.ExecuteAsync(SQL, file, tx);
+    }
+
+    public static async Task Files_ResetAnalysisDate
+        (this SqliteConnection c)
+    {
+        const string SQL = "UPDATE files SET adate = NULL";
+        await c.ExecuteAsync(SQL);
     }
 
     public static async Task Files_ResetThumbDate
