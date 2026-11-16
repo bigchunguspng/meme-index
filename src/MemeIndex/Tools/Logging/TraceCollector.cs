@@ -61,10 +61,11 @@ public class TraceCollector((string Title, string TaskMeaning)[] lanes)
     private void LogDone
         (int lane_id, int task_id, DateTime time)
     {
-        var        tasks = _lanes[lane_id].Tasks;
-        var    i = tasks.FindLastIndex(x => x.Id == task_id);
-        var task = tasks[i];
+        var     tasks = _lanes[lane_id].Tasks;
+        var i = tasks.FindLastIndex(x => x.Id == task_id);
+        if (i < 0) return;
 
+        var task = tasks[i];
         tasks[i] = task with { Duration = time - task.Start };
     }
 

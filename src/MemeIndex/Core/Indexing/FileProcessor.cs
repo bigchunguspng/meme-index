@@ -8,32 +8,11 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace MemeIndex.Core.Indexing;
 
 // TODO:
-/*  - handle db write errors:
-        catch (Exception e)
-        {
-            App.LogException_JOB(e, "DB WRITE");
-            throw;
-        }
-        
-        foreach (var file in files)
-        {
-            try
-            {
-                await AnalyzeImage_Color(file.Id, file.Path);
-            }
-            catch (Exception e)
-            {
-                LogError(e);
-                await MarkBrokenFile(file.Id, "color analysis");
-            }
-        }
-        
-    - replace channels with other system (FP, Sync):
+/*  - replace channels with other system (FP, Sync):
         trigger while idle -> start work
         trigger while busy -> start work again when done (recheck)
     - handle errors in other jobs:
-        FP, Sync, FP-*
-    - mark broken files
+        Sync
     [optional]:
     - get files, unite lists, book once, process
 */
@@ -42,7 +21,10 @@ public delegate Task DB_Task(SqliteConnection con, SqliteTransaction tx);
 
 public partial class FileProcessor
 {
-    private const string NAME = "FP";
+    private const string
+        NAME    = "FP",
+        NAME_CA = "FP-CA",
+        NAME_TG = "FP-TG";
 
     public FileProcessor()
     {
@@ -60,30 +42,36 @@ public partial class FileProcessor
     /// e.g. ones with no/outdated processing date.
     public async Task Run()
     {
-        const string CODE = "FP";
-        Log(CODE, "START");
+        try
+        {
+            Log(NAME, "START");
 
-        await using var status = new StatusScope("PROCESSING");
-        await using var con = _con = await AppDB.ConnectTo_Main();
+            await using var status = new StatusScope("PROCESSING");
+            await using var con = _con = await AppDB.ConnectTo_Main();
 
-        _b_batch = new  BatchBlock<DB_Task>(16);
-        _b_write = new ActionBlock<DB_Task[]>(DB_BatchWrite);
-        _b_batch.LinkTo(_b_write, link_ops_propagateCompletion);
-        Log(CODE, "DEFINE BLOCKS");
+            _b_batch = new  BatchBlock<DB_Task>(16);
+            _b_write = new ActionBlock<DB_Task[]>(DB_BatchWrite);
+            _b_batch.LinkTo(_b_write, link_ops_propagateCompletion);
+            Log(NAME, "DEFINE BLOCKS");
 
-        var task1 = CA_Start(status);
-        var task2 = TG_Start(status);
-        Log(CODE, "START TASKS");
+            var task1 = CA_Start(status);
+            var task2 = TG_Start(status);
+            Log(NAME, "START TASKS");
 
-        await Task.WhenAll(task1, task2);
-        Log(CODE, "AWAIT TASKS");
+            await Task.WhenAll(task1, task2);
+            Log(NAME, "AWAIT TASKS");
 
-        _b_batch.Complete();
-        await _b_write.Completion;
-        await con.CloseAsync();
-        Log(CODE, "COMPLETE");
+            _b_batch.Complete();
+            await _b_write.Completion;
+            await con.CloseAsync();
+            Log(NAME, "COMPLETE");
 
-        await SaveTraceData();
+            await SaveTraceData();
+        }
+        catch (Exception e)
+        {
+            App.LogException_JOB(e, NAME);
+        }
     }
 
     // LOAD
@@ -92,8 +80,16 @@ public partial class FileProcessor
 
     private async Task<IX_Ctx> FP_Load(IX_Ctx ctx)
     {
-        // Log("IX_Load", $"{ctx.Id}");
-        ctx.Image = await ImagePool.Load(ctx.Path, ctx.Id);
+        try
+        {
+            ctx.Image = await ImagePool.Load(ctx.Path, ctx.Id);
+        }
+        catch (Exception e)
+        {
+            App.LogException_JOB(e, NAME);
+            ctx.Failed = true;
+        }
+
         return ctx;
     }
 
@@ -101,27 +97,38 @@ public partial class FileProcessor
 
     private int _db_write_id = 1;
 
-    private async Task DB_BatchWrite
-        (DB_Task[] tasks)
+    private async Task DB_BatchWrite(DB_Task[] tasks)
     {
-        Log(NAME, $"IX_DB_BatchWrite -> exec {tasks.Length} commands");
-        Tracer.LogOpen(_db_write_id, DB_WRITE);
-        await using var tx = _con.BeginTransaction();
-        foreach (var task in tasks)
+        try
         {
-            await task(_con, tx);
+            Tracer.LogOpen(_db_write_id, DB_WRITE);
+            await using var tx = _con.BeginTransaction();
+            foreach (var task in tasks)
+            {
+                await task(_con, tx);
+            }
+
+            await tx.CommitAsync();
+            Log(NAME, $"DB -> exec {tasks.Length} commands (task #{_db_write_id})");
         }
-        await tx.CommitAsync();
-        Tracer.LogDone(_db_write_id++, DB_WRITE);
+        catch (Exception e)
+        {
+            App.LogException_JOB(e, "DB WRITE");
+        }
+        finally
+        {
+            _db_write_id++;
+            Tracer.LogDone(_db_write_id, DB_WRITE);
+        }
     }
 
-    private DB_Task IX_MarkBrokenFile(int id, string action_name)
+    private DB_Task IX_MarkBrokenFile(int id, string category)
     {
-        LogDebug($"File {id,6} -> BROKEN ({action_name})");
-        return (con, tx) => IX_MarkBrokenFile(id, con, tx);
+        LogWarn(category, $"FAILED TO PROCESS FILE {id}");
+        return (con, tx) => DB_MarkBrokenFile(id, con, tx);
     }
 
-    private async Task IX_MarkBrokenFile
+    private async Task DB_MarkBrokenFile
         (int id, SqliteConnection con, SqliteTransaction tx)
     {
         await con.FileBroken_Create(id, tx);
@@ -208,12 +215,14 @@ public struct IX_Ctx
     public int                        Id      { get; set; }
     public string                     Path    { get; set; }
     public Image<Rgba32>              Image   { get; set; }
+    public bool                       Failed  { get; set; }
 }
 public struct TG_Ctx(IX_Ctx ctx)
 {
     public int                        Id      { get; set; } = ctx.Id;
     public string                     Path    { get; set; } = ctx.Path;
     public Image<Rgba32>              Image   { get; set; } = ctx.Image;
+    public bool                       Failed  { get; set; } = ctx.Failed;
     public Image<Rgba32>              Thumb   { get; set; }
     public Size                       OG_Size { get; set; }
     public DB_File_UpdateDateSize     DB_File { get; set; }
@@ -223,6 +232,7 @@ public struct CA_Ctx(IX_Ctx ctx)
     public int                        Id      { get; set; } = ctx.Id;
     public string                     Path    { get; set; } = ctx.Path;
     public Image<Rgba32>              Image   { get; set; } = ctx.Image;
+    public bool                       Failed  { get; set; } = ctx.Failed;
     public DB_File_UpdateDate         DB_File { get; set; }
     public IEnumerable<DB_Tag_Insert> DB_Tags { get; set; }
 }
