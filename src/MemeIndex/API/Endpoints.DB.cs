@@ -13,7 +13,7 @@ public static partial class Endpoints
 
         await using var con = await AppDB.ConnectTo_Main();
         await con.Files_ResetThumbDate();
-        await FileProcessor.Trigger();
+        FileProcessor.Trigger();
 
         return Results.Ok();
     }

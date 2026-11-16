@@ -151,7 +151,7 @@ public static class Miku
             if (_monitoring)
             {
                 Log(NAME, "Sync!");
-                await Indexing.TriggerSync();
+                Indexing.TriggerSync();
             }
         }
     }

@@ -7,15 +7,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace MemeIndex.Core.Indexing;
 
-// TODO:
-/*  - replace channels with other system (FP, Sync):
-        trigger while idle -> start work
-        trigger while busy -> start work again when done (recheck)
-    - handle errors in other jobs:
-        Sync
-    [optional]:
-    - get files, unite lists, book once, process
-*/
+// TODO: get files, unite lists, book once, process
 
 public delegate Task DB_Task(SqliteConnection con, SqliteTransaction tx);
 
@@ -42,36 +34,29 @@ public partial class FileProcessor
     /// e.g. ones with no/outdated processing date.
     public async Task Run()
     {
-        try
-        {
-            Log(NAME, "START");
+        Log(NAME, "START");
 
-            await using var status = new StatusScope("PROCESSING");
-            await using var con = _con = await AppDB.ConnectTo_Main();
+        await using var status = new StatusScope("PROCESSING");
+        await using var con = _con = await AppDB.ConnectTo_Main();
 
-            _b_batch = new  BatchBlock<DB_Task>(16);
-            _b_write = new ActionBlock<DB_Task[]>(DB_BatchWrite);
-            _b_batch.LinkTo(_b_write, link_ops_propagateCompletion);
-            Log(NAME, "DEFINE BLOCKS");
+        _b_batch = new  BatchBlock<DB_Task>(16);
+        _b_write = new ActionBlock<DB_Task[]>(DB_BatchWrite);
+        _b_batch.LinkTo(_b_write, link_ops_propagateCompletion);
+        Log(NAME, "DEFINE BLOCKS");
 
-            var task1 = CA_Start(status);
-            var task2 = TG_Start(status);
-            Log(NAME, "START TASKS");
+        var task1 = CA_Start(status);
+        var task2 = TG_Start(status);
+        Log(NAME, "START TASKS");
 
-            await Task.WhenAll(task1, task2);
-            Log(NAME, "AWAIT TASKS");
+        await Task.WhenAll(task1, task2);
+        Log(NAME, "AWAIT TASKS");
 
-            _b_batch.Complete();
-            await _b_write.Completion;
-            await con.CloseAsync();
-            Log(NAME, "COMPLETE");
+        _b_batch.Complete();
+        await _b_write.Completion;
+        await con.CloseAsync();
+        Log(NAME, "COMPLETE");
 
-            await SaveTraceData();
-        }
-        catch (Exception e)
-        {
-            App.LogException_JOB(e, NAME);
-        }
+        await SaveTraceData();
     }
 
     // LOAD
@@ -150,23 +135,13 @@ public partial class FileProcessor
 
     // FILE PROCESSING JOB
 
-    private static readonly Jack<int, Job_FileProcessing> Jack_FileProcessing = new();
+    private static readonly Jack Jack = new
+    (
+        async () => await new FileProcessor().Run(),
+        e => App.LogException_JOB(e, NAME)
+    );
 
-    public class Job_FileProcessing()
-        : ChannelJob_ExecuteOrStop
-        (
-            "Job/FileProcessing",
-            Jack_FileProcessing.Chan,
-            async () => await new FileProcessor().Run(),
-            "TASK DONE!",
-            e => App.LogException_JOB(e, "FILE PROCESSING")
-        );
-
-    public static async Task Trigger()
-    {
-        _   = Jack_FileProcessing.Chan.Writer.TryWrite(1);
-        await Jack_FileProcessing.EnsureJobStarted();
-    }
+    public static void Trigger() => Jack.Trigger();
 
     // STATS
 

@@ -137,7 +137,7 @@ public static class MonitorsDispatcher
         // TRIGGER INDEXING
         if (c_new + c_upd > 0)
         {
-            await Indexing.TriggerSync();
+            Indexing.TriggerSync();
             sw.Log("[Update Monitors] TRIGGER SYNC");
         }
         else
