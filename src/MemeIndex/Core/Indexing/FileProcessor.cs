@@ -102,8 +102,7 @@ public partial class FileProcessor
         }
         finally
         {
-            _db_write_id++;
-            Tracer.LogDone(_db_write_id, DB_WRITE);
+            Tracer.LogDone(_db_write_id++, DB_WRITE);
         }
     }
 
