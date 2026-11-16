@@ -57,9 +57,8 @@ public partial class FileProcessor
         }
     }
 
-    private DB_Task CA_Analyze(IX_Ctx ix_ctx)
+    private DB_Task CA_Analyze(IX_Ctx ctx)
     {
-        var ctx = new CA_Ctx(ix_ctx);
         if (ctx.Failed)
             return IX_MarkBrokenFile(ctx.Id, NAME_CA);
 
@@ -67,16 +66,16 @@ public partial class FileProcessor
         {
             Tracer.LogOpen(ctx.Id, CA_SCAN);
             var report = ColorAnalyzer_v2.ScanImage(ctx.Image);
-            ctx.Image = null!;
             ImagePool.Return(ctx.Path);
             Tracer.LogJoin(ctx.Id, CA_SCAN, CA_ANAL);
             var tags = ColorTagger_v2.AnalyzeImageScan(report, minScore: 10);
-            ctx.DB_File = new DB_File_UpdateDate(ctx.Id, DateTime.UtcNow);
-            ctx.DB_Tags = tags
+            var ca_ctx = new CA_Ctx(ctx);
+            ca_ctx.DB_File = new DB_File_UpdateDate(ctx.Id, DateTime.UtcNow);
+            ca_ctx.DB_Tags = tags
                 .Select(x => new TagContent(x.Key, x.Value))
                 .Select(x => new DB_Tag_Insert(x, ctx.Id));
             Tracer.LogDone(ctx.Id, CA_ANAL);
-            return (con, tx) => DB_SaveCA(ctx, con, tx);
+            return (con, tx) => DB_SaveCA(con, tx, ca_ctx);
         }
         catch (Exception e)
         {
@@ -86,7 +85,7 @@ public partial class FileProcessor
     }
 
     private async Task DB_SaveCA
-        (CA_Ctx ctx, SqliteConnection con, SqliteTransaction tx)
+        (SqliteConnection con, SqliteTransaction tx, CA_Ctx ctx)
     {
         Tracer.LogOpen(ctx.Id, DB_W_TAGS);
         await con.Tags_CreateMany(ctx.DB_Tags, tx);

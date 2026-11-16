@@ -184,29 +184,23 @@ public partial class FileProcessor
     }
 }
 
-public struct IX_Ctx
+public struct IX_Ctx // 24 B
 {
+    public bool                       Failed  { get; set; }
     public int                        Id      { get; set; }
     public string                     Path    { get; set; }
     public Image<Rgba32>              Image   { get; set; }
-    public bool                       Failed  { get; set; }
 }
-public struct TG_Ctx(IX_Ctx ctx)
+public struct TG_Ctx(IX_Ctx ctx) // 24 B
 {
-    public int                        Id      { get; set; } = ctx.Id;
-    public string                     Path    { get; set; } = ctx.Path;
-    public Image<Rgba32>              Image   { get; set; } = ctx.Image;
     public bool                       Failed  { get; set; } = ctx.Failed;
+    public int                        Id      { get; set; } = ctx.Id;
     public Image<Rgba32>              Thumb   { get; set; }
     public Size                       OG_Size { get; set; }
-    public DB_File_UpdateDateSize     DB_File { get; set; }
 }
-public struct CA_Ctx(IX_Ctx ctx)
+public struct CA_Ctx(IX_Ctx ctx) // 24 B
 {
     public int                        Id      { get; set; } = ctx.Id;
-    public string                     Path    { get; set; } = ctx.Path;
-    public Image<Rgba32>              Image   { get; set; } = ctx.Image;
-    public bool                       Failed  { get; set; } = ctx.Failed;
-    public DB_File_UpdateDate         DB_File { get; set; }
+    public DB_File_UpdateDate         DB_File { get; set; } 
     public IEnumerable<DB_Tag_Insert> DB_Tags { get; set; }
 }

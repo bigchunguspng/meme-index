@@ -64,12 +64,11 @@ public partial class FileProcessor
         try
         {
             Tracer.LogOpen(ctx.Id, TG_SIZE);
-            var size = ctx.Image.Size.FitSize(_fitSize);
-            var thumb = ctx.Image.Clone(x => x.Resize(size, LanczosResampler.Lanczos3, compand: false));
-            ImagePool.Return(ctx.Path);
-            ctx.Thumb = thumb;
-            ctx.OG_Size = ctx.Image.Size;
-            ctx.Image = null!;
+            ctx.OG_Size = ix_ctx.Image.Size;
+            var thumb_size = ctx.OG_Size.FitSize(_fitSize);
+            ctx.Thumb   = ix_ctx.Image.Clone
+                (x => x.Resize(thumb_size, LanczosResampler.Lanczos3, compand: false));
+            ImagePool.Return(ix_ctx.Path);
         }
         catch (Exception e)
         {
@@ -96,8 +95,9 @@ public partial class FileProcessor
                 .EnsureDirectoryExist()
                 .Combine(GetThumbFilename(ctx.Id, date));
             await ctx.Thumb.SaveAsWebpAsync(save, _encoder);
-            ctx.DB_File = new DB_File_UpdateDateSize(ctx.Id, date, ctx.OG_Size);
-            return (con, tx) => DB_SaveTG(ctx, con, tx);
+            ctx.Thumb.Dispose();
+            var db_file_update = new DB_File_UpdateDateSize(ctx.Id, date, ctx.OG_Size);
+            return (con, tx) => DB_SaveTG(con, tx, db_file_update);
         }
         catch (Exception e)
         {
@@ -111,11 +111,11 @@ public partial class FileProcessor
     }
 
     private async Task DB_SaveTG
-        (TG_Ctx ctx, SqliteConnection con, SqliteTransaction tx)
+        (SqliteConnection con, SqliteTransaction tx, DB_File_UpdateDateSize file)
     {
-        Tracer.LogOpen(ctx.Id, DB_W_FT);
-        await con.File_UpdateDateThumbGenerated(ctx.DB_File, tx);
-        Tracer.LogDone(ctx.Id, DB_W_FT);
+        Tracer.LogOpen(file.id, DB_W_FT);
+        await con.File_UpdateDateThumbGenerated(file, tx);
+        Tracer.LogDone(file.id, DB_W_FT);
     }
 
     //
