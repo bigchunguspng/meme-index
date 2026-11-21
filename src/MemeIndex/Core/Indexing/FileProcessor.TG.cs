@@ -11,48 +11,36 @@ namespace MemeIndex.Core.Indexing;
 
 public partial class FileProcessor
 {
-    private async Task TG_Start(StatusScope status)
+    private async Task TG_Start(IEnumerable<IX_Ctx> files)
     {
-        Log(NAME_TG, "START");
-
-        var db_files = await _con.Files_GetToBeThumbed();
-        if (db_files.Count == 0)
+        try
         {
-            Log(NAME_TG, "NOTHING TO PROCESS");
-            return;
-        }
-        Log(NAME_TG, "GET FILES");
+            Log(NAME_TG, "START");
 
-        App.SetStatus(status.Status);
+            var b_load    = new TransformBlock<IX_Ctx, IX_Ctx> (FP_Load,   exec_ops_4cores_16files);
+            var b_resize  = new TransformBlock<IX_Ctx, TG_Ctx> (TG_Resize, exec_ops_4cores_16files);
+            var b_webp    = new TransformBlock<TG_Ctx, DB_Task>(TG_Save,   exec_ops_4cores_16files);
+            b_load   .LinkTo( b_resize,  link_ops_propagateCompletion);
+            b_resize .LinkTo( b_webp,    link_ops_propagateCompletion);
+            b_webp   .LinkTo(_b_batch);
+            Log(NAME_TG, "DEFINE BLOCKS");
 
-        var files = db_files.Select(x => new IX_Ctx
-        {
-            Id = x.id,
-            Path = x.GetPath(),
-        }).ToArray();
-        Log(NAME_TG, "GET FILES*");
+            foreach (var file in files)
+            {
+                if ((await b_load.SendAsync(file)).Failed())
+                    LogError(NAME_TG, $"FAILED TO SEND FILE {file.Id}");
+            }
+            Log(NAME_TG, "SEND FILES");
 
-        var b_load    = new TransformBlock<IX_Ctx, IX_Ctx> (FP_Load,   exec_ops_4cores_16files);
-        var b_resize  = new TransformBlock<IX_Ctx, TG_Ctx> (TG_Resize, exec_ops_4cores_16files);
-        var b_webp    = new TransformBlock<TG_Ctx, DB_Task>(TG_Save,   exec_ops_4cores_16files);
-        b_load   .LinkTo( b_resize,  link_ops_propagateCompletion);
-        b_resize .LinkTo( b_webp,    link_ops_propagateCompletion);
-        b_webp   .LinkTo(_b_batch);
-        Log(NAME_TG, "DEFINE BLOCKS");
-
-        ImagePool.Book(files.Select(x => x.Path), files.Length);
-
-        foreach (var file in files)
-        {
-            if ((await b_load.SendAsync(file)).Failed())
-                LogError(NAME_TG, $"FAILED TO SEND FILE {file.Id}");
-        }
-        Log(NAME_TG, "SEND FILES");
-
-        b_load.Complete();
-        await b_webp.Completion;
+            b_load.Complete();
+            await b_webp.Completion;
         
-        Log(NAME_TG, "DONE");
+            Log(NAME_TG, "DONE");
+        }
+        catch (Exception e)
+        {
+            App.LogException_JOB(e, NAME_TG);
+        }
     }
 
     private TG_Ctx TG_Resize(IX_Ctx ix_ctx)

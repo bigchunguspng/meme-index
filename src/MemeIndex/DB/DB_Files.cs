@@ -40,8 +40,16 @@ public class DB_File_Get_WithPath
     public required string name;
 
     public string GetPath() => Path.Combine(path, name);
+}
 
-    public FilePathRecord Compile() => new (id, GetPath());
+public class DB_File_Get_ForFP
+{
+    public required int    id;
+    public required string path;
+    public required string name;
+    public required uint   tools;
+
+    public string GetPath() => Path.Combine(path, name);
 }
 
 public class DB_File_Insert(FileInfo info, int directory_id)
@@ -114,6 +122,26 @@ public static class DB_Files
           + "JOIN dirs d ON d.id = f.dir_id "
           + "WHERE f.id = @id";
         return await c.QuerySingleOrDefaultAsync<DB_File_Get_WithPath>(SQL, new { id });
+    }
+
+    public static async Task<List<DB_File_Get_ForFP>> Files_GetToBeProcessed
+        (this SqliteConnection c)
+    {
+        const string SQL =
+            "SELECT f.id, d.path, f.name, "
+          +   "(CASE WHEN (f.tdate IS NULL OR f.mdate > f.tdate) THEN 1 ELSE 0 END) "
+          + "| (CASE WHEN (f.adate IS NULL OR f.mdate > f.adate) THEN 2 ELSE 0 END) "
+          + "AS tools "
+          + "FROM files f "
+          + "JOIN dirs d ON d.id = f.dir_id "
+          + "WHERE NOT EXISTS "
+          + "(SELECT 1 FROM files_broken b WHERE b.file_id = f.id) "
+          + "AND ("
+          +    "f.tdate IS NULL OR f.mdate > f.tdate "
+          + "OR f.adate IS NULL OR f.mdate > f.adate"
+          + ")";
+
+        return await c.QueryAsync<DB_File_Get_ForFP>(SQL) as List<DB_File_Get_ForFP> ?? [];
     }
 
     public static async Task<List<DB_File_Get_WithPath>> Files_GetToBeAnalyzed

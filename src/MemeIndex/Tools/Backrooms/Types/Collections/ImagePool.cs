@@ -35,6 +35,31 @@ public class ImagePool(TraceCollector tracer, int lane)
             LogLevel.Debug, ConsoleColor.DarkGray);
     }
 
+    [MethodImpl(Synchronized)]
+    public void Book(IEnumerable<(string path, int bookings)> paths, int ensureCapacity = 0)
+    {
+        if (ensureCapacity > 0)
+            _cache.EnsureCapacity(ensureCapacity);
+
+        int b = 0, a = 0;
+        foreach (var (path, bookings) in paths)
+        {
+            if (_cache.TryGetValue(path, out var booking))
+                booking.Bookings += bookings;
+            else
+            {
+                _cache.Add(path, new ImageBooking(bookings));
+                a++;
+            }
+
+            b++;
+        }
+
+        var a_padded = a.ToString().PadLeft(b.ToString().Length);
+        Log("ImagePool", $"BOOKING: {a_padded}/{b} (added/booked)",
+            LogLevel.Debug, ConsoleColor.DarkGray);
+    }
+
     /// Make sure path was booked!
     [MethodImpl(Synchronized)]
     public Task<Image<Rgba32>> Load(string path, int id)

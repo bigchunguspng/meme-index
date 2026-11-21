@@ -8,36 +8,17 @@ namespace MemeIndex.Core.Indexing;
 
 public partial class FileProcessor
 {
-    private async Task CA_Start(StatusScope status)
+    private async Task CA_Start(IEnumerable<IX_Ctx> files)
     {
         try
         {
             Log(NAME_CA, "START");
-
-            var db_files = await _con.Files_GetToBeAnalyzed();
-            if (db_files.Count == 0)
-            {
-                Log(NAME_CA, "NOTHING TO PROCESS");
-                return;
-            }
-            Log(NAME_CA, "GET FILES");
-
-            App.SetStatus(status.Status);
-
-            var files = db_files.Select(x => new IX_Ctx
-            {
-                Id = x.id,
-                Path = x.GetPath(),
-            }).ToArray();
-            Log(NAME_CA, "GET FILES*");
 
             var b_load    = new TransformBlock<IX_Ctx, IX_Ctx> (FP_Load,    exec_ops_4cores_16files);
             var b_analyze = new TransformBlock<IX_Ctx, DB_Task>(CA_Analyze, exec_ops_4cores_16files);
             b_load   .LinkTo( b_analyze, link_ops_propagateCompletion);
             b_analyze.LinkTo(_b_batch);
             Log(NAME_CA, "DEFINE BLOCKS");
-
-            ImagePool.Book(files.Select(x => x.Path), files.Length);
 
             foreach (var file in files)
             {

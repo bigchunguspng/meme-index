@@ -90,25 +90,20 @@ public enum ExceptionCategory
     CRASH, API, JOB,
 }
 
-public class StatusScope(string? status) : IAsyncDisposable
+public class StatusScope(string? status) : IDisposable
 {
     public string? Status => status;
-    public TimeSpan Delay;
 
-    public static StatusScope Enter
-        (string? status)
+    public static StatusScope Enter(string? status)
     {
         App.SetStatus(status);
         return new StatusScope(status);
     }
 
-    public async ValueTask DisposeAsync()
+    public void Dispose()
     {
         if (App.Status == status)
         {
-            if (Delay != TimeSpan.Zero)
-                await Task.Delay(Delay);
-
             App.SetStatus();
         }
     }

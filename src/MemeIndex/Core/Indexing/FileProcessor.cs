@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Threading.Tasks.Dataflow;
 using MemeIndex.DB;
 using MemeIndex.Utils;
@@ -6,8 +7,6 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace MemeIndex.Core.Indexing;
-
-// TODO: get files, unite lists, book once, process
 
 public delegate Task DB_Task(SqliteConnection con, SqliteTransaction tx);
 
@@ -36,16 +35,36 @@ public partial class FileProcessor
     {
         Log(NAME, "START");
 
-        await using var status = new StatusScope("PROCESSING");
         await using var con = _con = await AppDB.ConnectTo_Main();
+
+        var db_files = await con.Files_GetToBeProcessed();
+        if (db_files.Count == 0)
+        {
+            Log(NAME, "NOTHING TO PROCESS");
+            return;
+        }
+        Log(NAME, "GET FILES");
+
+        using var status = StatusScope.Enter("PROCESSING");
+
+        var files = db_files.Select(file => new IX_Ctx
+        {
+            Id    = file.id,
+            Path  = file.GetPath(),
+            Tool  = (FP_Tool) file.tools,
+            Count = (byte) BitOperations.PopCount(file.tools),
+        }).ToArray();
+        Log(NAME, "GET FILES*");
+
+        ImagePool.Book(files.Select(x => (x.Path, (int) x.Count)), files.Length);
 
         _b_batch = new  BatchBlock<DB_Task>(16);
         _b_write = new ActionBlock<DB_Task[]>(DB_BatchWrite);
         _b_batch.LinkTo(_b_write, link_ops_propagateCompletion);
         Log(NAME, "DEFINE BLOCKS");
 
-        var task1 = CA_Start(status);
-        var task2 = TG_Start(status);
+        var task1 = CA_Start(files.Where(x => x.Tool.HasFlag(FP_Tool.CA)));
+        var task2 = TG_Start(files.Where(x => x.Tool.HasFlag(FP_Tool.TG)));
         Log(NAME, "START TASKS");
 
         await Task.WhenAll(task1, task2);
@@ -184,9 +203,14 @@ public partial class FileProcessor
     }
 }
 
+[Flags]
+public enum FP_Tool : byte { None = 0, TG = 1, CA = 2, OCR_Space = 4, OCR_LLM = 8 }
+
 public struct IX_Ctx // 24 B
 {
     public bool                       Failed  { get; set; }
+    public byte                       Count   { get; set; }
+    public FP_Tool                    Tool    { get; set; }
     public int                        Id      { get; set; }
     public string                     Path    { get; set; }
     public Image<Rgba32>              Image   { get; set; }

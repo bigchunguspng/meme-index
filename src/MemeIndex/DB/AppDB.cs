@@ -64,12 +64,14 @@ public static class AppDB
             "PRAGMA foreign_keys = ON;",
         _SQL_CREATE_TABLES_MAIN =
             """
-            CREATE TABLE IF NOT EXISTS dirs
+            CREATE TABLE IF NOT EXISTS
+                dirs
             (
                 id      INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                 path    TEXT    NOT NULL UNIQUE
             );
-            CREATE TABLE IF NOT EXISTS monitors
+            CREATE TABLE IF NOT EXISTS
+                monitors
             (
                 id      INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                 dir_id  INTEGER NOT NULL,
@@ -80,7 +82,8 @@ public static class AppDB
                 FOREIGN KEY (dir_id)
                 REFERENCES dirs (id) ON DELETE CASCADE
             );
-            CREATE TABLE IF NOT EXISTS files
+            CREATE TABLE IF NOT EXISTS
+                files
             (
                 id      INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                 dir_id  INTEGER NOT NULL,
@@ -96,7 +99,8 @@ public static class AppDB
                 FOREIGN KEY (dir_id)
                 REFERENCES dirs (id) ON DELETE CASCADE
             );
-            CREATE TABLE IF NOT EXISTS tags
+            CREATE TABLE IF NOT EXISTS
+                tags
             (
                 id      INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                 file_id INTEGER NOT NULL,
@@ -106,18 +110,21 @@ public static class AppDB
                 FOREIGN KEY (file_id)
                 REFERENCES files (id) ON DELETE CASCADE
             );
-            CREATE TABLE IF NOT EXISTS files_broken
+            CREATE TABLE IF NOT EXISTS
+                files_broken
             (
                 file_id INTEGER NOT NULL PRIMARY KEY,
                 FOREIGN KEY (file_id)
                 REFERENCES files (id) ON DELETE CASCADE
             );
-            CREATE INDEX IF NOT EXISTS ix_tags_term
-            ON tags (term);
+            CREATE INDEX IF NOT EXISTS
+                ix_tags_term
+                ON tags(term);
             """,
         _SQL_CREATE_TABLES_RAW =
             """
-            CREATE TABLE IF NOT EXISTS analysis
+            CREATE TABLE IF NOT EXISTS
+                analysis
             (
                 file_id INTEGER NOT NULL UNIQUE,
                 data    TEXT    NOT NULL
