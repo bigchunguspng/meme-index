@@ -174,11 +174,12 @@ public static class Indexing
         sw.Log("[Sync] MATCH FILES");
 
         // UPDATE DB FILES
-        await using var transaction = con.BeginTransaction();
-        if      (w_new.Count > 0)   await con.Files_CreateMany(transaction, w_new);
-        foreach (var file in w_upd) await con.File_Update     (transaction, file);
-        foreach (var file in w_del) await con.File_Delete     (transaction, file);
-        await transaction.CommitAsync();
+        await using var tx = con.BeginTransaction();
+        if      (w_new.Count > 0)   await con.Files_CreateMany(tx, w_new);
+        foreach (var file in w_upd) await con.File_Update     (tx, file);
+        foreach (var file in w_del) await con.File_Delete     (tx, file);
+        await con.VACUUM(w_del.Count > 0, tx);
+        await tx.CommitAsync();
         await con.CloseAsync();
         Jarvis.Cache_Clear();
         sw.Log($"[Sync] DB UPDATE FILES: {w_new.Count}/{w_upd.Count}/{w_del.Count} (new/upd/del)");

@@ -57,11 +57,20 @@ public static class AppDB
         return connection;
     }
 
+    public static async Task VACUUM
+        (this SqliteConnection c, bool condition = true, SqliteTransaction? transaction = null)
+    {
+        if (condition)
+            await c.ExecuteAsync(_SQL_VACUUM, null, transaction);
+    }
+
     private const string
         _SQL_PRAGMAS_PER_DB =
             "PRAGMA journal_mode = WAL;",
         _SQL_PRAGMAS_PER_CON =
             "PRAGMA foreign_keys = ON;",
+        _SQL_VACUUM =
+            "VACUUM;",
         _SQL_CREATE_TABLES_MAIN =
             """
             CREATE TABLE IF NOT EXISTS

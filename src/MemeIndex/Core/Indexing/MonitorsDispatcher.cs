@@ -111,11 +111,12 @@ public static class MonitorsDispatcher
         sw.Log("[Update Monitors] COMPARE");
 
         // UPDATE DB MONITORS
-        await using var transaction = con.BeginTransaction();
-        if      (monitors_new.Count > 0)  await con.Monitors_CreateMany(transaction, monitors_new);
-        foreach (var mon in monitors_upd) await con.Monitor_Update     (transaction, mon);
-        foreach (var mon in monitors_del) await con.Monitor_Delete     (transaction, mon);
-        await transaction.CommitAsync();
+        await using var tx = con.BeginTransaction();
+        if      (monitors_new.Count > 0)  await con.Monitors_CreateMany(tx, monitors_new);
+        foreach (var mon in monitors_upd) await con.Monitor_Update     (tx, mon);
+        foreach (var mon in monitors_del) await con.Monitor_Delete     (tx, mon);
+        await con.VACUUM(monitors_del.Count > 0, tx);
+        await tx.CommitAsync();
         var c_new = monitors_new.Count;
         var c_upd = monitors_upd.Count;
         var c_del = monitors_del.Count;
@@ -171,14 +172,16 @@ public static class MonitorsDispatcher
         var del_expected = 0;
         var del = 0;
 
-        await using var transaction = con.BeginTransaction();
+        await using var tx = con.BeginTransaction();
         foreach (var dir_id in orphans)
         {
             del_expected++;
-            del += await con.Dir_Delete(transaction, dir_id);
+            del += await con.Dir_Delete(tx, dir_id);
         }
 
-        await transaction.CommitAsync();
+        await con.VACUUM(del > 0, tx);
+
+        await tx.CommitAsync();
 
         if (del != del_expected)
             LogWarn($"[Update Monitors] DELETED {del} DIRS, expected to del {del_expected}");
