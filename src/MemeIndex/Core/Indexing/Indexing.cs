@@ -175,9 +175,9 @@ public static class Indexing
 
         // UPDATE DB FILES
         await using var tx = con.BeginTransaction();
-        if      (w_new.Count > 0)   await con.Files_CreateMany(w_new, tx);
-        foreach (var file in w_upd) await con.File_Update     (file,  tx);
-        foreach (var file in w_del) await con.File_Delete     (file,  tx);
+        if (w_new.Count > 0) await con.Files_CreateMany(w_new, tx);
+        if (w_upd.Count > 0) await con.Files_Update    (w_upd, tx);
+        if (w_del.Count > 0) await con.Files_Delete    (w_del, tx);
         await con.VACUUM(w_del.Count > 0, tx);
         await tx.CommitAsync();
         await con.CloseAsync();

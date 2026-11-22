@@ -56,22 +56,22 @@ public static class DB_Monitors
 
     // UPDATE
 
-    public static async Task Monitor_Update
-        (this SqliteConnection c, DB_Monitor_Update monitor, SqliteTransaction? tx = null)
+    public static async Task Monitors_Update
+        (this SqliteConnection c, IEnumerable<DB_Monitor_Update> monitors, SqliteTransaction? tx = null)
     {
         const string SQL =
             "UPDATE monitors "
           + "SET recurse = @recurse, enabled = @enabled "
           + "WHERE id = @id";
-        await c.ExecuteAsync(SQL, monitor, tx);
+        await c.ExecuteAsync(SQL, monitors, tx);
     }
 
     // DELETE
 
-    public static async Task Monitor_Delete
-        (this SqliteConnection c, int id, SqliteTransaction? tx = null)
+    public static async Task Monitors_Delete
+        (this SqliteConnection c, IEnumerable<int> ids, SqliteTransaction? tx = null)
     {
         const string SQL = "DELETE FROM monitors WHERE id = @id";
-        await c.ExecuteAsync(SQL, new { id }, tx);
+        await c.ExecuteAsync(SQL, ids.Select(id => new { id }), tx);
     }
 }

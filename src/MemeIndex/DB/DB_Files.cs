@@ -201,14 +201,14 @@ public static class DB_Files
 
     // UPDATE
 
-    public static async Task File_Update
-        (this SqliteConnection c, DB_File_Update file, SqliteTransaction? tx = null)
+    public static async Task Files_Update
+        (this SqliteConnection c, IEnumerable<DB_File_Update> files, SqliteTransaction? tx = null)
     {
         const string SQL =
             "UPDATE files "
           + "SET dir_id = @dir_id, name = @name, size = @size, cdate = @cdate, mdate = @mdate "
           + "WHERE id = @id";
-        await c.ExecuteAsync(SQL, file, tx);
+        await c.ExecuteAsync(SQL, files, tx);
     }
 
     public static async Task File_UpdateDateAnalyzed
@@ -244,10 +244,10 @@ public static class DB_Files
 
     // DELETE
 
-    public static async Task File_Delete
-        (this SqliteConnection c, int id, SqliteTransaction? tx)
+    public static async Task Files_Delete
+        (this SqliteConnection c, IEnumerable<int> ids, SqliteTransaction? tx)
     {
         const string SQL = "DELETE FROM files WHERE id = @id";
-        await c.ExecuteAsync(SQL, new { id }, tx);
+        await c.ExecuteAsync(SQL, ids.Select(id => new { id }), tx);
     }
 }

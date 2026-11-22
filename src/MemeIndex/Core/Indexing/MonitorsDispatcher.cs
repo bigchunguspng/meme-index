@@ -112,9 +112,9 @@ public static class MonitorsDispatcher
 
         // UPDATE DB MONITORS
         await using var tx = con.BeginTransaction();
-        if      (monitors_new.Count > 0)  await con.Monitors_CreateMany(monitors_new, tx);
-        foreach (var mon in monitors_upd) await con.Monitor_Update     (mon, tx);
-        foreach (var mon in monitors_del) await con.Monitor_Delete     (mon, tx);
+        if (monitors_new.Count > 0) await con.Monitors_CreateMany(monitors_new, tx);
+        if (monitors_upd.Count > 0) await con.Monitors_Update    (monitors_upd, tx);
+        if (monitors_del.Count > 0) await con.Monitors_Delete    (monitors_del, tx);
         await con.VACUUM(monitors_del.Count > 0, tx);
         await tx.CommitAsync();
         var c_new = monitors_new.Count;
