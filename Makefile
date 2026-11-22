@@ -11,12 +11,12 @@ else
 endif
 
 PROJ     := src/MemeIndex/MemeIndex.csproj
-WDIR_BIN := out/bin/Release/net8.0
-WDIR_PUB := out/bin/Publish/net8.0/$(RUNTIME)/publish
+WDIR_BIN := out/bin/Debug/net10.0
+WDIR_PUB := out/bin/Publish/net10.0/$(RUNTIME)/publish
 
-build:
+build-release:
 	dotnet build $(PROJ) -c Release --no-restore
-build-debug:
+build:
 	dotnet build $(PROJ) -c Debug   --no-restore
 restore:
 	dotnet restore $(PROJ)
@@ -24,8 +24,10 @@ restore:
 pub:
 	dotnet publish $(PROJ) -r $(RUNTIME) -c Publish --self-contained
 
-run-web:	build
+run-web-o:	build
 	-$(OPEN) "http://localhost:7373"
+	cd $(WDIR_BIN) && $(BIN) --dev -l
+run-web:	build
 	cd $(WDIR_BIN) && $(BIN) --dev -l
 run:		build
 	cd $(WDIR_BIN) && $(BIN) --dev args.txt
@@ -33,6 +35,11 @@ run-test:	build
 	cd $(WDIR_BIN) && $(BIN) --dev lab -t
 run-demo:	build
 	cd $(WDIR_BIN) && $(BIN) --dev lab -D args.txt
+
+p-web:
+	cd $(WDIR_PUB) && $(BIN) --dev -l
+p-test:
+	cd $(WDIR_PUB) && $(BIN) --dev lab -t
 
 clear:
 	rm "$(WDIR_BIN)/data/meme-index.db"

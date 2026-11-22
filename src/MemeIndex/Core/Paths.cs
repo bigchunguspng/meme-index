@@ -29,10 +29,6 @@ public static class Paths
         //  WEB
         Dir_WebRoot         = Config.WEB_ROOT ?? Dir_App.Combine("web"),
 
-        //  THUMBS
-        Dir_Thumbs          = Dir_UserData.Combine("thumbs"),
-        Dir_Thumbs_WEB      = "/thumb",
-
         //   CONFIG
         File_Ports          = Dir_AppData.Combine("ports.txt"),
         File_Config         = Dir_UserConfig.Combine("config.ini"),
@@ -64,7 +60,6 @@ public static class Paths
         Print($"   data     {Dir_UserData}",   Dir_UserData   .DirectoryExists ? G : R);
         Print("= UI");
         Print($"   static   {Dir_WebRoot}",    Dir_WebRoot    .DirectoryExists ? G : R);
-        Print($"   thumbs   {Dir_Thumbs}",     Dir_Thumbs     .DirectoryExists ? G : R);
     }
 }
 

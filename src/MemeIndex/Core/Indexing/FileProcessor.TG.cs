@@ -79,13 +79,12 @@ public partial class FileProcessor
         {
             Tracer.LogOpen(ctx.Id, TG_SAVE);
             var date = DateTime.UtcNow;
-            var save = Dir_Thumbs
-                .EnsureDirectoryExist()
-                .Combine(GetThumbFilename(ctx.Id, date));
-            await ctx.Thumb.SaveAsWebpAsync(save, _encoder);
+            var memory = new MemoryStream();
+            await ctx.Thumb.SaveAsWebpAsync(memory, _encoder);
             ctx.Thumb.Dispose();
-            var db_file_update = new DB_File_UpdateDateSize(ctx.Id, date, ctx.OG_Size);
-            return (con, tx) => DB_SaveTG(con, tx, db_file_update);
+            var db_file_update  = new DB_File_UpdateDateSize(ctx.Id, date, ctx.OG_Size);
+            var db_thumb_insert = new DB_Thumb_Insert       (ctx.Id, memory.ToArray());
+            return (con, tx) => DB_SaveTG(con, tx, db_file_update, db_thumb_insert);
         }
         catch (Exception e)
         {
@@ -99,10 +98,14 @@ public partial class FileProcessor
     }
 
     private async Task DB_SaveTG
-        (SqliteConnection con, SqliteTransaction tx, DB_File_UpdateDateSize file)
+    (
+        SqliteConnection con, SqliteTransaction tx,
+        DB_File_UpdateDateSize file, DB_Thumb_Insert thumb
+    )
     {
         Tracer.LogOpen(file.id, DB_W_FT);
         await con.File_UpdateDateThumbGenerated(file, tx);
+        await con.Thumb_CreateOrUpdate(thumb, tx);
         Tracer.LogDone(file.id, DB_W_FT);
     }
 

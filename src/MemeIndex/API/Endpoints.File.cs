@@ -18,14 +18,25 @@ public static partial class Endpoints
 
     public static async Task<IResult> Get_Thumb(int id)
     {
-        var files = Dir_Thumbs.GetFiles($"{id}-*.webp");
-        if (files.Length == 0)
+        await using var con = await AppDB.ConnectTo_Main();
+        var bytes = await con.Thumb_Get(id);
+        if (bytes.Length == 0)
             return Results.NotFound();
 
-        var path = files.Length == 1
-            ? files[0]
-            : files.OrderBy(x => x).Last();
-        return await GetImage_AsPng(path);
+        return await GetImage_AsPng(bytes);
+    }
+
+    public static async Task<IResult> Get_Thumb_WEBP
+        (HttpResponse response, int id)
+    {
+        await using var con = await AppDB.ConnectTo_Main();
+        var bytes = await con.Thumb_Get(id);
+        if (bytes.Length == 0)
+            return Results.NotFound();
+
+        response.Headers.CacheControl = "public,max-age=31536000,immutable";
+
+        return Results.File(bytes, "image/webp");
     }
 
     public static async Task<IResult> Image_Open(int id)
@@ -64,9 +75,20 @@ public static partial class Endpoints
         return path;
     }
 
+    private static async Task<IResult> GetImage_AsPng(byte[] bytes)
+    {
+        using var image = Image.Load<Rgba32>(bytes);
+        return await GetImage_AsPng(image);
+    }
+
     private static async Task<IResult> GetImage_AsPng(string path)
     {
         using var image = Image.Load<Rgba32>(path);
+        return await GetImage_AsPng(image);
+    }
+
+    private static async Task<IResult> GetImage_AsPng(Image<Rgba32> image)
+    {
         var memory = new MemoryStream();
         await image.SaveAsPngAsync(memory);
         memory.Position = 0;

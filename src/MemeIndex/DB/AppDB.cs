@@ -111,6 +111,14 @@ public static class AppDB
                 REFERENCES files (id) ON DELETE CASCADE
             );
             CREATE TABLE IF NOT EXISTS
+                thumbs
+            (
+                file_id INTEGER NOT NULL PRIMARY KEY,
+                thumb   BLOB    NOT NULL,
+                FOREIGN KEY (file_id)
+                REFERENCES files (id) ON DELETE CASCADE
+            );
+            CREATE TABLE IF NOT EXISTS
                 files_broken
             (
                 file_id INTEGER NOT NULL PRIMARY KEY,

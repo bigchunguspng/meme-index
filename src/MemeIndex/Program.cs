@@ -94,24 +94,14 @@ app.UseMiddleware<Mw_ExceptionHandling>();
 app.UseCors();
 app.UseDefaultFiles();
 app.UseStaticFiles();
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(Dir_Thumbs.EnsureDirectoryExist()),
-    RequestPath = Dir_Thumbs_WEB.Value,
-    ServeUnknownFileTypes = false,
-    OnPrepareResponse = ctx =>
-    {
-        ctx.Context.Response.Headers.CacheControl = "public,max-age=31536000,immutable";
-    },
-});
 
 // API
 
+app.MapGet ("/thumb/{id:int}",              Endpoints.Get_Thumb_WEBP);
 app.MapGet ("/api/config",                  Endpoints.Config_Get);
 app.MapPut ("/api/config",                  Endpoints.Config_Put);
 app.MapPost("/api/db/thumb/regenerate",     Endpoints.Thumbs_Regenerate);
 app.MapPost("/api/db/thumb/delete",         Endpoints.Thumbs_Delete);
-app.MapPost("/api/db/thumb/delete-unused",  Endpoints.Thumbs_DeleteUnused);
 app.MapGet ("/api/logs/traces",             Endpoints.GetJson_Traces);
 app.MapGet ("/api/logs/traces/{id}",        Endpoints.GetText_TraceFile);
 app.MapGet ("/api/logs/errs",               Endpoints.GetText_Errors);
