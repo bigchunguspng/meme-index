@@ -50,9 +50,9 @@ public static class DB_Dirs
     // DELETE
 
     public static async Task<int> Dir_Delete
-        (this SqliteConnection c, SqliteTransaction? transaction, int id)
+        (this SqliteConnection c, int id, SqliteTransaction? tx = null)
     {
         const string SQL = "DELETE FROM dirs WHERE id = @id";
-        return await c.ExecuteAsync(SQL, new { id }, transaction);
+        return await c.ExecuteAsync(SQL, new { id }, tx);
     }
 }

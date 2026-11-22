@@ -92,13 +92,13 @@ public static class DB_Files
     // CREATE
 
     public static async Task Files_CreateMany
-        (this SqliteConnection c, SqliteTransaction? transaction, IEnumerable<DB_File_Insert> files)
+        (this SqliteConnection c, IEnumerable<DB_File_Insert> files, SqliteTransaction? tx = null)
     {
         const string SQL =
             "INSERT OR IGNORE "
           + "INTO files (dir_id, name, size, cdate, mdate) "
           + "VALUES (@dir_id, @name, @size, @cdate, @mdate)";
-        await c.ExecuteAsync(SQL, files, transaction);
+        await c.ExecuteAsync(SQL, files, tx);
     }
 
     public static async Task FileBroken_Create
@@ -202,13 +202,13 @@ public static class DB_Files
     // UPDATE
 
     public static async Task File_Update
-        (this SqliteConnection c, SqliteTransaction? transaction, DB_File_Update file)
+        (this SqliteConnection c, DB_File_Update file, SqliteTransaction? tx = null)
     {
         const string SQL =
             "UPDATE files "
           + "SET dir_id = @dir_id, name = @name, size = @size, cdate = @cdate, mdate = @mdate "
           + "WHERE id = @id";
-        await c.ExecuteAsync(SQL, file, transaction);
+        await c.ExecuteAsync(SQL, file, tx);
     }
 
     public static async Task File_UpdateDateAnalyzed
@@ -245,9 +245,9 @@ public static class DB_Files
     // DELETE
 
     public static async Task File_Delete
-        (this SqliteConnection c, SqliteTransaction? transaction, int id)
+        (this SqliteConnection c, int id, SqliteTransaction? tx)
     {
         const string SQL = "DELETE FROM files WHERE id = @id";
-        await c.ExecuteAsync(SQL, new { id }, transaction);
+        await c.ExecuteAsync(SQL, new { id }, tx);
     }
 }

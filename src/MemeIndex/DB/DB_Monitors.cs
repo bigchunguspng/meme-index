@@ -33,13 +33,13 @@ public static class DB_Monitors
     // CREATE
 
     public static async Task Monitors_CreateMany
-        (this SqliteConnection c, SqliteTransaction? transaction, IEnumerable<DB_Monitor_Insert> monitors)
+        (this SqliteConnection c, IEnumerable<DB_Monitor_Insert> monitors, SqliteTransaction? tx = null)
     {
         const string SQL =
             "INSERT OR IGNORE "
             + "INTO monitors (dir_id, method, recurse, enabled) "
             + "VALUES (@dir_id, @method, @recurse, @enabled)";
-        await c.ExecuteAsync(SQL, monitors, transaction);
+        await c.ExecuteAsync(SQL, monitors, tx);
     }
 
     // GET
@@ -57,21 +57,21 @@ public static class DB_Monitors
     // UPDATE
 
     public static async Task Monitor_Update
-        (this SqliteConnection c, SqliteTransaction? transaction, DB_Monitor_Update monitor)
+        (this SqliteConnection c, DB_Monitor_Update monitor, SqliteTransaction? tx = null)
     {
         const string SQL =
             "UPDATE monitors "
           + "SET recurse = @recurse, enabled = @enabled "
           + "WHERE id = @id";
-        await c.ExecuteAsync(SQL, monitor, transaction);
+        await c.ExecuteAsync(SQL, monitor, tx);
     }
 
     // DELETE
 
     public static async Task Monitor_Delete
-        (this SqliteConnection c, SqliteTransaction? transaction, int id)
+        (this SqliteConnection c, int id, SqliteTransaction? tx = null)
     {
         const string SQL = "DELETE FROM monitors WHERE id = @id";
-        await c.ExecuteAsync(SQL, new { id }, transaction);
+        await c.ExecuteAsync(SQL, new { id }, tx);
     }
 }

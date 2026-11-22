@@ -112,9 +112,9 @@ public static class MonitorsDispatcher
 
         // UPDATE DB MONITORS
         await using var tx = con.BeginTransaction();
-        if      (monitors_new.Count > 0)  await con.Monitors_CreateMany(tx, monitors_new);
-        foreach (var mon in monitors_upd) await con.Monitor_Update     (tx, mon);
-        foreach (var mon in monitors_del) await con.Monitor_Delete     (tx, mon);
+        if      (monitors_new.Count > 0)  await con.Monitors_CreateMany(monitors_new, tx);
+        foreach (var mon in monitors_upd) await con.Monitor_Update     (mon, tx);
+        foreach (var mon in monitors_del) await con.Monitor_Delete     (mon, tx);
         await con.VACUUM(monitors_del.Count > 0, tx);
         await tx.CommitAsync();
         var c_new = monitors_new.Count;
@@ -176,7 +176,7 @@ public static class MonitorsDispatcher
         foreach (var dir_id in orphans)
         {
             del_expected++;
-            del += await con.Dir_Delete(tx, dir_id);
+            del += await con.Dir_Delete(dir_id, tx);
         }
 
         await con.VACUUM(del > 0, tx);

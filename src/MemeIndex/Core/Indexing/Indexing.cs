@@ -175,9 +175,9 @@ public static class Indexing
 
         // UPDATE DB FILES
         await using var tx = con.BeginTransaction();
-        if      (w_new.Count > 0)   await con.Files_CreateMany(tx, w_new);
-        foreach (var file in w_upd) await con.File_Update     (tx, file);
-        foreach (var file in w_del) await con.File_Delete     (tx, file);
+        if      (w_new.Count > 0)   await con.Files_CreateMany(w_new, tx);
+        foreach (var file in w_upd) await con.File_Update     (file,  tx);
+        foreach (var file in w_del) await con.File_Delete     (file,  tx);
         await con.VACUUM(w_del.Count > 0, tx);
         await tx.CommitAsync();
         await con.CloseAsync();
@@ -293,9 +293,9 @@ public static class Indexing
         // ADD FILES
         var files_insert = files
             .Select(x => new DB_File_Insert(x, directory_ids[x.DirectoryName!]));
-        await using var transaction = con.BeginTransaction();
-        await con.Files_CreateMany(transaction, files_insert);
-        await transaction.CommitAsync();
+        await using var tx = con.BeginTransaction();
+        await con.Files_CreateMany(files_insert, tx);
+        await tx.CommitAsync();
         await con.CloseAsync();
         sw.Log("[AddFilesToDB] ADD DIRS & FILES");
 
