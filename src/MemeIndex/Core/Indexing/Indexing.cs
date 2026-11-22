@@ -178,8 +178,8 @@ public static class Indexing
         if (w_new.Count > 0) await con.Files_CreateMany(w_new, tx);
         if (w_upd.Count > 0) await con.Files_Update    (w_upd, tx);
         if (w_del.Count > 0) await con.Files_Delete    (w_del, tx);
-        await con.VACUUM(w_del.Count > 0, tx);
         await tx.CommitAsync();
+        await con.VACUUM(w_del.Count > 0);
         await con.CloseAsync();
         Jarvis.Cache_Clear();
         sw.Log($"[Sync] DB UPDATE FILES: {w_new.Count}/{w_upd.Count}/{w_del.Count} (new/upd/del)");

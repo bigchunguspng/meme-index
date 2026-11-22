@@ -1,5 +1,5 @@
 using Dapper;
-using MemeIndex.Core.Search;
+using MemeIndex.Core;
 using Microsoft.Data.Sqlite;
 
 [module: DapperAot] // https://aot.dapperlib.dev/rules/DAP005
@@ -58,10 +58,17 @@ public static class AppDB
     }
 
     public static async Task VACUUM
-        (this SqliteConnection c, bool condition = true, SqliteTransaction? transaction = null)
+        (this SqliteConnection c, bool condition = true)
     {
-        if (condition)
-            await c.ExecuteAsync(_SQL_VACUUM, null, transaction);
+        try
+        {
+            if (condition)
+                await c.ExecuteAsync(_SQL_VACUUM);
+        }
+        catch (Exception e)
+        {
+            App.LogException(e, ExceptionCategory.DB);
+        }
     }
 
     private const string

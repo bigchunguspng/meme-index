@@ -115,7 +115,6 @@ public static class MonitorsDispatcher
         if (monitors_new.Count > 0) await con.Monitors_CreateMany(monitors_new, tx);
         if (monitors_upd.Count > 0) await con.Monitors_Update    (monitors_upd, tx);
         if (monitors_del.Count > 0) await con.Monitors_Delete    (monitors_del, tx);
-        await con.VACUUM(monitors_del.Count > 0, tx);
         await tx.CommitAsync();
         var c_new = monitors_new.Count;
         var c_upd = monitors_upd.Count;
@@ -125,6 +124,7 @@ public static class MonitorsDispatcher
         // DELETE ORPHANED DIRS
         var deleted = await DeleteOrphanedDirectories(con);
         if (deleted > 0) Jarvis.Cache_Clear();
+        await con.VACUUM(deleted + monitors_del.Count > 0);
         await con.CloseAsync();
         sw.Log($"[Update Monitors] DB DELETE ORPHAN DIRS: {deleted}");
 
@@ -178,8 +178,6 @@ public static class MonitorsDispatcher
             del_expected++;
             del += await con.Dir_Delete(dir_id, tx);
         }
-
-        await con.VACUUM(del > 0, tx);
 
         await tx.CommitAsync();
 

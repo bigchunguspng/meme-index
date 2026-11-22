@@ -87,7 +87,7 @@ public static class App
 
 public enum ExceptionCategory
 {
-    CRASH, API, JOB,
+    CRASH, API, JOB, DB,
 }
 
 public class StatusScope(string? status) : IDisposable
